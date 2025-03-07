@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FaEye, FaEyeSlash } from "react-icons/fa"; // 눈 모양 아이콘 추가
+import { FaEye, FaEyeSlash, FaCalendarAlt } from "react-icons/fa"; // 📌 눈 아이콘 & 달력 아이콘 추가
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -20,8 +20,10 @@ const SignupPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState(""); // 비밀번호 오류 메시지
   const [passwordStrength, setPasswordStrength] = useState(""); // 비밀번호 강도
+  const [birthDateFocus, setBirthDateFocus] = useState(false); // 포커스 여부 상태 관리
+  const [birthDateError, setBirthDateError] = useState(""); // 생년월일 오류 메시지 상태
 
-  // 입력값 변경 핸들러
+  // 📌 입력값 변경 핸들러
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
@@ -31,7 +33,52 @@ const SignupPage = () => {
     }
   };
 
-  // 비밀번호 유효성 검사
+  const handleBirthDateChange = (e) => {
+    let value = e.target.value.replace(/\D/g, ""); // 숫자만 입력 가능
+
+    if (value.length > 8) return; // 최대 8자리 제한
+
+    setFormData({ ...formData, birthDate: value });
+    setBirthDateError(""); // 입력할 때 오류 메시지 초기화
+  };
+
+  const handleBirthDateBlur = () => {
+    let { birthDate } = formData;
+    let value = birthDate.replace(/\D/g, ""); // 숫자만 유지
+
+    if (value.length !== 8) {
+      setBirthDateError("생년월일을 확인하세요.");
+      return;
+    }
+
+    let year = parseInt(value.slice(0, 4), 10);
+    let month = parseInt(value.slice(4, 6), 10);
+    let day = parseInt(value.slice(6, 8), 10);
+    let currentYear = new Date().getFullYear();
+
+    let errorMessage = "";
+
+    if (year > currentYear) {
+      errorMessage = `년도는 ${currentYear}년까지 입력 가능합니다.`;
+    } else if (month < 1 || month > 12) {
+      errorMessage = "월은 01~12 사이의 숫자만 입력 가능합니다.";
+    } else if (day < 1 || day > 31) {
+      errorMessage = "일은 01~31 사이의 숫자만 입력 가능합니다.";
+    }
+
+    if (errorMessage) {
+      setBirthDateError(errorMessage);
+      return;
+    }
+
+    let formattedDate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+    setFormData({ ...formData, birthDate: formattedDate });
+    setBirthDateError(""); // 오류 메시지 제거
+    setBirthDateFocus(false); // 포커스 해제 시 스타일 원래대로
+  };
+
+  // 📌 비밀번호 유효성 검사
   const validatePassword = (password) => {
     const lengthValid = password.length >= 8 && password.length <= 16;
     const hasUpperCase = /[A-Z]/.test(password);
@@ -45,7 +92,6 @@ const SignupPage = () => {
       setPasswordError("");
     }
 
-    // 비밀번호 강도 평가
     setPasswordStrength(getPasswordStrength(password, lengthValid, hasUpperCase, hasLowerCase, hasNumber, hasSpecialChar));
   };
 
@@ -125,12 +171,6 @@ const SignupPage = () => {
     }
   };
 
-
-  // 생년월일 변경 핸들러
-  const handleBirthDateChange = (e) => {
-    setFormData({ ...formData, birthDate: e.target.value });
-  };
-
   // 회원가입 요청
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -194,6 +234,7 @@ const SignupPage = () => {
               name="name"
               value={formData.name}
               onChange={handleChange}
+              maxLength="10" // 최대 16자 제한
               required
               className="mt-1 block w-full border-gray-300 rounded-md shadow-1-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
               placeholder="이름을 입력해주세요"
@@ -265,7 +306,7 @@ const SignupPage = () => {
               {/* 비밀번호 강도 표시 */}
               {passwordStrength && (
                 <span
-                className={`absolute top-1/2 right-10 transform -translate-y-1/2 flex items-center justify-center min-w-[40px] px-2 h-5 text-[10px] font-semibold leading-none rounded-full ${passwordStrength.color}`}
+                  className={`absolute top-1/2 right-10 transform -translate-y-1/2 flex items-center justify-center min-w-[40px] px-2 h-5 text-[10px] font-semibold leading-none rounded-full ${passwordStrength.color}`}
                 >
                   {passwordStrength.text}
                 </span>
@@ -311,15 +352,35 @@ const SignupPage = () => {
 
           {/* 생년월일 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">생년월일</label>
-            <input
-              type="date"
-              name="birthDate"
-              value={formData.birthDate || ""}
-              onChange={handleBirthDateChange}
-              required
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-            />
+            <label className="block text-sm font-medium text-gray-700">생년월일 (선택 사항)</label>
+            <div className="relative">
+
+              {/* 달력 아이콘 색상 변경 (정상: 주황색, 오류: 빨간색) */}
+              <FaCalendarAlt
+                className={`absolute left-3 top-1/2 transform -translate-y-1/2 transition-colors ${birthDateError ? "text-red-500" : birthDateFocus ? "text-orange-500" : "text-gray-400"}`}
+              />
+
+              {/* 입력 필드 */}
+              <input
+                type="text"
+                max="9999-12-31"
+                name="birthDate"
+                value={formData.birthDate}
+                onChange={handleBirthDateChange} // ✅ 입력할 때는 숫자만 유지
+                onBlur={handleBirthDateBlur} // ✅ 포커스 해제 시 YYYY-MM-DD 형식 적용
+                onFocus={() => setBirthDateFocus(true)} // ✅ 포커스 시 스타일 변경
+                className={`block w-full pl-10 py-2 border-2 rounded-md shadow-sm transition-colors sm:text-sm
+                  ${birthDateError
+                    ? "border-red-500 text-red-500 focus:ring-red-500 focus:border-red-500"  // 오류 발생 시
+                    : birthDateFocus
+                      ? "border-orange-500 focus:ring-orange-500 focus:border-orange-500"  // 포커스 시
+                      : "border-gray-300 focus:ring-orange-500 focus:border-orange-500" // 기본 상태
+                  }`}
+                placeholder="생년월일 8자리"
+                maxLength="10"
+              />
+            </div>
+            {birthDateError && <p className="text-red-500 text-xs mt-1">{birthDateError}</p>}
           </div>
 
           {/* 개인정보 동의 */}
