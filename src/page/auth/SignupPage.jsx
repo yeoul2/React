@@ -59,10 +59,10 @@ const SignupPage = () => {
     if (hasNumber) score++;
     if (hasSpecialChar) score++;
 
-    if (score === 0) return setPasswordStrength({ text: "사용불가", class: "dangerous on" });
-    if (score === 1) return setPasswordStrength({ text: "위험", class: "dangerous on" });
-    if (score === 2) return setPasswordStrength({ text: "보통", class: "warning on" });
-    return setPasswordStrength({ text: "안전", class: "safe on" });
+    if (score === 0) return { text: "사용불가", color: "bg-red-200 text-red-600" };
+    if (score === 1) return { text: "위험", color: "bg-red-200 text-red-600" };
+    if (score === 2) return { text: "보통", color: "bg-yellow-200 text-yellow-600" };
+    return { text: "안전", color: "bg-green-200 text-green-600" };
   };
 
   const handleEmailVerification = async () => {
@@ -232,6 +232,7 @@ const SignupPage = () => {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
+                maxLength="12" // 최대 12자 제한
                 required
                 className="flex-1 block w-full border-gray-300 rounded-l-md focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
                 placeholder="아이디를 입력해주세요"
@@ -255,6 +256,7 @@ const SignupPage = () => {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
+                maxLength="16" // 최대 16자 제한
                 required
                 className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm pr-16"
                 placeholder="비밀번호 입력"
@@ -262,7 +264,9 @@ const SignupPage = () => {
 
               {/* 비밀번호 강도 표시 */}
               {passwordStrength && (
-                <span className={`absolute inset-y-0 right-10 flex items-center px-2 how_secure ${passwordStrength.class}`}>
+                <span
+                className={`absolute top-1/2 right-10 transform -translate-y-1/2 flex items-center justify-center min-w-[40px] px-2 h-5 text-[10px] font-semibold leading-none rounded-full ${passwordStrength.color}`}
+                >
                   {passwordStrength.text}
                 </span>
               )}
@@ -290,6 +294,7 @@ const SignupPage = () => {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                maxLength="16" // 최대 16자 제한
                 required
                 className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm pr-10"
                 placeholder="비밀번호를 다시 입력해주세요."
