@@ -19,11 +19,12 @@ const TravelPage = () => {
   const [sortOrder, setSortOrder] = useState("최신순");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 3; // 페이지당 3개씩 표시
+  const pageGroupSize = 10; // 10페이지씩 그룹화
 
   // ✅ 로그인 상태 관리
   const [isLoggedIn, setIsLoggedIn] = useState(false); // 로그인 여부
   const [userId, setUserId] = useState(""); // 로그인한 유저의 ID
-  
+
   useEffect(() => {
     try {
       const user = localStorage.getItem("userId");
@@ -56,8 +57,11 @@ const TravelPage = () => {
   const paginatedPlaces = sortedPlaces.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(sortedPlaces.length / itemsPerPage); // 전체 페이지 계산
 
+  const startPage = Math.floor((currentPage - 1) / pageGroupSize) * pageGroupSize + 1;
+  const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
+
   return (
-    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
       {/* 여행 필터 */}
       <div className="py-8">
         <div className="flex flex-wrap items-center justify-between mb-8">
@@ -139,40 +143,46 @@ const TravelPage = () => {
       </div>
 
       {/* 페이지네이션 */}
-      <div className="mt-6 flex justify-center">
-        <button
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-          className="px-3 py-2 mx-1 border rounded-md text-sm bg-gray-100"
-        >
-          이전
-        </button>
-
-        {Array.from({ length: totalPages }, (_, i) => (
-          <button key={i} onClick={() => setCurrentPage(i + 1)} className={`px-3 py-2 mx-1 border rounded-md text-sm ${currentPage === i + 1 ? "bg-blue-500 text-white" : "text-gray-700 bg-white"}`}>
-            {i + 1}
+      <div className="mt-8 flex justify-center">
+        <nav className="relative z-0 inline-flex rounded-md shadow-sm border border-gray-300" aria-label="Pagination">
+          <button
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
+          >
+            맨앞
           </button>
-        ))}
-        <button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-2 mx-1 border rounded-md text-sm bg-gray-100">
-          다음
-        </button>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - pageGroupSize, 1))}
+            disabled={currentPage === 1}
+            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
+          >
+            ‹ 이전
+          </button>
+          {Array.from({ length: endPage - startPage + 1 }, (_, i) => (
+            <button 
+              key={i} 
+              onClick={() => setCurrentPage(startPage + i)} 
+              className={`relative inline-flex items-center px-4 py-2 text-sm font-medium border-r border-gray-300 cursor-pointer ${currentPage === startPage + i ? "text-white bg-orange-500" : "text-gray-700 bg-white hover:bg-orange-500 hover:text-white"}`}>
+              {startPage + i}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + pageGroupSize, totalPages))}
+            disabled={currentPage === totalPages}
+            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
+          >
+            다음 ›
+          </button>
+          <button
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white text-sm font-medium hover:bg-orange-500 hover:text-white cursor-pointer"
+          >
+            맨뒤
+          </button>
+        </nav>
       </div>
-
-      {/* 로그인 프롬프트 */}
-      {!isLoggedIn ? (
-        <div className="bg-custom bg-opacity-5 rounded-lg p-8 mt-4 mb-8 text-center">
-          <h2 className="text-2xl font-bold text-custom mb-4">더 많은 여행 정보를 확인하세요!</h2>
-          <p className="text-gray-600 mb-6">로그인하시면 상세 리뷰와 추천 여행지를 확인할 수 있습니다.</p>
-          <button className="rounded-md bg-custom text-white px-8 py-3 text-sm font-medium" onClick={handleLoginClick}>
-            지금 로그인하기
-          </button>
-        </div>
-      ) : (
-        <div className="bg-custom bg-opacity-5 rounded-lg p-8 mb-8 text-center">
-          <h2 className="text-2xl font-bold text-custom mb-4">환영합니다, {userId}님!</h2>
-          <p className="text-gray-600 mb-6">다른 사용자들의 여행기를 확인해보세요.</p>
-        </div>
-      )}
     </div>
   );
 };

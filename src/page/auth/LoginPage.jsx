@@ -67,6 +67,7 @@ const LoginPage = () => {
                 </div>
                 <input
                   type="text"
+                  maxLength={12} // 최대 12자 제한 추가
                   className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="아이디를 입력하세요"
                   value={email}
@@ -87,6 +88,7 @@ const LoginPage = () => {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"} // 🔥 상태에 따라 비밀번호 보이기/숨기기
+                  maxLength={16} // 최대 16자 제한 추가
                   className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="비밀번호를 입력하세요."
                   value={password}

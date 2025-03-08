@@ -86,6 +86,7 @@ const FindId = () => {
                     id="name"
                     name="name"
                     type="text"
+                    maxLength={10} // 최대 10자 제한 추가
                     value={formData.name}
                     onChange={handleChange}
                     onFocus={() => setIsNameFocused(true)}  // 이름 필드 포커스 시
