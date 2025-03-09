@@ -1,24 +1,25 @@
 import React, { useEffect, useState } from "react";
 
 const places = [
-  { id: 1, name: "성산일출봉", location: "제주도", image: "https://example.com/image1.jpg", rating: 4.5, reviews: 128, date: "2024-02-20" },
-  { id: 2, name: "남산서울타워", location: "서울", image: "https://example.com/image2.jpg", rating: 4.0, reviews: 256, date: "2024-02-18" },
-  { id: 3, name: "불국사", location: "경주", image: "https://example.com/image3.jpg", rating: 5.0, reviews: 198, date: "2024-02-15" },
-  { id: 4, name: "해운대", location: "부산", image: "https://example.com/image4.jpg", rating: 4.2, reviews: 311, date: "2024-02-10" },
-  { id: 5, name: "경복궁", location: "서울", image: "https://example.com/image5.jpg", rating: 4.7, reviews: 421, date: "2024-02-05" },
-  { id: 6, name: "한라산", location: "제주도", image: "https://example.com/image6.jpg", rating: 4.6, reviews: 211, date: "2024-02-01" },
-  { id: 7, name: "광안리", location: "부산", image: "https://example.com/image7.jpg", rating: 4.3, reviews: 189, date: "2024-01-25" },
-  { id: 8, name: "설악산", location: "강원도", image: "https://example.com/image8.jpg", rating: 4.8, reviews: 237, date: "2024-01-20" },
-  { id: 9, name: "전주 한옥마을", location: "전주", image: "https://example.com/image9.jpg", rating: 4.4, reviews: 320, date: "2024-01-15" },
-  { id: 10, name: "대구 83타워", location: "대구", image: "https://example.com/image10.jpg", rating: 4.1, reviews: 142, date: "2024-01-10" }
+  { id: 1, name: "해보러감", location: "제주도", description: "아름다운 해돋이 명소", image: "https://example.com/image1.jpg", rating: 4.5, reviews: 128, date: "2024-02-20" },
+  { id: 2, name: "남산서울타워", location: "서울", description: "서울의 랜드마크", image: "https://example.com/image2.jpg", rating: 4.0, reviews: 256, date: "2024-02-18" },
+  { id: 3, name: "불국사", location: "경주", description: "서울의 랜드마크", image: "https://example.com/image3.jpg", rating: 5.0, reviews: 198, date: "2024-02-15" },
+  { id: 4, name: "해운대", location: "부산", description: "서울의 랜드마크", image: "https://example.com/image4.jpg", rating: 4.2, reviews: 311, date: "2024-02-10" },
+  { id: 5, name: "경복궁", location: "서울", description: "서울의 랜드마크", image: "https://example.com/image5.jpg", rating: 4.7, reviews: 421, date: "2024-02-05" },
+  { id: 6, name: "한라산", location: "제주도", description: "서울의 랜드마크", image: "https://example.com/image6.jpg", rating: 4.6, reviews: 211, date: "2024-02-01" },
+  { id: 7, name: "광안리", location: "부산", description: "서울의 랜드마크", image: "https://example.com/image7.jpg", rating: 4.3, reviews: 189, date: "2024-01-25" },
+  { id: 8, name: "설악산", location: "강원도", description: "서울의 랜드마크", image: "https://example.com/image8.jpg", rating: 4.8, reviews: 237, date: "2024-01-20" },
+  { id: 9, name: "전주 한옥마을", location: "전주", description: "서울의 랜드마크", image: "https://example.com/image9.jpg", rating: 4.4, reviews: 320, date: "2024-01-15" },
+  { id: 10, name: "대구 83타워", location: "대구", description: "서울의 랜드마크", image: "https://example.com/image10.jpg", rating: 4.1, reviews: 142, date: "2024-01-10" }
 ];
 
 const TravelPage = () => {
-  const [selectedRegion, setSelectedRegion] = useState("전체 지역");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFilter, setSearchFilter] = useState("제목만"); // 기본 필터 : 제목만
+  const [searchQuery, setSearchQuery] = useState(""); // 입력 칸 값
+  const [searchTerm, setSearchTerm] = useState(""); // 실제 검색 실행 후 값
   const [sortOrder, setSortOrder] = useState("최신순");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3; // 페이지당 3개씩 표시
+  const itemsPerPage = 4; // 페이지당 3개씩 표시
   const pageGroupSize = 10; // 10페이지씩 그룹화
 
   // ✅ 로그인 상태 관리
@@ -37,20 +38,40 @@ const TravelPage = () => {
     }
   }, []);
 
-  const handleLoginClick = () => {
+  // ✅ 로그인 체크 및 경고창
+  const handleLoginRedirect = () => {
+    alert("로그인 후 이용하세요.");
     window.location.href = "/login";
   };
 
-  // ✅ 필터링된 여행지 목록
-  const filteredPlaces = places
-    .filter((place) => selectedRegion === "전체 지역" || place.location.includes(selectedRegion))
-    .filter((place) => place.name.includes(searchQuery));
+  // ✅ 검색 실행 함수
+  const handleSearch = () => {
+    setSearchTerm(searchQuery); // 검색어 저장
+  };
 
-  // ✅ 정렬된 데이터 반환
+  // ✅ 검색 필터 적용
+  const filteredPlaces = places.filter((place) => {
+    if (!searchTerm) return true;
+
+    switch (searchFilter) {
+      case "제목만":
+        return place.name.includes(searchTerm);
+      case "내용만":
+        return place.description.includes(searchTerm);
+      case "나라":
+        return place.location.includes(searchTerm);
+      case "제목+내용":
+        return place.name.includes(searchTerm) || place.description.includes(searchTerm);
+      default:
+        return true;
+    }
+  });
+
+  // ✅ 정렬 기능 (최신순, 귤(만족도), 여율(인기순))
   const sortedPlaces = [...filteredPlaces].sort((a, b) => {
-    if (sortOrder === "인기순") return b.reviews - a.reviews;
-    if (sortOrder === "별점순") return b.rating - a.rating;
-    return new Date(b.date) - new Date(a.date); // 최신순 (날짜 내림차순)
+    if (sortOrder === "여율(인기순)") return b.reviews - a.reviews;
+    if (sortOrder === "귤(만족도)") return b.rating - a.rating;
+    return new Date(b.date) - new Date(a.date);
   });
 
   // ✅ 현재 페이지에 해당하는 데이터만 표시
@@ -61,123 +82,114 @@ const TravelPage = () => {
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
   return (
-    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-      {/* 여행 필터 */}
-      <div className="py-8">
-        <div className="flex flex-wrap items-center justify-between mb-8">
-          {/* 지역 선택 드롭다운 */}
-          <div className="w-full md:w-auto mb-4 md:mb-0">
-            <select
-              className="w-full md:w-48 border-gray-300 rounded-md text-sm"
-              value={selectedRegion}
-              onChange={(e) => setSelectedRegion(e.target.value)}
-            >
-              <option value="전체 지역">전체 지역</option>
-              <option value="서울">서울</option>
-              <option value="부산">부산</option>
-              <option value="제주">제주</option>
-            </select>
-          </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
 
-          {/* 검색창 & 정렬 방식 선택 + 글쓰기 버튼 */}
-          <div className="w-full md:w-auto flex items-center space-x-4">
-            {/* 검색 입력창 */}
-            <div className="relative flex-1 md:w-80">
-              <input
-                type="text"
-                placeholder="여행지 검색"
-                className="w-full pl-10 pr-4 py-2 border-gray-300 rounded-md text-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            </div>
+      {/* 검색 & 정렬 & 글쓰기 버튼 */}
+      <div className="py-8 flex flex-wrap items-center justify-between">
 
-            {/* 정렬 방식 선택 */}
-            <select
-              className="w-32 border-gray-300 rounded-md text-sm"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-            >
-              <option value="최신순">최신순</option>
-              <option value="인기순">인기순</option>
-              <option value="별점순">별점순</option>
-            </select>
+        {/* 검색 필터 (왼쪽 배치) */}
+        <div className="flex items-center space-x-2 border p-2 rounded-md shadow-sm w-full md:w-auto">
+          <select className="border px-4 py-2 rounded-md" value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)}>
+            <option value="제목만">제목만</option>
+            <option value="내용만">내용만</option>
+            <option value="나라">나라</option>
+            <option value="제목+내용">제목+내용</option>
+          </select>
 
-            {/* 글쓰기 버튼 추가 */}
-            <button
-              onClick={() => window.location.href = "/write"} // 글쓰기 페이지로 이동
-              className="bg-custom text-white px-4 py-2 text-sm rounded-md"
-            >
-              글쓰기
-            </button>
+          <input
+            type="text"
+            placeholder="검색어를 입력해 주세요."
+            className="border px-4 py-2 flex-1 rounded-md"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSearch(); //  엔터 키 입력 시 검색 실행
+            }}
 
-          </div>
+          />
+
+          <button className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md"
+            onClick={handleSearch}>🔍</button>
+
+        </div>
+
+        {/* 정렬 & 글쓰기 (오른쪽 배치) */}
+        <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
+          <select className="border px-4 py-2 rounded-md" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+            <option value="최신순">최신순</option>
+            <option value="귤(만족도)">🍊 귤(만족도)</option>
+            <option value="여율(인기순)" style={{ backgroundImage: "url('/your-image-url.png')", backgroundSize: "contain", backgroundRepeat: "no-repeat", paddingLeft: "30px" }}>여율(인기순)</option>
+          </select>
+
+          <button
+            className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
+            onClick={() => window.location.href = "/write"}
+          /* onClick={() => isLoggedIn ? window.location.href = "/write" : handleLoginRedirect()} */
+          >
+            글쓰기
+          </button>
         </div>
       </div>
 
       {/* 여행지 리스트 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
         {paginatedPlaces.map((place) => (
-          <div key={place.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div key={place.id} className="border p-4 rounded-md shadow-md">
             <img src={place.image} className="w-full h-48 object-cover" alt={place.name} />
-            <div className="p-4">
-              <h3 className="text-lg font-medium mb-2">{place.name}</h3>
-              <p className="text-sm text-gray-600">{place.location}</p>
-              <div className="flex items-center mb-3">
-                <div className="flex text-yellow-400">
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <i key={i} className={i < Math.floor(place.rating) ? "fas fa-star" : "far fa-star"}></i>
-                  ))}
-                </div>
-                <span className="ml-2 text-sm text-gray-600">{place.rating} ({place.reviews}개 리뷰)</span>
-              </div>
-              {/* 리뷰 날짜 표시 */}
-              <p className="text-sm text-gray-500">리뷰 날짜: {place.date}</p>
-              <button className="w-full rounded-md bg-custom text-white py-2 text-sm font-medium">
-                상세보기
-              </button>
+            <h3 className="text-lg font-semibold mt-2">{place.name}</h3>
+            <p className="text-sm text-gray-600">여행지: {place.location}</p>
+            <p className="text-sm text-gray-500">리뷰 날짜: {place.date}</p>
+
+            {/* 🍊 귤(만족도) 표시 */}
+            <div className="flex items-center mt-2">
+              <span className="text-lg">🍊</span>
+              <span className="text-gray-700 ml-2"> {place.rating} 만족도</span>
             </div>
+
+            <button className="w-full bg-orange-500 text-white py-2 mt-2 rounded-md hover:bg-orange-600"
+              onClick={() => isLoggedIn ? window.location.href = `/detail/${place.id}` : handleLoginRedirect()}>
+              상세보기
+            </button>
           </div>
         ))}
       </div>
 
       {/* 페이지네이션 */}
       <div className="mt-8 flex justify-center">
-        <nav className="relative z-0 inline-flex rounded-md shadow-sm border border-gray-300" aria-label="Pagination">
+        <nav className="relative z-0 inline-flex shadow-sm border border-gray-300" aria-label="Pagination">
           <button
             onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1}
-            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
+            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
           >
             맨앞
           </button>
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - pageGroupSize, 1))}
             disabled={currentPage === 1}
-            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
+            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
           >
             ‹ 이전
           </button>
           {Array.from({ length: endPage - startPage + 1 }, (_, i) => (
-            <button 
-              key={i} 
-              onClick={() => setCurrentPage(startPage + i)} 
-              className={`relative inline-flex items-center px-4 py-2 text-sm font-medium border-r border-gray-300 cursor-pointer ${currentPage === startPage + i ? "text-white bg-orange-500" : "text-gray-700 bg-white hover:bg-orange-500 hover:text-white"}`}>
+            <button
+              key={i}
+              onClick={() => setCurrentPage(startPage + i)}
+              className={`relative inline-flex items-center px-4 py-2 text-sm font-medium border-r border-gray-300 cursor-pointer ${currentPage === startPage + i ? "text-white bg-orange-500" : "text-gray-700 bg-white-100 hover:bg-orange-500 hover:text-white"}`}>
               {startPage + i}
             </button>
           ))}
           <button
             onClick={() => setCurrentPage((prev) => Math.min(prev + pageGroupSize, totalPages))}
             disabled={currentPage === totalPages}
-            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
+            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
           >
             다음 ›
           </button>
           <button
             onClick={() => setCurrentPage(totalPages)}
             disabled={currentPage === totalPages}
-            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white text-sm font-medium hover:bg-orange-500 hover:text-white cursor-pointer"
+            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium hover:bg-orange-500 hover:text-white cursor-pointer"
           >
             맨뒤
           </button>

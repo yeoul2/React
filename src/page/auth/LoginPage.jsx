@@ -38,6 +38,27 @@ const LoginPage = () => {
     }
   };
 
+  /* 
+  // 구글 로그인 API 호출 함수
+  const handleGoogleLogin = () => {
+    // 구글 로그인 API 연동 (예시)
+    window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_GOOGLE_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=token&scope=email";
+  };
+
+  // 네이버 로그인 API 호출 함수
+  const handleNaverLogin = () => {
+    // 네이버 로그인 API 연동 (예시)
+    window.location.href = "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=YOUR_NAVER_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&state=STATE";
+  };
+   */
+
+  /* 
+  // ✅ 카카오 로그인 API 호출 함수
+  const handleKakaoLogin = () => {
+    window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=YOUR_KAKAO_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code`;
+  };
+   */
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-cover bg-center"
       style={{
@@ -125,6 +146,47 @@ const LoginPage = () => {
               로그인
             </button>
           </form>
+
+          {/* SNS 로그인 버튼들 */}
+          <div className="mt-6 text-center text-sm">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">SNS 계정으로 로그인</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              {/* 구글 로그인 버튼 */}
+              <button
+                type="button"
+                className="w-full py-3 px-4 text-white bg-[#4285F4] hover:bg-[#4285F4]/90 rounded-md"
+                /* onClick={handleGoogleLogin} */
+              >
+                구글 로그인
+              </button>
+
+              {/* 네이버 로그인 버튼 */}
+              <button
+                type="button"
+                className="w-full py-3 px-4 text-white bg-[#03C75A] hover:bg-[#03C75A]/90 rounded-md"
+                /* onClick={handleNaverLogin} */
+              >
+                네이버 로그인
+              </button>
+
+              {/* 카카오 로그인 버튼 */}
+              <button
+                type="button"
+                className="w-full py-3 px-4 text-white bg-[#FEE500] text-black hover:bg-[#FEE500]/90 rounded-md"
+                /* onClick={handleKakaoLogin} */
+              >
+                카카오 로그인
+              </button>
+            </div>
+          </div>
 
           {/* 네비게이션 버튼 */}
           <div className="mt-6 text-center text-sm">
