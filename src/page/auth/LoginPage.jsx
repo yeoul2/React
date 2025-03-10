@@ -5,7 +5,7 @@ import axios from "axios";
 
 const LoginPage = () => {
   const navigate = useNavigate(); // useNavigate 훅 사용
-  const [email, setEmail] = useState("");
+  const [user_id, setUser_id] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isIdFocused, setIsIdFocused] = useState(false); // 아이디 필드 포커스 상태
@@ -17,7 +17,7 @@ const LoginPage = () => {
     e.preventDefault();
     try {
       const response = await axios.post("/api/login", {
-        email,
+        user_id,
         password
       }, { withCredentials: true });
 
@@ -89,8 +89,8 @@ const LoginPage = () => {
                   maxLength={12} // 최대 12자 제한 추가
                   className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="아이디를 입력하세요"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={user_id}
+                  onChange={(e) => setUser_id(e.target.value)}
                   onFocus={() => setIsIdFocused(true)}
                   onBlur={() => setIsIdFocused(false)}
                   required
