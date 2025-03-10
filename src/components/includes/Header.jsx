@@ -9,38 +9,60 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
   const [isLoggedIn, setIsLoggedIn] = useState(false); // 로그인 여부
   const [userId, setUserId] = useState(""); // 로그인한 사용자 ID
 
-  // ✅ 로그인 상태 확인 (백엔드 API 호출)
+  // ✅ 로그인 상태 확인
   useEffect(() => {
-    axios.get("/api/auth/check", { withCredentials: true }) // 서버에서 로그인 상태 확인 (쿠키 기반 인증)
-      .then((response) => {
-        if (response.data.isAuthenticated) {
-          // 로그인된 경우
+    const checkLoginStatus = async () => {
+      try {
+        const response = await axios.get("/api/auth/check", { withCredentials: true });
+        console.log("로그인 확인 응답:", response.data);
+
+        if (response.data.isAuthenticated && response.data.userId) {
           setIsLoggedIn(true);
-          setUserId(response.data.userId); // 사용자 ID 저장
+          setUserId(response.data.userId);
+        } else {
+          setIsLoggedIn(false);
+          setUserId("");
         }
-      })
-      .catch(() => {
-        // 로그인이 되어 있지 않은 경우
+      } catch (error) {
+        console.error("로그인 확인 오류:", error);
         setIsLoggedIn(false);
-        setUserId(""); // 사용자 ID 초기화
-      });
+        setUserId("");
+      }
+    };
+
+    checkLoginStatus();
+    window.addEventListener("storage", checkLoginStatus);
+
+    return () => window.removeEventListener("storage", checkLoginStatus);
   }, []);
 
   // ✅ 로그아웃 처리 함수
-  const handleLogout = () => {
-    axios.post("/api/auth/logout", {}, { withCredentials: true }) // 로그아웃 요청 (쿠키 삭제)
-      .then(() => {
-        setIsLoggedIn(false); // 로그인 상태 변경
-        setUserId(""); // 사용자 ID 초기화
-        navigate("/"); // 메인 페이지로 이동
-      })
-      .catch((error) => console.error("로그아웃 오류:", error));
+  const handleLogout = async () => {
+    try {
+      await axios.post("/api/logout", {}, { withCredentials: true });
+    } catch (error) {
+      console.error("로그아웃 오류:", error);
+    }
+
+    // ✅ localStorage에서 사용자 정보 삭제
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+
+    // ✅ 모든 페이지에서 즉시 로그아웃 상태가 반영됨
+    window.dispatchEvent(new Event("storage"));
+
+    setIsLoggedIn(false);
+    setUserId("");
+
+    navigate("/");
   };
+
 
   return (
     <header className="bg-white shadow-sm fixed w-full z-50 top-0 left-0 h-16">
       <nav className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
+
           {/* ✅ 왼쪽 - 로고 클릭 시 홈으로 이동 & 검색어 초기화 */}
           <img
             className="h-14 w-auto cursor-pointer"
@@ -63,7 +85,7 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
 
             <span
               className="cursor-pointer hover:text-orange-500 transition-all flex items-center gap-2"
-              onClick={() => navigate("/community")}
+              onClick={() => navigate("/board")}
             >
               <img src="/images/capybara_icon.png" alt="여울 아이콘" className="h-6 w-6" />
               여울! 코스 후기
@@ -80,11 +102,11 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
 
           {/* ✅ 오른쪽 - 로그인 상태에 따라 다른 UI 렌더링 */}
           <div className="flex items-center space-x-4 min-w-[160px]">
-            {isLoggedIn ? (
+            {isLoggedIn && userId ? (
               // ✅ 로그인 상태일 경우 (아이디 & 로그아웃 버튼 표시)
               <>
                 <span
-                  onClick={() => navigate("/mypage")}
+                  onClick={() => navigate("/mypage-check")}
                   className="text-gray-600 hover:text-orange-500 cursor-pointer flex items-center gap-2"
                 >
                   <img src="/images/capybara_face.png" alt="여울 얼굴" className="h-6 w-6" />
@@ -115,6 +137,7 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
               </>
             )}
           </div>
+
         </div>
       </nav>
     </header>
