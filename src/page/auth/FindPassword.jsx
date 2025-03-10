@@ -73,6 +73,7 @@ const FindPassword = () => {
                     id="user-id"
                     name="user-id"
                     type="text"
+                    maxLength={12} // 최대 12자 제한 추가
                     required
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}

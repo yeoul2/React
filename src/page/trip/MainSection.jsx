@@ -30,7 +30,15 @@ const MainSection = ({ searchText, setSearchText }) => {
   };
 
   return (
-    <main className="pt-16">
+    <main className="pt-10">
+      {/* ✅ 헤더와 간격 추가 + 글씨 배경 색상 추가 */}
+      <h1 className="text-5xl font-bold mb-6 font-cute tracking-wide whitespace-nowrap text-center">
+        <span className="bg-[rgba(186,230,253,0.5)] text-gray-900 px-6 py-3 rounded-md inline-block">
+          {/* <span className="bg-sky-200 opacity-50 text-gray-900 px-6 py-3 rounded-md inline-block"> 글씨까지 적용이 되서 위에 처럼 배경색을 직접 적용 */}
+          여울아~ 여행 코스 짜봐 이쁘게
+        </span>
+      </h1>
+
       <section className="relative bg-gray-900 h-[600px] overflow-hidden">
         {/* 배경 이미지 */}
         <img
@@ -40,31 +48,22 @@ const MainSection = ({ searchText, setSearchText }) => {
         />
 
         {/* 메인 컨텐츠 */}
-        <div className="relative max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-          <div className="text-white max-w-2xl">
-            <h1 className="text-5xl font-bold mb-6">
-              세계의 축제와 문화를 <br /> 경험하세요
-            </h1>
-            <p className="text-xl mb-8">
-              전 세계의 다양한 문화와 축제를 통해 특별한 여행을 계획해보세요
-            </p>
-
-            {/* 검색창 */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="국가나 축제 이름을 검색하세요"
-                className="rounded-md w-full py-4 px-6 text-gray-900 pr-12"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-              <button
-                className="rounded-md absolute right-2 top-1/2 transform -translate-y-1/2 bg-custom text-white p-2"
-                onClick={handleSearch}
-              >
-                🔍
-              </button>
-            </div>
+        <div className="absolute top-32 left-1/2 transform -translate-x-1/2 z-10 text-white text-center">
+          {/* ✅ 검색창 간격 조정 */}
+          <div className="relative mx-auto w-96">
+            <input
+              type="text"
+              placeholder="국가나 축제 이름을 검색하세요"
+              className="rounded-md w-full py-4 px-6 text-gray-900 pr-12"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+            <button
+              className="rounded-md absolute right-2 top-1/2 transform -translate-y-1/2 bg-custom text-white p-2"
+              onClick={handleSearch}
+            >
+              🔍
+            </button>
           </div>
         </div>
       </section>

@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa"; // 👁️ 눈 아이콘 추가
+import axios from "axios";
 
 const LoginPage = () => {
   const navigate = useNavigate(); // useNavigate 훅 사용
-  const [email, setEmail] = useState("");
+  const [user_id, setUser_id] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isIdFocused, setIsIdFocused] = useState(false); // 아이디 필드 포커스 상태
@@ -14,29 +15,47 @@ const LoginPage = () => {
   // 로그인 요청 (DB 및 API 연동 가정)
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      const response = await fetch("http://localhost:7007/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, rememberMe }),
-      });
+      const response = await axios.post("/api/login", {
+        user_id,
+        password
+      }, { withCredentials: true });
 
-      const data = await response.json();
+      // ✅ 로그인 성공: JWT 토큰을 localStorage에 저장
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("userId", response.data.userId); // 사용자 ID 저장
 
-      if (!response.ok) {
-        alert(`로그인 실패: ${data.message || "오류 발생"}`);
-        return;
-      }
+      // ✅ 새로고침해도 로그인 유지하도록 전역 상태 업데이트 (이 코드가 없으면 헤더에서 로그인 인식을 못 함)
+      window.dispatchEvent(new Event("storage"));
 
       alert("로그인 성공!");
-      navigate("/"); // ✅ 로그인 성공 시 대시보드로 이동
+      navigate("/"); // ✅ 로그인 성공 시 메인 페이지로 이동
+      window.location.reload();
 
     } catch (error) {
       console.error("로그인 오류:", error);
-      alert("서버 오류가 발생했습니다. 다시 시도해주세요.");
+      alert("아이디 또는 비밀번호가 올바르지 않습니다.");
     }
   };
+
+
+  // 구글 로그인 API 호출 함수
+  const handleGoogleLogin = () => {
+    // 구글 로그인 API 연동 (예시)
+    window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_GOOGLE_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=token&scope=email";
+  };
+
+  // 네이버 로그인 API 호출 함수
+  const handleNaverLogin = () => {
+    // 네이버 로그인 API 연동 (예시)
+    window.location.href = "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=YOUR_NAVER_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&state=STATE";
+  };
+
+  // ✅ 카카오 로그인 API 호출 함수
+  const handleKakaoLogin = () => {
+    window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=YOUR_KAKAO_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code`;
+  };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-cover bg-center"
@@ -67,10 +86,11 @@ const LoginPage = () => {
                 </div>
                 <input
                   type="text"
+                  maxLength={12} // 최대 12자 제한 추가
                   className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="아이디를 입력하세요"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={user_id}
+                  onChange={(e) => setUser_id(e.target.value)}
                   onFocus={() => setIsIdFocused(true)}
                   onBlur={() => setIsIdFocused(false)}
                   required
@@ -87,6 +107,7 @@ const LoginPage = () => {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"} // 🔥 상태에 따라 비밀번호 보이기/숨기기
+                  maxLength={16} // 최대 16자 제한 추가
                   className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="비밀번호를 입력하세요."
                   value={password}
@@ -123,6 +144,47 @@ const LoginPage = () => {
               로그인
             </button>
           </form>
+
+          {/* SNS 로그인 버튼들 */}
+          <div className="mt-6 text-center text-sm">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">SNS 계정으로 로그인</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              {/* 구글 로그인 버튼 */}
+              <button
+                type="button"
+                className="w-full py-3 px-4 text-white bg-[#4285F4] hover:bg-[#4285F4]/90 rounded-md"
+                onClick={handleGoogleLogin}
+              >
+                구글 로그인
+              </button>
+
+              {/* 네이버 로그인 버튼 */}
+              <button
+                type="button"
+                className="w-full py-3 px-4 text-white bg-[#03C75A] hover:bg-[#03C75A]/90 rounded-md"
+                onClick={handleNaverLogin}
+              >
+                네이버 로그인
+              </button>
+
+              {/* 카카오 로그인 버튼 */}
+              <button
+                type="button"
+                className="w-full py-3 px-4 text-white bg-[#FEE500] text-black hover:bg-[#FEE500]/90 rounded-md"
+                onClick={handleKakaoLogin}
+              >
+                카카오 로그인
+              </button>
+            </div>
+          </div>
 
           {/* 네비게이션 버튼 */}
           <div className="mt-6 text-center text-sm">

@@ -25,20 +25,6 @@ const MyPage = () => {
 
   return (
     <div className="bg-gray-50 font-['Noto Sans KR'] min-h-screen">
-      {/* 네비게이션 바 */}
-      <nav className="bg-white shadow">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16">
-          <div className="flex items-center">
-            <img className="h-8 w-auto" src="https://ai-public.creatie.ai/gen_page/logo_placeholder.png" alt="로고" />
-          </div>
-          <div className="flex items-center">
-            <button className="bg-orange-500 text-white px-4 py-2 text-sm font-medium rounded-md hover:bg-orange-600">
-              로그아웃
-            </button>
-          </div>
-        </div>
-      </nav>
-
       {/* 메인 컨텐츠 */}
       <main className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-8">
@@ -63,6 +49,15 @@ const MyPage = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-500">이메일</p>
                   <p className="text-sm text-gray-900">travel_kim@example.com</p>
+                </div>
+                <button className="text-orange-500 border border-orange-500 px-4 py-2 text-sm font-medium rounded-md">
+                  수정
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">생년월일</p>
+                  <p className="text-sm text-gray-900">1999-05-15</p>
                 </div>
                 <button className="text-orange-500 border border-orange-500 px-4 py-2 text-sm font-medium rounded-md">
                   수정

@@ -46,23 +46,6 @@ const MypageCheck = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* 네비게이션 바 */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <img
-                  className="h-8 w-auto"
-                  src="https://ai-public.creatie.ai/gen_page/logo_placeholder.png"
-                  alt="로고"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* 메인 컨텐츠 */}
       <main className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-sm">
