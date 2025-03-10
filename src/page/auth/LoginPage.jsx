@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa"; // 👁️ 눈 아이콘 추가
+import axios from "axios";
 
 const LoginPage = () => {
   const navigate = useNavigate(); // useNavigate 훅 사용
@@ -14,31 +15,30 @@ const LoginPage = () => {
   // 로그인 요청 (DB 및 API 연동 가정)
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      const response = await fetch("http://localhost:7007/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, rememberMe }),
-      });
+      const response = await axios.post("/api/login", {
+        email,
+        password
+      }, { withCredentials: true });
 
-      const data = await response.json();
+      // ✅ 로그인 성공: JWT 토큰을 localStorage에 저장
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("userId", response.data.userId); // 사용자 ID 저장
 
-      if (!response.ok) {
-        alert(`로그인 실패: ${data.message || "오류 발생"}`);
-        return;
-      }
+      // ✅ 새로고침해도 로그인 유지하도록 전역 상태 업데이트 (이 코드가 없으면 헤더에서 로그인 인식을 못 함)
+      window.dispatchEvent(new Event("storage"));
 
       alert("로그인 성공!");
-      navigate("/"); // ✅ 로그인 성공 시 대시보드로 이동
+      navigate("/"); // ✅ 로그인 성공 시 메인 페이지로 이동
+      window.location.reload();
 
     } catch (error) {
       console.error("로그인 오류:", error);
-      alert("서버 오류가 발생했습니다. 다시 시도해주세요.");
+      alert("아이디 또는 비밀번호가 올바르지 않습니다.");
     }
   };
 
-  /* 
+
   // 구글 로그인 API 호출 함수
   const handleGoogleLogin = () => {
     // 구글 로그인 API 연동 (예시)
@@ -50,14 +50,12 @@ const LoginPage = () => {
     // 네이버 로그인 API 연동 (예시)
     window.location.href = "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=YOUR_NAVER_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&state=STATE";
   };
-   */
 
-  /* 
   // ✅ 카카오 로그인 API 호출 함수
   const handleKakaoLogin = () => {
     window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=YOUR_KAKAO_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code`;
   };
-   */
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-cover bg-center"
@@ -163,7 +161,7 @@ const LoginPage = () => {
               <button
                 type="button"
                 className="w-full py-3 px-4 text-white bg-[#4285F4] hover:bg-[#4285F4]/90 rounded-md"
-                /* onClick={handleGoogleLogin} */
+                onClick={handleGoogleLogin}
               >
                 구글 로그인
               </button>
@@ -172,7 +170,7 @@ const LoginPage = () => {
               <button
                 type="button"
                 className="w-full py-3 px-4 text-white bg-[#03C75A] hover:bg-[#03C75A]/90 rounded-md"
-                /* onClick={handleNaverLogin} */
+                onClick={handleNaverLogin}
               >
                 네이버 로그인
               </button>
@@ -181,7 +179,7 @@ const LoginPage = () => {
               <button
                 type="button"
                 className="w-full py-3 px-4 text-white bg-[#FEE500] text-black hover:bg-[#FEE500]/90 rounded-md"
-                /* onClick={handleKakaoLogin} */
+                onClick={handleKakaoLogin}
               >
                 카카오 로그인
               </button>
