@@ -116,7 +116,8 @@ const TravelPage = () => {
   const paginatedPlaces = sortedPlaces.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(sortedPlaces.length / itemsPerPage); // 전체 페이지 계산
 
-  const startPage = Math.floor((currentPage - 1) / pageGroupSize) * pageGroupSize + 1;
+  // ✅ startPage가 1 미만으로 내려가지 않도록 보정
+  const startPage = Math.max(1, Math.floor((currentPage - 1) / pageGroupSize) * pageGroupSize + 1);
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
   return (
