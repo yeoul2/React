@@ -1,5 +1,5 @@
-import React, { useState, createContext, useContext } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import React, { useState, createContext, useContext, useEffect } from "react";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
 import Layout from "./components/layout/Layout"; // ✅ Layout 가져오기
 import HomePage from "./page/trip/HomePage";
 import PlannerPage from "./page/planner/PlannerPage";
@@ -11,10 +11,10 @@ import TravelPage from "./page/notice/TravelPage";
 import TravelReviewForm from "./page/notice/TravelReviewForm";
 import MypageCheck from "./page/auth/MypageCheck";
 import "./index.css";
+import TripReview from "./page/notice/TripReview";
 
 // ✅ 검색 상태를 전역 관리하는 Context 생성
 const SearchContext = createContext();
-
 export const useSearch = () => useContext(SearchContext);
 
 const App = () => {
@@ -28,6 +28,7 @@ const App = () => {
             <Route path="/" element={<HomePage />} />
             <Route path="/course" element={<PlannerPage />} />
             <Route path="/board" element={<TravelPage />} />
+            <Route path="/board/:tb_no" element={<TripReview />} />
             <Route path="/write" element={<TravelReviewForm />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
@@ -40,5 +41,6 @@ const App = () => {
     </SearchContext.Provider>
   );
 };
+
 
 export default App;
