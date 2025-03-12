@@ -30,7 +30,7 @@ const MainSection = ({ searchText, setSearchText }) => {
   };
 
   return (
-    <main className="pt-16">
+    <main className="pt-10">
       {/* ✅ 헤더와 간격 추가 + 글씨 배경 색상 추가 */}
       <h1 className="text-5xl font-bold mb-6 font-cute tracking-wide whitespace-nowrap text-center">
         <span className="bg-[rgba(186,230,253,0.5)] text-gray-900 px-6 py-3 rounded-md inline-block">

@@ -6,7 +6,7 @@ import axios from "axios";
 const LoginPage = () => {
   const navigate = useNavigate(); // useNavigate 훅 사용
   const [user_id, setUser_id] = useState("");
-  const [user_pw, setUser_pw] = useState("");
+
   const [rememberMe, setRememberMe] = useState(false);
   const [isIdFocused, setIsIdFocused] = useState(false); // 아이디 필드 포커스 상태
   const [isPasswordFocused, setIsPasswordFocused] = useState(false); // 비밀번호 필드 포커스 상태
@@ -21,7 +21,7 @@ const LoginPage = () => {
     try {
       const response = await axios.post("/api/login", {
         user_id,
-        user_pw
+
       }, { withCredentials: true });
 
       console.log("✅ 로그인 성공, 응답 데이터:", response.data); // ✅ 응답 확인
