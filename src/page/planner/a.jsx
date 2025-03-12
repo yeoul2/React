@@ -43,7 +43,6 @@ const PlannerPage = () => {
   const searchQuery = searchParams.get("search") || ""; // 검색한 국가 가져오기
   const datePickerRef = useRef(null);
   const flatpickrInstance = useRef(null); // 📌 Flatpickr 인스턴스 저장
-
   // 📌 Flatpickr 초기화 및 관리
   useEffect(() => {
     if (datePickerRef.current) {
@@ -172,6 +171,10 @@ const PlannerPage = () => {
     setIsPeopleOpen(false);
   };
 
+  const toggleCountryInput = () => {
+    setIsCountryOpen(!isCountryOpen); // 클릭할 때마다 상태 토글
+  };
+
   // 📌 인원 선택 토글 기능
   const togglePeopleDropdown = () => {
     setIsPeopleOpen(!isPeopleOpen); // ✅ 인원수 상태만 변경
@@ -210,7 +213,6 @@ const PlannerPage = () => {
     }
   };
 
-
   // 📌 외부 클릭 시 드롭다운 닫기 기능 추가
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -248,10 +250,15 @@ const PlannerPage = () => {
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-3">
 
-          {/* 여행 국가 입력 */}
+          {/* 📌 여행 국가 입력 (클릭 시 토글) */}
           <div>
             <label className="block text-sm font-medium text-gray-700">여행 국가</label>
             <TravelSearch setCountry={setCountry} /> {/* TravelSearch 컴포넌트 추가 */}
+            <div
+              className="relative border border-gray-300 px-3 py-2 rounded-md shadow-sm cursor-pointer"
+              onClick={toggleCountryInput} // ✅ 클릭 시 열림/닫힘
+            >
+            </div>
           </div>
 
           {/* 여행 기간 선택 */}

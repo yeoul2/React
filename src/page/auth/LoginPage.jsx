@@ -22,6 +22,7 @@ const LoginPage = () => {
     try {
       const response = await axios.post("/api/login", {
         user_id,
+        user_pw
 
       }, { withCredentials: true });
 
