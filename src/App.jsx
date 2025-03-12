@@ -11,6 +11,7 @@ import TravelPage from "./page/notice/TravelPage";
 import TravelReviewForm from "./page/notice/TravelReviewForm";
 import MypageCheck from "./page/auth/MypageCheck";
 import "./index.css";
+import TripReview from "./page/notice/TripReview";
 
 // ✅ 검색 상태를 전역 관리하는 Context 생성
 const SearchContext = createContext();
@@ -28,6 +29,7 @@ const App = () => {
             <Route path="/" element={<HomePage />} />
             <Route path="/course" element={<PlannerPage />} />
             <Route path="/board" element={<TravelPage />} />
+            <Route path="/board/:tb_no" element={<TripReview />} />
             <Route path="/write" element={<TravelReviewForm />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
