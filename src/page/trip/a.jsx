@@ -31,32 +31,32 @@ const ContinentList = () => {
   };
 
   return (
-    <section className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h2 className="text-3xl font-bold mb-8">나라별 여행지</h2>
-
+    <section className="max-w-4xl mx-auto px-4 py-12">
+      <h2 className="text-3xl font-bold text-center mb-6">나라별 여행지</h2>
+      
       {/* 🔹 검색 입력창 및 버튼 */}
       <div className="flex gap-2 mb-6">
-      <input
-        type="text"
-        placeholder="나라 검색"
-        value={searchText}
-        onChange={(e) => setSearchText(e.target.value)}
+        <input
+          type="text"
+          placeholder="나라 검색"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
           className="border rounded-md p-2 flex-grow"
-      />
+        />
         <button className="bg-blue-500 text-white px-4 py-2 rounded-md" onClick={() => setSearchText("")}>초기화</button>
       </div>
-
+      
       {/* 🔹 나라 목록 표시 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {filteredContinents.map((continent, index) => (
           <div
             key={index}
             className="relative rounded-lg overflow-hidden group cursor-pointer"
             onClick={() => handleClick(continent)}
           >
-            <img src={continent.image} className="w-full h-48 object-cover" alt={continent.name} />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-              <span className="text-white font-medium">{continent.name}</span>
+            <img src={continent.image} className="w-full h-36 object-cover" alt={continent.name} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-3">
+              <span className="text-white font-medium text-sm">{continent.name}</span>
             </div>
           </div>
         ))}

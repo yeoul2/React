@@ -260,7 +260,7 @@ const PlannerPage = () => {
               onClick={togglePeopleDropdown}
             >
               <span className="text-gray-700">
-                성인 {adults}명, 어린이 {children}명
+                인원 {adults}명
               </span>
               <i className={`fas fa-chevron-${isPeopleOpen ? "up" : "down"} text-gray-500`}></i>
             </div>
@@ -270,7 +270,7 @@ const PlannerPage = () => {
               <div className="border border-gray-300 mt-2 rounded-lg p-4 shadow-lg bg-white">
                 {/* 성인 선택 */}
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-gray-700">성인 (18세 이상)</span>
+                  <span className="text-gray-700">인원 수</span>
                   <div className="flex items-center">
                     <button
                       className="px-3 py-1 border rounded-full text-blue-500 hover:text-white hover:bg-orange-500"
@@ -282,26 +282,6 @@ const PlannerPage = () => {
                     <button
                       className="px-3 py-1 border rounded-full text-blue-500 hover:text-white hover:bg-orange-500"
                       onClick={() => setAdults(adults + 1)}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                {/* 어린이 선택 */}
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-gray-700">어린이 (17세 이하)</span>
-                  <div className="flex items-center">
-                    <button
-                      className="px-3 py-1 border rounded-full text-blue-500 hover:text-white hover:bg-orange-500"
-                      onClick={() => setChildren(Math.max(0, children - 1))}
-                    >
-                      −
-                    </button>
-                    <span className="mx-3">{children}</span>
-                    <button
-                      className="px-3 py-1 border rounded-full text-blue-500 hover:text-white hover:bg-orange-500"
-                      onClick={() => setChildren(children + 1)}
                     >
                       +
                     </button>
@@ -373,7 +353,7 @@ const PlannerPage = () => {
                 <div className="space-y-3">
                   {dayPlan.activities.map((activity, idx) => (
                     <div key={idx} className="flex items-start gap-4">
-                      <div className="w-32 text-sm text-gray-700 font-medium bg-orange-200 text-blue-700 rounded px-2 py-1">
+                      <div className="w-32 text-sm text-white font-medium bg-orange-300 rounded px-2 py-1">
                         {activity.time}
                       </div>
                       <div>
