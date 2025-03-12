@@ -7,26 +7,43 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
 
   // ✅ 로그인 상태 및 사용자 아이디를 관리하는 state
   const [isLoggedIn, setIsLoggedIn] = useState(false); // 로그인 여부
-  const [userId, setUserId] = useState(""); // 로그인한 사용자 ID
+  const [user_id, setUser_id] = useState(""); // 로그인한 사용자 ID
 
   // ✅ 로그인 상태 확인
   useEffect(() => {
     const checkLoginStatus = async () => {
+    const accessToken = localStorage.getItem("accessToken");
+    console.log("🔍 현재 저장된 토큰:", accessToken);  // ✅ 콘솔 출력 추가 (확인 필수!)
+
+    if (!accessToken) {
+      console.log("❌ 토큰 없음");
+      setIsLoggedIn(false);
+      setUser_id("");
+      return;
+
+    }
       try {
-        const response = await axios.get("/api/auth/check", { withCredentials: true });
+        //const response = await axios.get("/api/check",{
+        const response = await axios.get("/api/check",{
+          headers : {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        });
         console.log("로그인 확인 응답:", response.data);
 
         if (response.data.isAuthenticated && response.data.userId) {
           setIsLoggedIn(true);
-          setUserId(response.data.userId);
+          setUser_id(response.data.userId);
         } else {
           setIsLoggedIn(false);
-          setUserId("");
+          setUser_id("");
         }
       } catch (error) {
         console.error("로그인 확인 오류:", error);
         setIsLoggedIn(false);
-        setUserId("");
+        setUser_id("");
       }
     };
 
@@ -40,19 +57,23 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
   const handleLogout = async () => {
     try {
       await axios.post("/api/logout", {}, { withCredentials: true });
+      console.log("로그아웃 성공")
     } catch (error) {
       console.error("로그아웃 오류:", error);
     }
 
     // ✅ localStorage에서 사용자 정보 삭제
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");  // ✅ 리프레시 토큰도 삭제
+    localStorage.removeItem("role");  // ✅ 역할 정보 삭제
+    localStorage.removeItem("user_id");  // ✅ 사용자 ID 삭제
+    localStorage.removeItem("check");  // ✅ 추가적인 인증 관련 데이터 삭제
 
     // ✅ 모든 페이지에서 즉시 로그아웃 상태가 반영됨
     window.dispatchEvent(new Event("storage"));
 
     setIsLoggedIn(false);
-    setUserId("");
+    setUser_id("");
 
     navigate("/");
   };
@@ -102,7 +123,7 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
 
           {/* ✅ 오른쪽 - 로그인 상태에 따라 다른 UI 렌더링 */}
           <div className="flex items-center space-x-4 min-w-[160px]">
-            {isLoggedIn && userId ? (
+            {isLoggedIn && user_id ? (
               // ✅ 로그인 상태일 경우 (아이디 & 로그아웃 버튼 표시)
               <>
                 <span
@@ -110,7 +131,7 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
                   className="text-gray-600 hover:text-orange-500 cursor-pointer flex items-center gap-2"
                 >
                   <img src="/images/capybara_face.png" alt="여울 얼굴" className="h-6 w-6" />
-                  {userId}님 {/* 로그인한 사용자 ID 표시 */}
+                  {user_id}님 {/* 로그인한 사용자 ID 표시 */}
                 </span>
                 <button
                   onClick={handleLogout}

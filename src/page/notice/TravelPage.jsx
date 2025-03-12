@@ -18,15 +18,15 @@ const TravelPage = () => {
 
   // ✅ 로그인 상태 확인 DB연결
   useEffect(() => {
-    const token = localStorage.getItem("token"); // ✅ JWT 토큰 가져오기
-    setIsLoggedIn(!!token); // 토큰이 있으면 true, 없으면 false
+    const accessToken = localStorage.getItem("accessToken"); // ✅ JWT 토큰 가져오기
+    setIsLoggedIn(!!accessToken); // 토큰이 있으면 true, 없으면 false
   }, []);
 
   // ✅ 로그인/로그아웃 감지
   useEffect(() => {
     const checkLoginStatus = () => {
-      const token = localStorage.getItem("token");
-      setIsLoggedIn(!!token);
+      const accessToken = localStorage.getItem("accessToken");
+      setIsLoggedIn(!!accessToken);
     };
 
     checkLoginStatus(); // 최초 실행
