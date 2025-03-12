@@ -5,8 +5,8 @@ import axios from "axios";
 
 const LoginPage = () => {
   const navigate = useNavigate(); // useNavigate 훅 사용
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [user_id, setUser_id] = useState("");
+  const [user_pw, setUser_pw] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isIdFocused, setIsIdFocused] = useState(false); // 아이디 필드 포커스 상태
   const [isPasswordFocused, setIsPasswordFocused] = useState(false); // 비밀번호 필드 포커스 상태
@@ -15,22 +15,28 @@ const LoginPage = () => {
   // 로그인 요청 (DB 및 API 연동 가정)
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("🔵 로그인 버튼 클릭됨"); // ✅ 로그인 버튼 클릭 로그 추가
+    console.log("📤 로그인 요청 데이터:", { user_id, user_pw }); // ✅ 요청 데이터 확인
+    console.log("로그인 요청이 실행됨!")
     try {
       const response = await axios.post("/api/login", {
-        email,
-        password
+        user_id,
+        user_pw
       }, { withCredentials: true });
 
+      console.log("✅ 로그인 성공, 응답 데이터:", response.data); // ✅ 응답 확인
       // ✅ 로그인 성공: JWT 토큰을 localStorage에 저장
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("userId", response.data.userId); // 사용자 ID 저장
+      localStorage.setItem("accessToken", response.data.accessToken); //jwt 토큰 저장
+      localStorage.setItem("user_id", response.data.user_id); // 사용자 ID 저장
 
       // ✅ 새로고침해도 로그인 유지하도록 전역 상태 업데이트 (이 코드가 없으면 헤더에서 로그인 인식을 못 함)
       window.dispatchEvent(new Event("storage"));
 
       alert("로그인 성공!");
       navigate("/"); // ✅ 로그인 성공 시 메인 페이지로 이동
-      window.location.reload();
+      //window.location.reload();
+
+      console.log("서버응답 :", response.data)
 
     } catch (error) {
       console.error("로그인 오류:", error);
@@ -42,7 +48,8 @@ const LoginPage = () => {
   // 구글 로그인 API 호출 함수
   const handleGoogleLogin = () => {
     // 구글 로그인 API 연동 (예시)
-    window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_GOOGLE_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=token&scope=email";
+    //window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_GOOGLE_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=token&scope=email";
+    window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_GOOGLE_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=accessToken&scope=email";
   };
 
   // 네이버 로그인 API 호출 함수
@@ -89,8 +96,8 @@ const LoginPage = () => {
                   maxLength={12} // 최대 12자 제한 추가
                   className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="아이디를 입력하세요"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={user_id}
+                  onChange={(e) => setUser_id(e.target.value)}
                   onFocus={() => setIsIdFocused(true)}
                   onBlur={() => setIsIdFocused(false)}
                   required
@@ -110,8 +117,8 @@ const LoginPage = () => {
                   maxLength={16} // 최대 16자 제한 추가
                   className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="비밀번호를 입력하세요."
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={user_pw}
+                  onChange={(e) => setUser_pw(e.target.value)}
                   onFocus={() => setIsPasswordFocused(true)}
                   onBlur={() => setIsPasswordFocused(false)}
                   required

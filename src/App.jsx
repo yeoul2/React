@@ -1,5 +1,5 @@
-import React, { useState, createContext, useContext } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import React, { useState, createContext, useContext, useEffect } from "react";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
 import Layout from "./components/layout/Layout"; // ✅ Layout 가져오기
 import HomePage from "./page/trip/HomePage";
 import PlannerPage from "./page/planner/PlannerPage";
@@ -14,7 +14,6 @@ import "./index.css";
 
 // ✅ 검색 상태를 전역 관리하는 Context 생성
 const SearchContext = createContext();
-
 export const useSearch = () => useContext(SearchContext);
 
 const App = () => {
@@ -40,5 +39,6 @@ const App = () => {
     </SearchContext.Provider>
   );
 };
+
 
 export default App;
