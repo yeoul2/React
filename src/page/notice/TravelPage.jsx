@@ -73,8 +73,8 @@ const TravelPage = () => {
     const fetchData = async () => {
       try {
         const orderValue = sortOrder === "latest" ? "최신순" :
-                            sortOrder === "rating" ? "만족도순" :
-                            "인기순";
+          sortOrder === "rating" ? "만족도순" :
+            "인기순";
 
         // getBoardCount로 총 게시물 수 가져오기
         const boardCount = await getBoardCount(searchFilter, searchTerm);
@@ -98,13 +98,13 @@ const TravelPage = () => {
   useEffect(() => {
     const startPage = Math.floor((currentPage - 1) / pageGroupSize) * pageGroupSize + 1;
     const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
-  
+
     // 페이지 번호 배열 생성
     const pageNumbers = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
-  
+
     setPageNumbers(pageNumbers); // 페이지 번호 상태 업데이트
   }, [currentPage, totalPages]); // currentPage와 totalPages가 변경될 때마다 페이지 번호 재계산
-  
+
 
 
   // ✅ 드롭다운 외부 클릭 감지 코드
@@ -231,14 +231,14 @@ const TravelPage = () => {
             {/* 🍊 귤(만족도) 표시 */}
             <div className="flex items-center mt-2">
               <span className="text-lg " ></span>
-              <img src="./images/Capybara_tangerine.png" alt="" className="w-7 h-10"/>
+              <img src="./images/Capybara_tangerine.png" alt="" className="w-7 h-10" />
               <span className="text-orange-500 ml-2 fa-solid"> {place.tb_star}</span>
             </div>
 
             {/* 좋아요 표시 */}
             <div className="flex items-center mt-2">
               <span className="text-lg"></span>
-              <img src="./images/Capybara_heart.png" alt="" className="w-9 h-10"/>
+              <img src="./images/Capybara_heart.png" alt="" className="w-9 h-10" />
               <span className="text-orange-500 ml-2 fa-solid"> {place.tb_like_count}</span>
             </div>
             <button

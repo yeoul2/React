@@ -6,6 +6,7 @@ import axios from "axios";
 const LoginPage = () => {
   const navigate = useNavigate(); // useNavigate 훅 사용
   const [user_id, setUser_id] = useState("");
+  const [user_pw, setUser_pw] = useState("");
 
   const [rememberMe, setRememberMe] = useState(false);
   const [isIdFocused, setIsIdFocused] = useState(false); // 아이디 필드 포커스 상태

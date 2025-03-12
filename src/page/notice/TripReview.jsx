@@ -192,9 +192,9 @@ const TripReview = () => {
           </section>
 
           {/* 좋아요 기능 배치 */}
-          <section className="mb-12 flex justify-center">
+          <section className="mb-12 flex justify-end">
             <button
-              className={`text-2xl px-4 py-2 rounded-lg shadow-md border border-gray-300 flex items-center space-x-2 ${liked ? "text-red-500 bg-gray-100" : "text-gray-400 bg-white"}`}
+              className={`text-lg px-3 py-1 rounded-lg shadow-md border border-gray-300 flex items-center space-x-2 ${liked ? "text-red-500 bg-gray-100" : "text-gray-400 bg-white"}`}
               onClick={handleLike}
             >
               ❤️ 좋아요 {likes}

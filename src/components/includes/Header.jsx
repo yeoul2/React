@@ -12,20 +12,20 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
   // ✅ 로그인 상태 확인
   useEffect(() => {
     const checkLoginStatus = async () => {
-    const accessToken = localStorage.getItem("accessToken");
-    console.log("🔍 현재 저장된 토큰:", accessToken);  // ✅ 콘솔 출력 추가 (확인 필수!)
+      const accessToken = localStorage.getItem("accessToken");
+      console.log("🔍 현재 저장된 토큰:", accessToken);  // ✅ 콘솔 출력 추가 (확인 필수!)
 
-    if (!accessToken) {
-      console.log("❌ 토큰 없음");
-      setIsLoggedIn(false);
-      setUser_id("");
-      return;
+      if (!accessToken) {
+        console.log("❌ 토큰 없음");
+        setIsLoggedIn(false);
+        setUser_id("");
+        return;
 
-    }
+      }
       try {
         //const response = await axios.get("/api/check",{
-        const response = await axios.get("/api/check",{
-          headers : {
+        const response = await axios.get("/api/check", {
+          headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
