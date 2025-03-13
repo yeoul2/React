@@ -262,7 +262,7 @@ const TripReview = () => {
               className={`text-3xl font-medium px-3 py-1 rounded-lg shadow-md border border-gray-300 flex items-center space-x-2 ${liked ? "text-white bg-orange-300" : "text-gray-400 bg-white"}`}
               onClick={handleLike}
             >
-              <img src={liked ? "/images/ui_image/clicklike.png" : "/images/ui_image/unlike5.png"} alt="" className="w-[80px] h-[80px]" />
+              <img src={liked ? "/images/ui_image/clicklike.png" : "/images/ui_image/unclicklike.png"} alt="" className="w-[80px] h-[80px]" />
               {tripData.tb_like_count}
             </button>
           </section>
