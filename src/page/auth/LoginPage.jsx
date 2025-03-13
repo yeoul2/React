@@ -37,9 +37,9 @@ const LoginPage = () => {
       // 로그인 성공: JWT 토큰을 localStorage에 저장
       localStorage.setItem("accessToken", response.data.accessToken); //jwt 토큰 저장
       localStorage.setItem("user_id", response.data.user_id); // 사용자 ID 저장
-      localStorage.setItem("refreshToken", response.data.refreshToken); 
-      localStorage.setItem("role", response.data.role);  
-      localStorage.setItem("check", "Y");  
+      localStorage.setItem("refreshToken", response.data.refreshToken);
+      localStorage.setItem("role", response.data.role);
+      localStorage.setItem("check", "Y");
 
       // ✅ 새로고침해도 로그인 유지하도록 전역 상태 업데이트 (이 코드가 없으면 헤더에서 로그인 인식을 못 함)
       window.dispatchEvent(new Event("storage"));
@@ -55,22 +55,22 @@ const LoginPage = () => {
     }
   };
 
-   // 구글 로그인 API 호출 함수
+  // 구글 로그인 API 호출 함수
   const handleGoogleLogin = () => {
     googleLogin()
-  /* const clientId = "1079080191923-bfsmh4mludaa0psak7odfkgj8ca6orv5.apps.googleusercontent.com";
-  const redirectUri = "http://localhost:7007/login/oauth2/code/google"; // ⚠️ 프론트엔드에서 GoogleAuthCallback 처리
-  const scope = "email profile openid";
-  const responseType = "token"; // ✅ 직접 accessToken을 받아오기 위해 token 사용
-  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`; */
-};
+    /* const clientId = "1079080191923-bfsmh4mludaa0psak7odfkgj8ca6orv5.apps.googleusercontent.com";
+    const redirectUri = "http://localhost:7007/login/oauth2/code/google"; // ⚠️ 프론트엔드에서 GoogleAuthCallback 처리
+    const scope = "email profile openid";
+    const responseType = "token"; // ✅ 직접 accessToken을 받아오기 위해 token 사용
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`; */
+  };
 
   // 네이버 로그인 API 호출 함수
   const handleNaverLogin = () => {
     naverLogin()
     /* window.location.href =
       "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=YOUR_NAVER_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&state=STATE"; */
-  }; 
+  };
 
   // ✅ 카카오 로그인 API 호출 함수
   const handleKakaoLogin = () => {
@@ -81,7 +81,7 @@ const LoginPage = () => {
     <div
       className="min-h-screen flex items-center justify-center bg-cover bg-center"
       style={{
-        backgroundImage: `url('/images/korea_trip.jpg')`,
+        backgroundImage: `url('/images/bg_image/korea_trip.jpg')`,
         backgroundRepeat: "no-repeat",
       }}
     >
@@ -89,8 +89,8 @@ const LoginPage = () => {
         <div className="bg-white rounded-lg shadow-xl p-8">
           <div className="text-center mb-8">
             <img
-              className="mx-auto h-12 w-auto cursor-pointer"
-              src="/images/Yeoul_Logo.png"
+              className="mx-auto h-13 w-auto cursor-pointer"
+              src="/images/icon_image/Yeoul_Logo.png"
               alt="Logo"
               onClick={() => navigate("/")}
             />
@@ -106,9 +106,8 @@ const LoginPage = () => {
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                   <i
-                    className={`fas fa-user ${
-                      isIdFocused ? "text-orange-500" : "text-gray-400"
-                    }`}
+                    className={`fas fa-user ${isIdFocused ? "text-orange-500" : "text-gray-400"
+                      }`}
                   ></i>
                 </div>
                 <input
@@ -133,9 +132,8 @@ const LoginPage = () => {
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                   <i
-                    className={`fas fa-lock ${
-                      isPasswordFocused ? "text-orange-500" : "text-gray-400"
-                    }`}
+                    className={`fas fa-lock ${isPasswordFocused ? "text-orange-500" : "text-gray-400"
+                      }`}
                   ></i>
                 </div>
                 <input

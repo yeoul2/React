@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
+import { GoogleMap, LoadScript } from "@react-google-maps/api";
+import { FaSearch, FaTimes } from "react-icons/fa";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/themes/light.css";
 import "flatpickr/dist/l10n/ko.js";
-import { GoogleMap, LoadScript } from "@react-google-maps/api";
-import { useLocation } from "react-router-dom";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import axios from "axios";
-import TravelSearch from "./TravelSearch"; // TravelSearch 컴포넌트 import
+import useTravelSearch from "../../components/hooks/useTravelSearch"; // ✅ 커스텀 훅 추가
 
 // 📌 지도 크기 설정
 const containerStyle = {
@@ -27,20 +27,34 @@ const PlannerPage = () => {
   const [travelStyle, setTravelStyle] = useState([]); // 여행 스타일 선택
   const [mapCenter, setMapCenter] = useState(defaultCenter); // 지도 중심 좌표
   const [dateRange, setDateRange] = useState([]); // 날짜 선택
-  // const [itinerary, setItinerary] = useState([]); // 📌 AI 추천 일정 (기본은 빈 값)
-  const [country, setCountry] = useState(""); // 여행 국가
-  const [isLoading, setIsLoading] = useState(false); // AI 응답 로딩 상태
+  const [country, setCountry] = useState(""); // ✅ 나라 정보 상태 추가
   const [isSaving, setIsSaving] = useState(false); // DB 저장 로딩 상태
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false); // 📌 달력 토글 상태
   const [isPeopleOpen, setIsPeopleOpen] = useState(false); // 📌 인원 선택 드롭다운 상태
   const [adults, setAdults] = useState(2); // 📌 성인 인원 수
-  const [children, setChildren] = useState(0); // 📌 어린이 인원 수
+  // const [itinerary, setItinerary] = useState([]); // 📌 AI 추천 일정 (기본은 빈 값)
 
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const searchQuery = searchParams.get("search") || ""; // 검색한 국가 가져오기
   const datePickerRef = useRef(null);
   const flatpickrInstance = useRef(null); // 📌 Flatpickr 인스턴스 저장
+
+  // ✅ 커스텀 훅 사용하여 검색 기능 적용
+  const {
+    isLoggedIn, // 🔹 로그인 여부 추가
+    currentUser, // 🔹 현재 로그인한 사용자 정보 추가
+    searchTerm,
+    showResults,
+    selectedCity,
+    recentSearches,
+    popularDestinations,
+    suggestedCities,
+    searchResultsRef,
+    setShowResults,
+    handleSearchChange,
+    handleClearSearch,
+    handleCitySelect,
+    handleRemoveRecentSearch,
+    handlePopularDestinationSelect,
+  } = useTravelSearch();
 
   // 📌 Flatpickr 초기화 및 관리
   useEffect(() => {
@@ -65,9 +79,7 @@ const PlannerPage = () => {
       });
     }
     return () => {
-      if (flatpickrInstance.current) {
-        flatpickrInstance.current.destroy(); // 언마운트 시 인스턴스 제거
-      }
+      if (flatpickrInstance.current) flatpickrInstance.current.destroy();
     };
   }, []);
 
@@ -91,11 +103,8 @@ const PlannerPage = () => {
 
   const toggleTravelStyle = (id) => {
     setTravelStyle((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((style) => style !== id);
-      } else if (prev.length < 6) {
-        return [...prev, id];
-      }
+      if (prev.includes(id)) return prev.filter((style) => style !== id);
+      if (prev.length < 6) return [...prev, id];
       return prev;
     });
   };
@@ -124,7 +133,7 @@ const PlannerPage = () => {
   const handleAIRecommendation = async () => {
     try {
       setIsLoading(true); // 📌 로딩 상태 활성화
-
+  
       // ✅ AI에 전달할 데이터 준비
       const requestData = {
         country,
@@ -132,14 +141,14 @@ const PlannerPage = () => {
         tripDuration,
         travelStyle,
       };
-
+  
       // ✅ AI API 요청 (실제 AI 연동 시 API URL 수정 필요)
       const response = await axios.post("/api/ai-recommendation", requestData);
-
+  
       // ✅ AI 응답 처리
       if (response.data) {
         setItinerary(response.data.itinerary); // AI가 생성한 일정 반영
-
+  
         // ✅ AI 추천 일정의 첫 번째 장소로 지도 이동
         if (response.data.itinerary.length > 0 && response.data.itinerary[0].activities.length > 0) {
           const firstLocation = response.data.itinerary[0].activities[0];
@@ -153,7 +162,7 @@ const PlannerPage = () => {
       setIsLoading(false); // 📌 로딩 상태 해제
     }
   };
- */
+  */
 
   // 📌 달력 토글 기능
   const toggleDatePicker = () => {
@@ -170,34 +179,31 @@ const PlannerPage = () => {
     setIsPeopleOpen(false);
   };
 
-  // 📌 인원 선택 토글 기능
-  const togglePeopleDropdown = () => {
-    setIsPeopleOpen(!isPeopleOpen); // ✅ 인원수 상태만 변경
-
-    // ✅ 달력 닫기 (달력과 인원수가 동시에 열리지 않도록)
-    setIsDatePickerOpen(false);
-  };
-
-  // 📌 DB에 일정 저장
   const handleSave = async () => {
     try {
       setIsSaving(true); // 📌 저장 로딩 상태 활성화
 
+      // ✅ 로그인 여부 확인
+      if (!isLoggedIn) {
+        alert("로그인 후 여행 일정을 저장할 수 있습니다.");
+        return;
+      }
+
       // ✅ DB에 저장할 데이터 준비
       const newCourse = {
+        userId: currentUser.id, // ✅ 로그인한 사용자의 ID 추가
         country,
         dateRange,
         tripDuration,
         travelStyle,
-        itinerary,
       };
 
       // 📌 DB 저장 요청
       await axios.post("/api/schedule/save", newCourse);
 
-      // 📌 마이페이지에 저장 (로컬스토리지 활용)
-      const savedCourses = JSON.parse(localStorage.getItem("savedCourses")) || [];
-      localStorage.setItem("savedCourses", JSON.stringify([...savedCourses, newCourse]));
+      // ✅ 마이페이지에 저장 (로그인한 경우만 로컬스토리지에 저장)
+      const savedCourses = JSON.parse(localStorage.getItem(`savedCourses_${currentUser.id}`)) || [];
+      localStorage.setItem(`savedCourses_${currentUser.id}`, JSON.stringify([...savedCourses, newCourse]));
 
       alert("여행 일정이 저장되었습니다!");
     } catch (error) {
@@ -223,20 +229,121 @@ const PlannerPage = () => {
       {/* 여행 정보 입력 */}
       <div className="bg-white shadow sm:rounded-lg p-6 mb-12">
         <h2 className="text-2xl font-bold mb-6">여행 정보 입력</h2>
-
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-3">
 
           {/* 여행 국가 입력 */}
-          <div>
+          <div className="relative max-w-lg w-full" ref={searchResultsRef}>
             <label className="block text-sm font-medium text-gray-700">여행 국가</label>
-            <TravelSearch setCountry={setCountry} /> {/* TravelSearch 컴포넌트 추가 */}
+
+            <div className="relative">
+              {/* 🔍 검색 아이콘 */}
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <FaSearch className="text-gray-400 text-lg" />
+              </div>
+
+              {/* 🔹 여행 국가 검색 입력창 */}
+              <input
+                type="text"
+                className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
+                placeholder="여행하고 싶은 나라나 도시를 입력하세요"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                onFocus={() => setShowResults(true)} // 🔹 포커스 시 자동완성 UI 열림
+              />
+
+              {/* ❌ X 버튼 (검색어 초기화) */}
+              {searchTerm.length > 0 || selectedCity ? (
+                <div
+                  className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
+                  onClick={handleClearSearch}
+                >
+                  <FaTimes className="text-gray-400 text-lg" />
+                </div>
+              ) : null}
+            </div>
+
+            {/* 🔹 자동완성 UI (최근 검색어 + 추천 도시 + 인기 여행지 포함) */}
+            {showResults && suggestedCities && (
+              <div className="absolute w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-50">
+
+                {/* 📌 최근 검색어 */}
+                {recentSearches.length > 0 && (
+                  <>
+                    <h3 className="text-sm font-medium text-gray-500">최근 검색어</h3>
+                    <div className="flex flex-wrap gap-2 mt-1 mb-2">
+                      {recentSearches.map((search, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm text-white bg-orange-300 cursor-pointer"
+                          onClick={() => handleCitySelect(search, "")}
+                        >
+                          {search}
+                          <FaTimes
+                            className="ml-2 text-gray-500 hover:text-white cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation(); // 🔹 이벤트 버블링 방지
+                              handleRemoveRecentSearch(search);
+                            }}
+                          />
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* 📌 자동완성 추천 도시 */}
+                {searchTerm.length > 0 ? (
+                  suggestedCities.length > 0 ? (
+                    suggestedCities.map(({ city, country }, index) => (
+                      <div
+                        key={index}
+                        className="p-2 hover:bg-orange-300 rounded-lg cursor-pointer group"
+                        onClick={() => {
+                          handleCitySelect(city, country);
+                          setShowResults(false); // 🔹 선택 후 목록 닫기
+                        }}
+                      >
+                        <div className="flex flex-col">
+                          <div className="font-medium group-hover:text-white">{city}</div>
+                          <div className="text-sm text-gray-500 group-hover:text-white">{country}</div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">검색 결과 없음</p>
+                  )
+                ) : (
+                  <>
+                    {/* 📌 인기 여행지 */}
+                    <h3 className="text-sm font-medium text-gray-500 mt-4 mb-3">인기 여행지</h3>
+                    <div className="flex flex-wrap gap-4">
+                      {popularDestinations.map((destination, index) => (
+                        <div
+                          key={index}
+                          className="px-4 py-2 text-center font-medium text-gray-900 hover:text-white hover:bg-orange-300 rounded-lg cursor-pointer"
+                          onClick={() => {
+                            handlePopularDestinationSelect(destination);
+                            setShowResults(false); // 🔹 선택 후 목록 닫기
+                          }}
+                        >
+                          {destination}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 여행 기간 선택 */}
           <div>
             <label className="block text-sm font-medium text-gray-700">여행 기간</label>
             <div className="relative">
-              <i className="far fa-calendar absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer mb-3" onClick={toggleDatePicker}></i>
+              <i
+                className="far fa-calendar-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer"
+                onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+              ></i>
               <input
                 ref={datePickerRef}
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-custom focus:border-custom cursor-pointer"
@@ -257,7 +364,7 @@ const PlannerPage = () => {
             <label className="block text-sm font-medium text-gray-700">인원수</label>
             <div
               className="w-full border border-gray-300 px-3 py-2 rounded-md shadow-sm focus:ring-custom focus:border-custom cursor-pointer flex justify-between items-center"
-              onClick={togglePeopleDropdown}
+              onClick={() => setIsPeopleOpen(!isPeopleOpen)}
             >
               <span className="text-gray-700">
                 인원 {adults}명
@@ -297,9 +404,9 @@ const PlannerPage = () => {
           </div>
         </div>
 
-        {/* 여행 스타일 */}
+        {/* 여행 테마 */}
         <div className="bg-white shadow sm:rounded-lg p-6 mb-1">
-          <h2 className="text-xl font-semibold mb-6">여행 스타일 선택 (최대 6개)</h2>
+          <h2 className="text-xl font-semibold mb-6">여행 테마 선택 (최대 6개)</h2>
 
           {/* 초기화 버튼을 오른쪽 끝으로 배치 및 기능 구현 */}
           <div className="flex justify-end mb-4">
@@ -329,10 +436,9 @@ const PlannerPage = () => {
             <button
               className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg text-lg font-bold shadow-md items-center justify-center gap-2"
             // onClick={handleAIRecommendation}
-            // disabled={isLoading}
             >
               {/* 여울 로고 이미지 */}
-              <img src="/images/yeoul_logo.png" alt="여울 로고" className="h-12 w-auto" />
+              <img src="images/ui_image/makebutton.png" alt="여울 로고" className="h-12 w-auto m-auto" />
               여울아, 만들어줘
             </button>
           </div>
@@ -371,7 +477,7 @@ const PlannerPage = () => {
           <div className="w-1/2 p-4 bg-white">
             <h2 className="text-2xl font-bold mb-4">지도 보기</h2>
             <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_KEY || ""}>
-              <GoogleMap mapContainerStyle={containerStyle} center={mapCenter} zoom={mapCenter.zoom} />
+              <GoogleMap mapContainerStyle={containerStyle} center={mapCenter} zoom={defaultCenter.zoom} />
             </LoadScript>
           </div>
         </div>
