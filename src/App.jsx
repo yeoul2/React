@@ -11,10 +11,13 @@ import TravelPage from "./page/notice/TravelPage";
 import TravelReviewForm from "./page/notice/TravelReviewForm";
 import MypageCheck from "./page/auth/MypageCheck";
 import "./index.css";
+import TripReview from "./page/notice/TripReview";
+import GoogleAuthCallback from "./page/auth/social/GoogleAuthCallback";
+import NaverAuthCallback from "./page/auth/social/NaverAuthCallback";
+
 
 // ✅ 검색 상태를 전역 관리하는 Context 생성
 const SearchContext = createContext();
-
 export const useSearch = () => useContext(SearchContext);
 
 const App = () => {
@@ -27,7 +30,12 @@ const App = () => {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/course" element={<PlannerPage />} />
+            {/* Google OAuth 콜백 경로 추가 */}
+            <Route path="/google/callback" element={<GoogleAuthCallback />} /> 
+            {/* Naver OAuth 콜백 경로 추가 */}
+            <Route path="/naver/callback" element={<NaverAuthCallback/>} />
             <Route path="/board" element={<TravelPage />} />
+            <Route path="/board/:tb_no" element={<TripReview />} />
             <Route path="/write" element={<TravelReviewForm />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
