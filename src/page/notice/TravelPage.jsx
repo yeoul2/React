@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { get } from "react-hook-form";
 import { getBoardCount, getBoardList } from "../../services/boardLogic";
-
 const TravelPage = () => {
+  const ImgPath = "/images/ui_image/"
   const navigate = useNavigate();
   const [places, setPlaces] = useState([]); // DB에서 가져올 게시판 데이터
   const [searchFilter, setSearchFilter] = useState("제목만"); // 기본 필터 : 제목만
@@ -134,6 +133,18 @@ const TravelPage = () => {
   // ✅ 현재 선택된 정렬 옵션
   const selectedOption = sortOptions.find((option) => option.value === sortOrder) || sortOptions[0];
 
+  // 만족도 수치별 사진 url
+  const ratingImages = (star)=>{
+    if(star<5 && star>=3){
+      return ImgPath+"like3.png";
+    }
+    else if(star>=5){
+      return ImgPath+"lik5.png";
+    }
+    else{
+      return ImgPath+"lik1.png";
+    }
+  }
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
 
@@ -227,23 +238,24 @@ const TravelPage = () => {
             <h3 className="text-lg font-semibold mt-2">{place.tb_title}</h3>
             <p className="text-sm text-gray-600">여행지: {place.tb_country}</p>
             <p className="text-sm text-gray-500">리뷰 날짜: {place.tb_up_date}</p>
+            {/* 만족도 및 좋아요 표시 (한 줄에 배치하고 오른쪽 정렬) */}
+            <div className="flex justify-end items-center mt-2 space-x-6">
+              {/* 만족도 표시 */}
+              <div className="flex items-center">
+                <img src={ratingImages(place.tb_star)} alt={`Rating: ${place.tb_title}`} className="w-[65px] h-[65px]" />
+                <span className="text-orange-500 ml-2 fa-solid"> {place.tb_star}</span>
+              </div>
 
-            {/* 🍊 귤(만족도) 표시 */}
-            <div className="flex items-center mt-2">
-              <span className="text-lg " ></span>
-              <img src="./images/Capybara_tangerine.png" alt="" className="w-7 h-10" />
-              <span className="text-orange-500 ml-2 fa-solid"> {place.tb_star}</span>
+              {/* 좋아요 표시 */}
+              <div className="flex items-center">
+                <img src={`${ImgPath}clicklike.png`} alt="" className="w-[60px] h-[60px]" />
+                <span className="text-orange-500 ml-2 fa-solid"> {place.tb_like_count}</span>
+              </div>
             </div>
 
-            {/* 좋아요 표시 */}
-            <div className="flex items-center mt-2">
-              <span className="text-lg"></span>
-              <img src="./images/Capybara_heart.png" alt="" className="w-9 h-10" />
-              <span className="text-orange-500 ml-2 fa-solid"> {place.tb_like_count}</span>
-            </div>
             <button
               className="w-full bg-orange-500 text-white py-2 mt-2 rounded-md hover:bg-orange-600"
-              onClick={() => navigateWithAuth(`/detail/${place.tb_no}`)} // ✅ 클릭한 게시글 tb_no 반영
+              onClick={() => navigateWithAuth(`/board/${place.tb_no}`)} // ✅ 클릭한 게시글 tb_no 반영
             >
               상세보기
             </button>

@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa"; // 👁️ 눈 아이콘 추가
 import axios from "axios";
+import { googleLogin } from "./social/googleAuth";
+import { naverLogin } from "./social/naverAuth";
+//import { handelSocialLogin } from "./social/socialAuth";
 
 const LoginPage = () => {
   const navigate = useNavigate(); // useNavigate 훅 사용
@@ -18,18 +21,25 @@ const LoginPage = () => {
     e.preventDefault();
     console.log("🔵 로그인 버튼 클릭됨"); // ✅ 로그인 버튼 클릭 로그 추가
     console.log("📤 로그인 요청 데이터:", { user_id, user_pw }); // ✅ 요청 데이터 확인
-    console.log("로그인 요청이 실행됨!")
+    console.log("로그인 요청이 실행됨!");
     try {
-      const response = await axios.post("/api/login", {
-        user_id,
-        user_pw
+      const response = await axios.post(
+        "/api/login",
+        {
+          user_id,
+          user_pw,
+        },
+        { withCredentials: true }
+      );
 
-      }, { withCredentials: true });
-
-      console.log("✅ 로그인 성공, 응답 데이터:", response.data); // ✅ 응답 확인
-      // ✅ 로그인 성공: JWT 토큰을 localStorage에 저장
+      console.log("✅ 로그인 성공, 응답 데이터:", response.data); // 응답 확인
+      console.log("📌 check 값 확인:", response.data.check);  // 🔥 check 값이 실제로 있는지 확인
+      // 로그인 성공: JWT 토큰을 localStorage에 저장
       localStorage.setItem("accessToken", response.data.accessToken); //jwt 토큰 저장
       localStorage.setItem("user_id", response.data.user_id); // 사용자 ID 저장
+      localStorage.setItem("refreshToken", response.data.refreshToken);
+      localStorage.setItem("role", response.data.role);
+      localStorage.setItem("check", "Y");
 
       // ✅ 새로고침해도 로그인 유지하도록 전역 상태 업데이트 (이 코드가 없으면 헤더에서 로그인 인식을 못 함)
       window.dispatchEvent(new Event("storage"));
@@ -38,26 +48,28 @@ const LoginPage = () => {
       navigate("/"); // ✅ 로그인 성공 시 메인 페이지로 이동
       //window.location.reload();
 
-      console.log("서버응답 :", response.data)
-
+      console.log("서버응답 :", response.data);
     } catch (error) {
       console.error("로그인 오류:", error);
       alert("아이디 또는 비밀번호가 올바르지 않습니다.");
     }
   };
 
-
   // 구글 로그인 API 호출 함수
   const handleGoogleLogin = () => {
-    // 구글 로그인 API 연동 (예시)
-    //window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_GOOGLE_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=token&scope=email";
-    window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_GOOGLE_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=accessToken&scope=email";
+    googleLogin()
+    /* const clientId = "1079080191923-bfsmh4mludaa0psak7odfkgj8ca6orv5.apps.googleusercontent.com";
+    const redirectUri = "http://localhost:7007/login/oauth2/code/google"; // ⚠️ 프론트엔드에서 GoogleAuthCallback 처리
+    const scope = "email profile openid";
+    const responseType = "token"; // ✅ 직접 accessToken을 받아오기 위해 token 사용
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`; */
   };
 
   // 네이버 로그인 API 호출 함수
   const handleNaverLogin = () => {
-    // 네이버 로그인 API 연동 (예시)
-    window.location.href = "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=YOUR_NAVER_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&state=STATE";
+    naverLogin()
+    /* window.location.href =
+      "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=YOUR_NAVER_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&state=STATE"; */
   };
 
   // ✅ 카카오 로그인 API 호출 함수
@@ -65,9 +77,9 @@ const LoginPage = () => {
     window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=YOUR_KAKAO_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code`;
   };
 
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cover bg-center"
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center"
       style={{
         backgroundImage: `url('/images/bg_image/korea_trip.jpg')`,
         backgroundRepeat: "no-repeat",
@@ -88,10 +100,15 @@ const LoginPage = () => {
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* 아이디 입력 필드 */}
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">아이디</label>
+              <label className="block mb-2 text-sm font-medium text-gray-900">
+                아이디
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                  <i className={`fas fa-user ${isIdFocused ? "text-orange-500" : "text-gray-400"}`}></i>
+                  <i
+                    className={`fas fa-user ${isIdFocused ? "text-orange-500" : "text-gray-400"
+                      }`}
+                  ></i>
                 </div>
                 <input
                   type="text"
@@ -109,10 +126,15 @@ const LoginPage = () => {
 
             {/* 비밀번호 입력 필드 (눈 모양 아이콘 추가) */}
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">비밀번호</label>
+              <label className="block mb-2 text-sm font-medium text-gray-900">
+                비밀번호
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                  <i className={`fas fa-lock ${isPasswordFocused ? "text-orange-500" : "text-gray-400"}`}></i>
+                  <i
+                    className={`fas fa-lock ${isPasswordFocused ? "text-orange-500" : "text-gray-400"
+                      }`}
+                  ></i>
                 </div>
                 <input
                   type={showPassword ? "text" : "password"} // 🔥 상태에 따라 비밀번호 보이기/숨기기
@@ -145,11 +167,16 @@ const LoginPage = () => {
                 checked={rememberMe}
                 onChange={() => setRememberMe(!rememberMe)}
               />
-              <label className="ml-2 text-sm text-gray-700">로그인 상태 유지</label>
+              <label className="ml-2 text-sm text-gray-700">
+                로그인 상태 유지
+              </label>
             </div>
 
             {/* 로그인 버튼 */}
-            <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg">
+            <button
+              type="submit"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg"
+            >
               로그인
             </button>
           </form>
@@ -161,7 +188,9 @@ const LoginPage = () => {
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">SNS 계정으로 로그인</span>
+                <span className="px-2 bg-white text-gray-500">
+                  SNS 계정으로 로그인
+                </span>
               </div>
             </div>
 
@@ -169,28 +198,42 @@ const LoginPage = () => {
               {/* 구글 로그인 버튼 */}
               <button
                 type="button"
-                className="w-full py-3 px-4 text-white bg-[#4285F4] hover:bg-[#4285F4]/90 rounded-md"
+                className="w-full flex items-center justify-center py-3 px-4 bg-white border border-gray-300 rounded-md shadow hover:bg-gray-100 transition gap-2 "
                 onClick={handleGoogleLogin}
               >
-                구글 로그인
+                <i
+                  className="fab fa-google w-5 h-5"
+                  style={{ color: "#EA4335", fontSize: "20px" }}
+                ></i>
+                <span className="text-gray-700 font-medium text-base">
+                  Google
+                </span>
               </button>
 
               {/* 네이버 로그인 버튼 */}
               <button
                 type="button"
-                className="w-full py-3 px-4 text-white bg-[#03C75A] hover:bg-[#03C75A]/90 rounded-md"
+                className="w-full flex items-center justify-center py-3 px-4 text-white bg-[#03C75A] hover:bg-[#02B55A] rounded-md shadow-md transition gap-2"
                 onClick={handleNaverLogin}
               >
-                네이버 로그인
+                <i
+                  className="fab fa-neos w-5 h-5"
+                  style={{ color: "white", fontSize: "20px" }}
+                ></i>
+                <span className="font-medium text-base">Naver</span>
               </button>
 
               {/* 카카오 로그인 버튼 */}
               <button
                 type="button"
-                className="w-full py-3 px-4 text-white bg-[#FEE500] text-black hover:bg-[#FEE500]/90 rounded-md"
+                className="w-full flex items-center justify-center py-3 px-4 text-black bg-[#FEE500] hover:bg-[#FFD600] rounded-md shadow-md transition gap-2"
                 onClick={handleKakaoLogin}
               >
-                카카오 로그인
+                <i
+                  className="fas fa-comment w-5 h-5"
+                  style={{ color: "black", fontSize: "20px" }}
+                ></i>
+                <span className="font-medium text-base">Kakao</span>
               </button>
             </div>
           </div>
