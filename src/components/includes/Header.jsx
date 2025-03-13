@@ -78,7 +78,6 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
     navigate("/");
   };
 
-
   return (
     <header className="bg-white shadow-sm fixed w-full z-50 top-0 left-0 h-16">
       <nav className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -87,7 +86,7 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
           {/* ✅ 왼쪽 - 로고 클릭 시 홈으로 이동 & 검색어 초기화 */}
           <img
             className="h-14 w-auto cursor-pointer"
-            src="/images/Yeoul_Logo.png"
+            src="/images/icon_image/Yeoul_Logo.png"
             alt="로고"
             onClick={() => {
               resetSearch(); // ✅ props로 전달된 함수 실행 (검색어 초기화)
@@ -100,7 +99,7 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
             <span className="cursor-pointer hover:text-orange-500 transition-all flex items-center gap-2"
               onClick={() => navigate("/course")}
             >
-              <img src="/images/capybara_icon.png" alt="여울 아이콘" className="h-6 w-6" />
+              <img src="/images/icon_image/course.png" alt="여울 아이콘" className="h-6 w-6" />
               여울! 코스 생성
             </span>
 
@@ -108,7 +107,7 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
               className="cursor-pointer hover:text-orange-500 transition-all flex items-center gap-2"
               onClick={() => navigate("/board")}
             >
-              <img src="/images/capybara_icon.png" alt="여울 아이콘" className="h-6 w-6" />
+              <img src="/images/icon_image/board.png" alt="여울 아이콘" className="h-6 w-6" />
               여울! 코스 후기
             </span>
 
@@ -116,7 +115,7 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
               className="cursor-pointer hover:text-orange-500 transition-all flex items-center gap-2"
               onClick={() => navigate("/course_list")}
             >
-              <img src="/images/capybara_icon.png" alt="여울 아이콘" className="h-6 w-6" />
+              <img src="/images/icon_image/share.png" alt="여울 아이콘" className="h-6 w-6" />
               여울! 코스 공유
             </span>
           </div>
@@ -130,7 +129,7 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
                   onClick={() => navigate("/mypage-check")}
                   className="text-gray-600 hover:text-orange-500 cursor-pointer flex items-center gap-2"
                 >
-                  <img src="/images/capybara_face.png" alt="여울 얼굴" className="h-6 w-6" />
+                  <img src="/images/icon_image/profile.png" alt="여울 얼굴" className="h-6 w-6" />
                   {user_id}님 {/* 로그인한 사용자 ID 표시 */}
                 </span>
                 <button

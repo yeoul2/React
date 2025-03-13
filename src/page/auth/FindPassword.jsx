@@ -40,9 +40,9 @@ const FindPassword = () => {
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-sm">
           <div>
             <img
-              className="mx-auto h-12 w-auto cursor-pointer"
-              src="/images/Yeoul_Logo.png"
               alt="Logo"
+              src="/images/icon_image/Yeoul_Logo.png"
+              className="h-17 mx-auto cursor-pointer"
               onClick={handleNavigateToHome} // ✅ 함수 분리
             />
             <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">

@@ -53,9 +53,9 @@ const FindId = () => {
           {/* 로고 및 제목 */}
           <div className="text-center">
             <img
-              className="mx-auto h-12 w-auto cursor-pointer"
-              src="/images/Yeoul_Logo.png"
               alt="Logo"
+              src="/images/icon_image/Yeoul_Logo.png"
+              className="h-17 mx-auto cursor-pointer"
               onClick={() => navigate("/")} // ✅ useNavigate 사용 (새로고침 없이 이동)
             />
             <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">

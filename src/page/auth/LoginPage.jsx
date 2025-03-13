@@ -69,7 +69,7 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-cover bg-center"
       style={{
-        backgroundImage: `url('/images/korea_trip.jpg')`,
+        backgroundImage: `url('/images/bg_image/korea_trip.jpg')`,
         backgroundRepeat: "no-repeat",
       }}
     >
@@ -77,8 +77,8 @@ const LoginPage = () => {
         <div className="bg-white rounded-lg shadow-xl p-8">
           <div className="text-center mb-8">
             <img
-              className="mx-auto h-12 w-auto cursor-pointer"
-              src="/images/Yeoul_Logo.png"
+              className="mx-auto h-13 w-auto cursor-pointer"
+              src="/images/icon_image/Yeoul_Logo.png"
               alt="Logo"
               onClick={() => navigate("/")}
             />

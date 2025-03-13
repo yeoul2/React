@@ -221,7 +221,7 @@ const TravelPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6"
         style={{ gridTemplateRows: "repeat(2, auto)" }} // ✅ 세로(row) 2줄로 제한
       >
-        {places.slice(0, 8).map((place) => ( // ✅ 최대 8개만 표시 (4x2)
+        {(places?.slice(0, 8) || []).map((place) => ( // ✅ 최대 8개만 표시 (4x2)
           <div key={place.tb_no} className="border p-4 rounded-md shadow-md">
             <img src={place.tb_photo1} className="w-full h-48 object-cover" alt={place.tb_title} />
             <h3 className="text-lg font-semibold mt-2">{place.tb_title}</h3>
