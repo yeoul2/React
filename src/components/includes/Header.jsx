@@ -12,46 +12,57 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
   // ✅ 로그인 상태 확인
   useEffect(() => {
     const checkLoginStatus = async () => {
-      const accessToken = localStorage.getItem("accessToken");
-      console.log("🔍 현재 저장된 토큰:", accessToken);  // ✅ 콘솔 출력 추가 (확인 필수!)
+        const accessToken = localStorage.getItem("accessToken");
+        const refreshToken = localStorage.getItem("refreshToken");
+        //const googleAccessToken = localStorage.getItem("googleAccessToken");
 
-      if (!accessToken) {
-        console.log("❌ 토큰 없음");
-        setIsLoggedIn(false);
-        setUser_id("");
-        return;
+        console.log("🔍 현재 저장된 JWT 토큰:", accessToken);
+        console.log("🔍 현재 저장된 REFRESH 토큰:", refreshToken);
+        //console.log("🔍 현재 저장된 Google 토큰:", googleAccessToken);
 
-      }
-      try {
-        //const response = await axios.get("/api/check",{
-        const response = await axios.get("/api/check", {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        });
-        console.log("로그인 확인 응답:", response.data);
-
-        if (response.data.isAuthenticated && response.data.userId) {
-          setIsLoggedIn(true);
-          setUser_id(response.data.userId);
-        } else {
-          setIsLoggedIn(false);
-          setUser_id("");
+        //if (!accessToken && !googleAccessToken) {
+        if (!accessToken ) {
+            console.log("❌ 토큰 없음");
+            setIsLoggedIn(false);
+            setUser_id("");
+            return;
         }
-      } catch (error) {
-        console.error("로그인 확인 오류:", error);
-        setIsLoggedIn(false);
-        setUser_id("");
-      }
+
+        try {
+            //const tokenToUse = accessToken ? accessToken : googleAccessToken; // ✅ JWT > Google 우선순위
+            const tokenToUse = accessToken
+            const response = await axios.get("/api/check", {
+            //fetch ("/api/check", {
+                //method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${tokenToUse}`,
+                    "Content-Type": "application/json",
+                },
+                withCredentials: true,
+            });
+
+            console.log("로그인 확인 응답:", response.data);
+
+            if (response.data.isAuthenticated && response.data.userId) {
+                setIsLoggedIn(true);
+                setUser_id(response.data.userId);
+            } else {
+                setIsLoggedIn(false);
+                setUser_id("");
+            }
+        } catch (error) {
+            console.error("로그인 확인 오류:", error);
+            setIsLoggedIn(false);
+            setUser_id("");
+        }
     };
 
     checkLoginStatus();
     window.addEventListener("storage", checkLoginStatus);
 
     return () => window.removeEventListener("storage", checkLoginStatus);
-  }, []);
+}, []);
+
 
   // ✅ 로그아웃 처리 함수
   const handleLogout = async () => {
@@ -64,10 +75,12 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
 
     // ✅ localStorage에서 사용자 정보 삭제
     localStorage.removeItem("accessToken");
+    //localStorage.removeItem("googleAccessToken"); // Google OAuth 로그인용
     localStorage.removeItem("refreshToken");  // ✅ 리프레시 토큰도 삭제
     localStorage.removeItem("role");  // ✅ 역할 정보 삭제
     localStorage.removeItem("user_id");  // ✅ 사용자 ID 삭제
     localStorage.removeItem("check");  // ✅ 추가적인 인증 관련 데이터 삭제
+    localStorage.removeItem("provider");
 
     // ✅ 모든 페이지에서 즉시 로그아웃 상태가 반영됨
     window.dispatchEvent(new Event("storage"));
