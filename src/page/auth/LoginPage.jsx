@@ -21,7 +21,7 @@ const LoginPage = () => {
     console.log("로그인 요청이 실행됨!")
     try {
       const response = await axios.post("/api/login", {
-        user_id,
+        user_id, user_pw
 
       }, { withCredentials: true });
 
