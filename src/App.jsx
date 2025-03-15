@@ -23,7 +23,6 @@ export const useSearch = () => useContext(SearchContext);
 
 const App = () => {
   const [searchText, setSearchText] = useState(""); // ✅ 검색 상태를 Context에서 관리
-
   return (
     <SearchContext.Provider value={{ searchText, setSearchText }}>
       <BrowserRouter>

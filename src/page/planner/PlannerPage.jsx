@@ -49,7 +49,7 @@ const PlannerPage = () => {
     suggestedCities,
     searchResultsRef,
     setShowResults,
-    handleSearchChange,
+    handleCountryChange,
     handleClearSearch,
     handleCitySelect,
     handleRemoveRecentSearch,
@@ -247,7 +247,7 @@ const PlannerPage = () => {
                 className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
                 placeholder="여행하고 싶은 나라나 도시를 입력하세요"
                 value={searchTerm}
-                onChange={handleSearchChange}
+                onChange={handleCountryChange}
                 onFocus={() => setShowResults(true)} // 🔹 포커스 시 자동완성 UI 열림
               />
 
@@ -353,7 +353,7 @@ const PlannerPage = () => {
               />
             </div>
             {tripDuration &&
-              <div className="mt-2 text-xl text-gray-600">
+              <div className="mt-2 text-xl text-white">
                 <span>{tripDuration}</span>
               </div>
             }
