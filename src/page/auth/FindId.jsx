@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom"; // ✅ useNavigate 추가
 const FindId = () => {
   // 입력값과 결과 메시지 상태 관리
   const [formData, setFormData] = useState({ name: "", email: "" });
-  const [userId, setUserId] = useState(null); // 찾은 아이디 저장
+  const [user_id, setUser_id] = useState(null); // 찾은 아이디 저장
   const [error, setError] = useState(null); // 오류 메시지 저장
   const [isNameFocused, setIsNameFocused] = useState(false); // 이름 필드의 포커스 상태
   const [isEmailFocused, setIsEmailFocused] = useState(false); // 이메일 필드의 포커스 상태
@@ -21,9 +21,10 @@ const FindId = () => {
 
     try {
       setError(null); // 이전 오류 초기화
-      setUserId(null); // 이전 아이디 초기화
+      setUser_id(null); // 이전 아이디 초기화
 
-      const response = await fetch("http://localhost:7007/api/find-id", {
+      //const response = await fetch("http://localhost:7007/api/find-id", {
+      const response = await fetch("/api/find-id", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -32,9 +33,9 @@ const FindId = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setUserId(data.userId); // 찾은 아이디 저장
+        setUser_id(data.userId); // 찾은 아이디 저장
       } else {
-        setUserId(null);
+        setUser_id(null);
         setError("입력하신 정보와 일치하는 아이디를 찾을 수 없습니다.");
       }
     } catch (error) {
@@ -146,11 +147,11 @@ const FindId = () => {
           </form>
 
           {/* 결과 메시지 (조건부 렌더링) */}
-          {userId && (
+          {user_id && (
             <div className="mt-4 p-4 rounded-lg bg-blue-50 text-blue-700 text-sm">
               <p className="flex items-center">
                 <i className="fas fa-info-circle mr-2"></i>
-                <span>회원님의 아이디는 <strong>{userId}</strong> 입니다.</span>
+                <span>회원님의 아이디는 <strong>{user_id}</strong> 입니다.</span>
               </p>
             </div>
           )}
