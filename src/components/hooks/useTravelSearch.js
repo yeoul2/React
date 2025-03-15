@@ -47,8 +47,14 @@ const useTravelSearch = () => {
     const fetchPopularDestinations = async () => {
       try {
         const response = await axios.get("/api/search/popular");
-        if (response.data.length > 0) {
+        if (
+          response.data &&
+          Array.isArray(response.data) &&
+          response.data.length > 0
+        ) {
           setPopularDestinations(response.data);
+        } else {
+          console.warn("인기 여행지 데이터가 비어있거나 올바르지 않습니다.");
         }
       } catch (error) {
         console.error("인기 여행지 불러오기 오류:", error);
@@ -57,53 +63,43 @@ const useTravelSearch = () => {
     fetchPopularDestinations();
   }, []);
 
-  // 📌 나라 자동완성 검색 (Google Places API 활용) - 수정됨
-  const fetchCountries = async (query) => {
+  /**
+   * 📌 하나의 함수로 국가, 도시, 상세 주소를 구분하여 검색하는 공통 함수
+   *
+   * @param {string} query 사용자가 입력한 검색어
+   * @param {string} type 검색 타입: 'regions' | 'cities' | 'geocode'
+   * @param {function} setSuggestions 결과값을 상태에 저장할 함수 (예: setSuggestedCountries)
+   */
+  const fetchPlaces = async (query, type, setSuggestions) => {
     if (!query) return;
+
+    // Google Places API 타입 옵션 설정
+    const typeOptions = {
+      regions: "(regions)", // 국가, 행정구역 단위 (예: 한국, 일본, 미국 등)
+      cities: "(cities)", // 도시 단위 (예: 서울, 부산, 도쿄 등)
+      geocode: "geocode", // 모든 지리적 위치 (상세 주소 포함)
+    };
+
     try {
       const response = await axios.get(GOOGLE_PLACES_URL, {
         params: {
           input: query,
-          types: "geocode", // 📌 기존 "regions"에서 "geocode"로 변경
+          types: typeOptions[type] || "geocode", // 타입이 없으면 geocode가 기본값
           key: GOOGLE_PLACES_API_KEY,
           language: "ko",
         },
       });
 
+      // API 응답이 있으면 결과를 상태에 저장
       if (response.data?.predictions?.length > 0) {
-        setSuggestedCountries(
+        setSuggestions(
           response.data.predictions.map((place) => place.description)
         );
       } else {
-        setSuggestedCountries([]);
+        setSuggestions([]); // 결과가 없으면 빈 배열
       }
     } catch (error) {
-      console.error("Google Places API 나라 검색 오류:", error);
-    }
-  };
-
-  // 📌 도시 검색 (Google Places API 활용) - 수정됨
-  const fetchCities = async (country) => {
-    if (!country) return;
-    try {
-      const response = await axios.get(GOOGLE_PLACES_URL, {
-        params: {
-          input: country,
-          types: "geocode", // 📌 기존 "cities"에서 "geocode"로 변경
-          key: GOOGLE_PLACES_API_KEY,
-          language: "ko",
-        },
-      });
-
-      if (response.data?.predictions?.length > 0) {
-        setSuggestedCities(
-          response.data.predictions.map((place) => place.description)
-        );
-      } else {
-        setSuggestedCities([]);
-      }
-    } catch (error) {
-      console.error("Google Places API 도시 검색 오류:", error);
+      console.error("Google Places API 장소 검색 오류:", error);
     }
   };
 
@@ -111,7 +107,7 @@ const useTravelSearch = () => {
   const handleCountryChange = (e) => {
     setSearchTerm(e.target.value); // 🔹 사용자가 입력한 검색어를 상태에 저장
     setShowResults(true); // 🔹 자동완성 목록을 화면에 표시
-    fetchCountries(e.target.value); // 🔹 Google Places API를 호출하여 나라 자동완성 목록을 가져옴
+    fetchPlaces(e.target.value, "regions", setSuggestedCountries); // 🔹 Google Places API를 호출하여 나라 자동완성 목록을 가져옴
   };
 
   // 📌 나라 선택 시 해당 나라의 도시 목록 불러오기
@@ -119,7 +115,7 @@ const useTravelSearch = () => {
     setSelectedCountry(country); // 🔹 사용자가 선택한 나라를 상태로 저장
     setSearchTerm(country); // 🔹 검색 입력창을 선택한 나라로 변경
     setSuggestedCountries([]); // 🔹 자동완성 목록을 초기화 (선택 후 목록 숨김)
-    fetchCities(country); // 🔹 선택한 나라를 기반으로 도시 목록을 가져옴
+    fetchPlaces(country, "cities", setSuggestedCities); // 🔹 선택한 나라를 기반으로 도시 목록을 가져옴
   };
 
   // 📌 도시 선택 핸들러 수정
@@ -224,13 +220,6 @@ const useTravelSearch = () => {
       setShowResults(false);
     }
   };
-
-  useEffect(() => {
-    document.addEventListener("click", handleClickOutside);
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, []);
 
   // 📌 ✅ 도시 추천 기능 (API 기반, 필요시 기본 더미 데이터 제공)
   const getSuggestedCities = () => {

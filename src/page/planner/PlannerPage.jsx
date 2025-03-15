@@ -184,7 +184,7 @@ const PlannerPage = () => {
       setIsSaving(true); // 📌 저장 로딩 상태 활성화
 
       // ✅ 로그인 여부 확인
-      if (!isLoggedIn) {
+      if (!isLoggedIn || !currentUser?.id) {
         alert("로그인 후 여행 일정을 저장할 수 있습니다.");
         return;
       }

@@ -29,13 +29,13 @@ const HomePage = () => {
   const navigate = useNavigate(); // ✅ useNavigate 사용
   const [tripDuration, setTripDuration] = useState(""); // 여행 기간
   const [dateRange, setDateRange] = useState([]); // 날짜 선택
-  const [country, setCountry] = useState(""); // ✅ 나라 정보 상태 추가
   const [adults, setAdults] = useState(2); // 📌 성인 인원 수
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false); // 📌 달력 토글 상태
   const [isPeopleOpen, setIsPeopleOpen] = useState(false); // 인원 수 토글 상태
   const [continentSearchText, setContinentSearchText] = useState(""); // ✅ 나라 검색 상태
   const [filteredContinents, setFilteredContinents] = useState(continents);
   const [selectedCountry, setSelectedCountry] = useState(null); // 🔹 모달 상태 관리
+  const [countryInfo, setCountryInfo] = useState(null); // ✅ 나라 정보 상태 추가
 
   const datePickerRef = useRef(null);
   const flatpickrInstance = useRef(null);
@@ -58,7 +58,6 @@ const HomePage = () => {
     handleCountrySelect, // 🔹 나라 선택 처리
     handlePopularDestinationSelect, // 🔹 인기 여행지 선택 처리
     handleClickOutside, // 🔹 검색창 외부 클릭 시 닫기
-    getSuggestedCities, // 🔹 도시 추천 기능 (더미 데이터 + API 사용)
     handleRemoveRecentSearch, // 🔹 최근 검색어 삭제
   } = useTravelSearch();
 
@@ -111,13 +110,13 @@ const HomePage = () => {
       alert("도시와 여행 기간을 입력하세요.");
       return;
     }
-    navigate(`/course ? city = ${selectedCity} & start=${dateRange[0]} & end=${dateRange[1]} & adults=${adults}`);
+    navigate(`/course?city=${selectedCity}&start=${dateRange[0]}&end=${dateRange[1]}&adults=${adults}`);
   };
 
   /** ✅ 메인 배너 검색 (여행 코스 검색) */
   const handleSearch = () => {
     if (searchTerm.trim()) {
-      navigate(`/course ? search = ${encodeURIComponent(searchTerm)}`);
+      navigate(`/course?search=${encodeURIComponent(searchTerm)}`);
     }
 
     /* try {
@@ -138,26 +137,39 @@ const HomePage = () => {
     } */
   };
 
-  // ✅ 나라 목록 검색
-  const handleContinentSearch = () => {
+  // ✅ 나라 검색 자동완성 기능 개선
+  const handleContinentSearch = (e) => {
+    const searchText = e.target.value.toLowerCase();
+    setContinentSearchText(searchText);
+
+    if (searchText.trim() === "" && filteredContinents !== continents) {
+      setFilteredContinents(continents);
+      return;
+    }
+
+    // 🔍 입력값이 포함된 나라만 필터링
     const filtered = continents.filter((continent) =>
-      continent.name.includes(continentSearchText)
+      continent.name.toLowerCase().includes(searchText)
     );
+
     setFilteredContinents(filtered);
   };
 
   //** ✅ 나라 클릭 시 모달 표시
-  const handleClick = (continent) => {
-    console.log("선택된 나라:", continent); // 🔹 디버깅용 콘솔 로그 추가
-    setSelectedCountry(continent); // 🔹 나라 클릭 시 모달 열기
+  const handleClick = async (continent) => {
+    setSelectedCountry(continent);
+    try {
+      const response = await axios.get(`https://restcountries.com/v3.1/name/${continent.name}`);
+      setCountryInfo(response.data[0]);
+    } catch (error) {
+      console.error("나라 정보 불러오기 실패:", error);
+    }
   };
 
   const handleCloseModal = () => {
     setSelectedCountry(null);
-    setContinentSearchText(""); // 🔹 검색어 초기화
     setFilteredContinents(continents); // 🔹 나라 목록 초기화
   };
-
 
   /** ✅ 엔터 키 입력 시 검색 실행 */
   const handleKeyDown = (e, type) => {
@@ -185,6 +197,12 @@ const HomePage = () => {
     setIsPeopleOpen(false);
   };
 
+  useEffect(() => {
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
 
   return (
     <main className="pt-10">
@@ -220,6 +238,7 @@ const HomePage = () => {
                   placeholder="여행하고 싶은 나라, 도시를 입력하세요."
                   value={searchTerm}
                   onChange={handleCountryChange}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   onFocus={() => setShowResults(true)} // 🔹 포커스 시 자동완성 UI 열림
                 />
 
@@ -409,28 +428,54 @@ const HomePage = () => {
             filteredContinents.map((continent, index) => (
               <div
                 key={index}
-                className="relative rounded-lg overflow-hidden group cursor-pointer"
+                className="relative rounded-lg overflow-hidden group cursor-pointer transition-transform duration-200 transform hover:scale-105 shadow-md"
                 onClick={() => handleClick(continent)}
               >
-                <img src={continent.image} className="w-full h-48 object-cover" alt={continent.name} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-                  <span className="text-white font-medium">{continent.name}</span>
+                <img src={continent.image} className="w-full h-56 object-cover rounded-t-lg" alt={continent.name} />
+                <div className="bg-white p-4 flex flex-col items-center rounded-b-lg">
+                  <h3 className="text-lg font-bold text-gray-900">{continent.name}</h3>
+                  <p className="text-sm text-gray-600 text-center">{continent.description}</p>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-center text-gray-600">검색한 결과를 찾지 못했습니다. <br /> 빠른 시일 내에 기능구현 하겠습니다. </p>
+            <p className="text-center text-gray-600">검색한 결과를 찾지 못했습니다.</p>
           )}
         </div>
 
-        {/* 🔹 모달 창 */}
+        {/* ✅ 나라 상세 정보 모달 */}
         {selectedCountry && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-md shadow-md w-80 relative">
-              <h2 className="text-xl font-bold mb-2">{selectedCountry.name}</h2>
-              <p className="mb-4">{selectedCountry.description}</p>
-              <div className="flex justify-end"> {/* 버튼을 오른쪽으로 정렬 */}
-                <button className="bg-orange-500 text-white hover:bg-orange-600 px-4 py-2 rounded-md" onClick={handleCloseModal}>확인</button>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white w-[500px] p-6 rounded-lg shadow-xl relative">
+
+              {/* 닫기 버튼 */}
+              <button
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                onClick={handleCloseModal}
+              >
+                <FaTimes size={20} />
+              </button>
+
+              <h2 className="text-2xl font-bold text-gray-900">{selectedCountry.name}</h2>
+              <p className="text-gray-600">{selectedCountry.description}</p>
+
+              {/* 나라 이미지 추가 */}
+              <img src={selectedCountry.image} className="w-full h-40 object-cover rounded-md mt-3" alt={selectedCountry.name} />
+
+              {/* 추가 정보 */}
+              {countryInfo && (
+                <div className="mt-4 space-y-2">
+                  <p>🌎 수도: <strong>{countryInfo.capital?.[0] || "정보 없음"}</strong></p>
+                  <p>📍 지역: <strong>{countryInfo.region}</strong></p>
+                  <p>🗣️ 언어: <strong>{Object.values(countryInfo.languages || {}).join(", ")}</strong></p>
+                  <p>💰 화폐: <strong>{Object.values(countryInfo.currencies || {}).map(c => c.name).join(", ")}</strong></p>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-4">
+                <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md" onClick={handleCloseModal}>
+                  닫기
+                </button>
               </div>
             </div>
           </div>

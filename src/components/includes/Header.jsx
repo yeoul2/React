@@ -12,56 +12,56 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
   // ✅ 로그인 상태 확인
   useEffect(() => {
     const checkLoginStatus = async () => {
-        const accessToken = localStorage.getItem("accessToken");
-        const refreshToken = localStorage.getItem("refreshToken");
-        //const googleAccessToken = localStorage.getItem("googleAccessToken");
+      const accessToken = localStorage.getItem("accessToken");
+      const refreshToken = localStorage.getItem("refreshToken");
+      //const googleAccessToken = localStorage.getItem("googleAccessToken");
 
-        console.log("🔍 현재 저장된 JWT 토큰:", accessToken);
-        console.log("🔍 현재 저장된 REFRESH 토큰:", refreshToken);
-        //console.log("🔍 현재 저장된 Google 토큰:", googleAccessToken);
+      console.log("🔍 현재 저장된 JWT 토큰:", accessToken);
+      console.log("🔍 현재 저장된 REFRESH 토큰:", refreshToken);
+      //console.log("🔍 현재 저장된 Google 토큰:", googleAccessToken);
 
-        //if (!accessToken && !googleAccessToken) {
-        if (!accessToken ) {
-            console.log("❌ 토큰 없음");
-            setIsLoggedIn(false);
-            setUser_id("");
-            return;
+      //if (!accessToken && !googleAccessToken) {
+      if (!accessToken) {
+        console.log("❌ 토큰 없음");
+        setIsLoggedIn(false);
+        setUser_id("");
+        return;
+      }
+
+      try {
+        //const tokenToUse = accessToken ? accessToken : googleAccessToken; // ✅ JWT > Google 우선순위
+        const tokenToUse = accessToken
+        const response = await axios.get("/api/check", {
+          //fetch ("/api/check", {
+          //method: "GET",
+          headers: {
+            "Authorization": `Bearer ${tokenToUse}`,
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        });
+
+        console.log("로그인 확인 응답:", response.data);
+
+        if (response.data.isAuthenticated && response.data.userId) {
+          setIsLoggedIn(true);
+          setUser_id(response.data.userId);
+        } else {
+          setIsLoggedIn(false);
+          setUser_id("");
         }
-
-        try {
-            //const tokenToUse = accessToken ? accessToken : googleAccessToken; // ✅ JWT > Google 우선순위
-            const tokenToUse = accessToken
-            const response = await axios.get("/api/check", {
-            //fetch ("/api/check", {
-                //method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${tokenToUse}`,
-                    "Content-Type": "application/json",
-                },
-                withCredentials: true,
-            });
-
-            console.log("로그인 확인 응답:", response.data);
-
-            if (response.data.isAuthenticated && response.data.userId) {
-                setIsLoggedIn(true);
-                setUser_id(response.data.userId);
-            } else {
-                setIsLoggedIn(false);
-                setUser_id("");
-            }
-        } catch (error) {
-            console.error("로그인 확인 오류:", error);
-            setIsLoggedIn(false);
-            setUser_id("");
-        }
+      } catch (error) {
+        console.error("로그인 확인 오류:", error);
+        setIsLoggedIn(false);
+        setUser_id("");
+      }
     };
 
     checkLoginStatus();
     window.addEventListener("storage", checkLoginStatus);
 
     return () => window.removeEventListener("storage", checkLoginStatus);
-}, []);
+  }, []);
 
 
   // ✅ 로그아웃 처리 함수
