@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"; // API 호출을 위한 axios 추가
+import axiosInstance from "../../services/axiosInstance";
 
-const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
+const Header = ({ resetSearch }) => {
+  // ✅ resetSearch props 추가
   const navigate = useNavigate(); // 페이지 이동을 위한 네비게이션 훅 사용
+
+
+  
 
   // ✅ 로그인 상태 및 사용자 아이디를 관리하는 state
   const [isLoggedIn, setIsLoggedIn] = useState(false); // 로그인 여부
@@ -12,83 +17,96 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
   // ✅ 로그인 상태 확인
   useEffect(() => {
     const checkLoginStatus = async () => {
-        const accessToken = localStorage.getItem("accessToken");
-        const refreshToken = localStorage.getItem("refreshToken");
-        //const googleAccessToken = localStorage.getItem("googleAccessToken");
+      const accessToken = localStorage.getItem("accessToken");
+      const refreshToken = localStorage.getItem("refreshToken");
 
-        console.log("🔍 현재 저장된 JWT 토큰:", accessToken);
-        console.log("🔍 현재 저장된 REFRESH 토큰:", refreshToken);
-        //console.log("🔍 현재 저장된 Google 토큰:", googleAccessToken);
+      console.log("🔍 현재 저장된 JWT 토큰:", accessToken);
+      console.log("🔍 현재 저장된 REFRESH 토큰:", refreshToken);
 
-        //if (!accessToken && !googleAccessToken) {
-        if (!accessToken ) {
-            console.log("❌ 토큰 없음");
-            setIsLoggedIn(false);
-            setUser_id("");
-            return;
+      //if (!accessToken && !googleAccessToken) {
+      if (!accessToken) {
+        console.log("❌ 토큰 없음");
+        setIsLoggedIn(false);
+        setUser_id("");
+        return;
+      }
+
+      try {
+        //const tokenToUse = accessToken
+        const tokenToUse = localStorage.getItem("accessToken");
+
+        console.log("🔥 저장된 accessToken:", tokenToUse);
+
+        if (!tokenToUse) {
+          console.warn("❌ accessToken이 없습니다.");
+          setIsLoggedIn(false);
+          setUser_id("");
+          return;
         }
 
-        try {
-            //const tokenToUse = accessToken ? accessToken : googleAccessToken; // ✅ JWT > Google 우선순위
-            const tokenToUse = accessToken
-            const response = await axios.get("/api/check", {
-            //fetch ("/api/check", {
-                //method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${tokenToUse}`,
-                    "Content-Type": "application/json",
-                },
-                withCredentials: true,
-            });
+        //axiosInstance 사용 (Authorization 헤더 자동 추가됨)
+        //const response = await axiosInstance.get("/api/check")/* , { */
+        const response = await axiosInstance.get("/api/check"); /* , { */
 
-            console.log("로그인 확인 응답:", response.data);
+        /* headers: {
+                    'Authorization': `Bearer ${tokenToUse}`,
+                    'Content-Type': 'application/json',
+                }, */
+        //withCredentials: true,
+        /* }); */
 
-            if (response.data.isAuthenticated && response.data.userId) {
-                setIsLoggedIn(true);
-                setUser_id(response.data.userId);
-            } else {
-                setIsLoggedIn(false);
-                setUser_id("");
-            }
-        } catch (error) {
-            console.error("로그인 확인 오류:", error);
-            setIsLoggedIn(false);
-            setUser_id("");
+        console.log("로그인 확인 응답:", response.data);
+        console.log("📌 check 값 확인:", response.data.check); // 🔥 check 값이 실제로 있는지 확인
+        //console.log("tokenToUse :" +tokenToUse)
+
+        if (response.data.isAuthenticated && response.data.userId) {
+          setIsLoggedIn(true);
+          setUser_id(response.data.userId);
+        } else {
+          setIsLoggedIn(false);
+          setUser_id("");
         }
+      } catch (error) {
+        console.error("로그인 확인 오류:", error);
+
+        // 🔍 401 Unauthorized 에러 처리
+        if (error.response) {
+          console.error("🔍 서버 응답 코드:", error.response.status);
+          console.error("🔍 서버 응답 메시지:", error.response.data);
+        }
+
+        setIsLoggedIn(false);
+        setUser_id("");
+      }
     };
 
     checkLoginStatus();
     window.addEventListener("storage", checkLoginStatus);
 
     return () => window.removeEventListener("storage", checkLoginStatus);
-}, []);
+  }, []);
 
-
-  // ✅ 로그아웃 처리 함수
   const handleLogout = async () => {
     try {
       await axios.post("/api/logout", {}, { withCredentials: true });
-      console.log("로그아웃 성공")
+      console.log("✅ 로그아웃 성공");
     } catch (error) {
-      console.error("로그아웃 오류:", error);
+      console.error("❌ 로그아웃 오류:", error);
     }
 
-    // ✅ localStorage에서 사용자 정보 삭제
     localStorage.removeItem("accessToken");
-    //localStorage.removeItem("googleAccessToken"); // Google OAuth 로그인용
-    localStorage.removeItem("refreshToken");  // ✅ 리프레시 토큰도 삭제
-    localStorage.removeItem("role");  // ✅ 역할 정보 삭제
-    localStorage.removeItem("user_id");  // ✅ 사용자 ID 삭제
-    localStorage.removeItem("check");  // ✅ 추가적인 인증 관련 데이터 삭제
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("role");
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("check");
+    localStorage.removeItem("user_email");
     localStorage.removeItem("provider");
 
-    // ✅ 모든 페이지에서 즉시 로그아웃 상태가 반영됨
     window.dispatchEvent(new Event("storage"));
 
     setIsLoggedIn(false);
     setUser_id("");
-
-    navigate("/");
+    navigate("/"); 
   };
 
 
@@ -96,7 +114,6 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
     <header className="bg-white shadow-sm fixed w-full z-50 top-0 left-0 h-16">
       <nav className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-
           {/* ✅ 왼쪽 - 로고 클릭 시 홈으로 이동 & 검색어 초기화 */}
           <img
             className="h-14 w-auto cursor-pointer"
@@ -110,10 +127,15 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
 
           {/* ✅ 중앙 - 네비게이션 메뉴 */}
           <div className="flex space-x-8 text-gray-700 font-medium text-lg">
-            <span className="cursor-pointer hover:text-orange-500 transition-all flex items-center gap-2"
+            <span
+              className="cursor-pointer hover:text-orange-500 transition-all flex items-center gap-2"
               onClick={() => navigate("/course")}
             >
-              <img src="/images/capybara_icon.png" alt="여울 아이콘" className="h-6 w-6" />
+              <img
+                src="/images/capybara_icon.png"
+                alt="여울 아이콘"
+                className="h-6 w-6"
+              />
               여울! 코스 생성
             </span>
 
@@ -121,7 +143,11 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
               className="cursor-pointer hover:text-orange-500 transition-all flex items-center gap-2"
               onClick={() => navigate("/board")}
             >
-              <img src="/images/capybara_icon.png" alt="여울 아이콘" className="h-6 w-6" />
+              <img
+                src="/images/capybara_icon.png"
+                alt="여울 아이콘"
+                className="h-6 w-6"
+              />
               여울! 코스 후기
             </span>
 
@@ -129,7 +155,11 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
               className="cursor-pointer hover:text-orange-500 transition-all flex items-center gap-2"
               onClick={() => navigate("/course_list")}
             >
-              <img src="/images/capybara_icon.png" alt="여울 아이콘" className="h-6 w-6" />
+              <img
+                src="/images/capybara_icon.png"
+                alt="여울 아이콘"
+                className="h-6 w-6"
+              />
               여울! 코스 공유
             </span>
           </div>
@@ -143,7 +173,11 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
                   onClick={() => navigate("/mypage-check")}
                   className="text-gray-600 hover:text-orange-500 cursor-pointer flex items-center gap-2"
                 >
-                  <img src="/images/capybara_face.png" alt="여울 얼굴" className="h-6 w-6" />
+                  <img
+                    src="/images/capybara_face.png"
+                    alt="여울 얼굴"
+                    className="h-6 w-6"
+                  />
                   {user_id}님 {/* 로그인한 사용자 ID 표시 */}
                 </span>
                 <button
@@ -171,7 +205,6 @@ const Header = ({ resetSearch }) => {  // ✅ resetSearch props 추가
               </>
             )}
           </div>
-
         </div>
       </nav>
     </header>

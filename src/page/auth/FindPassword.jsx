@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // useNavigate 훅 추가
 
 const FindPassword = () => {
-  const [userId, setUserId] = useState(""); // 아이디 상태
-  const [email, setEmail] = useState(""); // 이메일 상태
+  const [user_id, setUser_id] = useState(""); // 아이디 상태
+  const [user_email, setUser_email] = useState(""); // 이메일 상태
   const [isIdFocused, setIsIdFocused] = useState(false); // 이름 필드의 포커스 상태
   const [isEmailFocused, setIsEmailFocused] = useState(false); // 이메일 필드의 포커스 상태
   const navigate = useNavigate(); // useNavigate 훅 사용 
@@ -26,7 +26,7 @@ const FindPassword = () => {
   // 폼 제출 핸들러
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (userId && email) {
+    if (user_id && user_email) {
       alert("비밀번호 찾기 요청이 전송되었습니다.");
     }
   };
@@ -75,8 +75,8 @@ const FindPassword = () => {
                     type="text"
                     maxLength={12} // 최대 12자 제한 추가
                     required
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
+                    value={user_id}
+                    onChange={(e) => setUser_id(e.target.value)}
                     onFocus={() => setIsIdFocused(true)}  // 이름 필드 포커스 시
                     onBlur={() => setIsIdFocused(false)}  // 이름 필드 포커스 해제 시
                     className="!rounded-button block w-full pl-10 py-3 border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -100,8 +100,8 @@ const FindPassword = () => {
                     name="email"
                     type="email"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={user_email}
+                    onChange={(e) => setUser_email(e.target.value)}
                     onFocus={() => setIsEmailFocused(true)}  // 이메일 필드 포커스 시
                     onBlur={() => setIsEmailFocused(false)}  // 이메일 필드 포커스 해제 시
                     className="!rounded-button block w-full pl-10 py-3 border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -114,8 +114,8 @@ const FindPassword = () => {
             <div>
               <button
                 type="submit"
-                disabled={!userId || !email} // ✅ isFormValid 제거 후 간단히 처리
-                className={`!rounded-button group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium text-white ${userId && email
+                disabled={!user_id || !user_email} // ✅ isFormValid 제거 후 간단히 처리
+                className={`!rounded-button group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium text-white ${user_id && user_email
                   ? "bg-orange-500 hover:bg-orange-600"
                   : "bg-orange-500 cursor-not-allowed"
                   } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom`}

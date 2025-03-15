@@ -40,6 +40,7 @@ const LoginPage = () => {
       localStorage.setItem("refreshToken", response.data.refreshToken); 
       localStorage.setItem("role", response.data.role);  
       localStorage.setItem("check", "Y");  
+      localStorage.setItem("user_email", response.data.user_email)
 
       // ✅ 새로고침해도 로그인 유지하도록 전역 상태 업데이트 (이 코드가 없으면 헤더에서 로그인 인식을 못 함)
       window.dispatchEvent(new Event("storage"));

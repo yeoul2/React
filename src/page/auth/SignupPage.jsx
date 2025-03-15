@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaCalendarAlt } from "react-icons/fa"; // 📌 눈 아이콘 & 달력 아이콘 추가
 
@@ -31,6 +31,13 @@ const SignupPage = () => {
   const [emailVerified, setEmailVerified] = useState(false); // 이메일 인증 성공 여부
   const [showVerificationInput, setShowVerificationInput] = useState(false); // 인증 코드 입력 필드 표시 여부
   const [isVerificationEnabled, setIsVerificationEnabled] = useState(false); // 인증번호 입력 가능 여부
+
+  // ✅ 이메일 인증 상태를 `localStorage`에서 불러오기 (새로고침 방지)
+  useEffect(() => {
+    const isEmailVerified = localStorage.getItem("emailVerified") === "true";
+    console.log("🚀 로컬스토리지 emailVerified 상태:", isEmailVerified); // 디버깅용
+    setEmailVerified(isEmailVerified); // 🔥 로컬 저장값 반영
+  }, []);
 
 
   // 📌 입력값 변경 핸들러
@@ -175,6 +182,21 @@ const SignupPage = () => {
             code: verificationCode 
         });
 
+        // ✅ 1️⃣ **이메일 중복 체크를 먼저 수행**
+        const duplicateCheck = await fetch("/api/check-email-duplicate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_email: formData.user_email }),
+        });
+
+        const duplicateData = await duplicateCheck.json();
+
+        if (duplicateData.duplicate) {
+            alert("이미 가입된 이메일입니다. 다른 이메일을 사용해주세요.");
+            return;  // ❌ 중복된 이메일이면 인증 진행 X
+        }
+
+        // ✅ 2️⃣ **이메일 중복이 없으면 인증 코드 확인 진행**
         const response = await fetch("/api/check-verification", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -191,14 +213,16 @@ const SignupPage = () => {
             return;
         }
 
+        // ✅ 3️⃣ 인증 성공 후 메시지 출력 및 상태 업데이트
         alert("인증 성공! 회원가입을 진행해주세요.");
         setEmailVerified(true);  // 인증 상태 업데이트
+        localStorage.setItem("emailVerified", "true"); // ✅ 인증 상태 저장
 
     } catch (error) {
         console.error("인증 확인 오류:", error);
         alert("서버 오류가 발생했습니다. 다시 시도해주세요.");
     }
-};
+  };
 
 
   const handleCheckUsername = async () => {
@@ -237,6 +261,10 @@ const SignupPage = () => {
   // 회원가입 요청
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ✅ `emailVerified`가 `true`인지 `localStorage`에서도 확인
+    const isEmailVerified = localStorage.getItem("emailVerified") === "true";
+
 
     if (!emailVerified) {
       alert("이메일 인증을 완료해야 회원가입이 가능합니다.");
@@ -297,6 +325,7 @@ const SignupPage = () => {
       }
 
       alert("회원가입이 완료되었습니다!");
+      localStorage.removeItem("emailVerified"); // ✅ 회원가입 후 인증 상태 초기화
       navigate("/login");
     } catch (error) {
       console.error("회원가입 오류:", error);
