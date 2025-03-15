@@ -121,8 +121,8 @@ const SignupPage = () => {
     let score = 0;
     if (lengthValid) score++;
     //score === 0과 score === 1이 동일한 "위험" 상태라서 차이가 없음.
-    if(hasUpperCase) score++;
-    if(hasLowerCase) score++;
+    if (hasUpperCase) score++;
+    if (hasLowerCase) score++;
     if (hasNumber) score++;
     if (hasSpecialChar) score++;
 
@@ -142,7 +142,7 @@ const SignupPage = () => {
     if (!provider) {  // ✅ provider 값이 있는지 체크
       alert("이메일 제공업체를 선택해주세요.");
       return;
-  }
+    }
 
     try {
       console.log("📩 인증 요청: ", { user_email: formData.user_email, provider }); // ✅ 콘솔 확인
@@ -163,7 +163,7 @@ const SignupPage = () => {
       setShowVerificationInput(true); // 인증 코드 입력 필드 표시
       setIsVerificationEnabled(true); // 인증번호 입력 가능하게 활성화
 
-      } catch (error) {
+    } catch (error) {
       console.error("이메일 인증 오류:", error);
       alert("서버 오류가 발생했습니다. 다시 시도해주세요.");
     }
@@ -172,15 +172,15 @@ const SignupPage = () => {
   // 이메일 인증 확인
   const handleVerificationCheck = async () => {
     if (!formData.user_email || !verificationCode) {
-        alert("이메일과 인증 코드를 입력해주세요.");
-        return;
+      alert("이메일과 인증 코드를 입력해주세요.");
+      return;
     }
 
     try {
-        console.log("🔍 인증 코드 확인 요청:", { 
-            user_email: formData.user_email, 
-            code: verificationCode 
-        });
+      console.log("🔍 인증 코드 확인 요청:", {
+        user_email: formData.user_email,
+        code: verificationCode
+      });
 
         // ✅ 1️⃣ **이메일 중복 체크를 먼저 수행**
         const duplicateCheck = await fetch("/api/check-email-duplicate", {
@@ -197,32 +197,34 @@ const SignupPage = () => {
         }
 
         // ✅ 2️⃣ **이메일 중복이 없으면 인증 코드 확인 진행**
-        const response = await fetch("/api/check-verification", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                user_email: formData.user_email,  // ✅ 이메일
-                code: verificationCode  // ✅ 사용자가 입력한 인증 코드
-            }),
-        });
+      const response = await fetch("/api/check-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_email: formData.user_email,  // ✅ 이메일
+          code: verificationCode  // ✅ 사용자가 입력한 인증 코드
+        }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (!response.ok) {
-            alert(`인증 실패: ${data.message || "오류 발생"}`);
-            return;
-        }
+      if (!response.ok) {
+        alert(`인증 실패: ${data.message || "오류 발생"}`);
+        return;
+      }
 
         // ✅ 3️⃣ 인증 성공 후 메시지 출력 및 상태 업데이트
         alert("인증 성공! 회원가입을 진행해주세요.");
         setEmailVerified(true);  // 인증 상태 업데이트
         localStorage.setItem("emailVerified", "true"); // ✅ 인증 상태 저장
+      alert("인증 성공! 회원가입을 진행해주세요.");
+      setEmailVerified(true);  // 인증 상태 업데이트
 
     } catch (error) {
-        console.error("인증 확인 오류:", error);
-        alert("서버 오류가 발생했습니다. 다시 시도해주세요.");
+      console.error("인증 확인 오류:", error);
+      alert("서버 오류가 발생했습니다. 다시 시도해주세요.");
     }
-  };
+};
 
 
   const handleCheckUsername = async () => {
@@ -270,17 +272,17 @@ const SignupPage = () => {
       alert("이메일 인증을 완료해야 회원가입이 가능합니다.");
       return;
     }
-  
+
     if (passwordError) {
       alert("비밀번호를 올바르게 입력하세요.");
       return;
     }
-  
+
     if (formData.user_pw !== formData.confirmPassword) {
       alert("비밀번호가 일치하지 않습니다.");
       return;
     }
-  
+
     if (!formData.agreeTerms) {
       alert("개인정보 수집 및 이용에 동의해야 합니다.");
       return;
@@ -295,10 +297,10 @@ const SignupPage = () => {
     // 생년월일을 안넣을수도 있다는 가정하에 작성
     if (!requestData.user_birth) {
       delete requestData.user_birth; // 빈 값이면 제거
-  }
+    }
 
-      // 서버로 보낼 때마다 `confirmPassword` 제거
-      const {confirmPassword, ...singupData} = formData
+    // 서버로 보낼 때마다 `confirmPassword` 제거
+    const { confirmPassword, ...singupData } = formData
 
     try {
       //const response = await fetch("http://localhost:7007/api/signup", {
@@ -309,13 +311,13 @@ const SignupPage = () => {
       });
 
       let data;
-          try {
-            data = await response.json(); // ✅ JSON 형식 응답이면 정상 처리
-          } catch (error) {
-            const text = await response.text(); // ❗ JSON이 아닐 경우, 문자열로 처리
-            alert(text); // 🚨 "회원가입이 성공적으로 완료되었습니다." 같은 문자열도 정상 출력
-  return;
-  }
+      try {
+        data = await response.json(); // ✅ JSON 형식 응답이면 정상 처리
+      } catch (error) {
+        const text = await response.text(); // ❗ JSON이 아닐 경우, 문자열로 처리
+        alert(text); // 🚨 "회원가입이 성공적으로 완료되었습니다." 같은 문자열도 정상 출력
+        return;
+      }
       alert(data.message); // ✅ JSON 응답이면 정상 출력
       //const data = await response.json(); 수정으로 인해 잠시 주석처리
 
@@ -339,9 +341,9 @@ const SignupPage = () => {
       <div className="max-w-md w-full bg-white py-8 px-6 shadow-sm rounded-lg">
         <div className="text-center">
           <img
-            src="/images/Yeoul_Logo.png"
             alt="로고"
-            className="h-14 mx-auto cursor-pointer"
+            src="/images/icon_image/Yeoul_Logo.png"
+            className="h-16 mx-auto cursor-pointer"
             onClick={() => navigate("/")}
           />
           <h2 className="text-2xl font-bold text-gray-900 mt-4">회원가입</h2>
@@ -363,11 +365,11 @@ const SignupPage = () => {
             />
           </div>
 
-   {/* 이메일 제공업체 선택 */}
-   <div>
+          {/* 이메일 제공업체 선택 */}
+          <div>
             <label className="block text-sm font-medium text-gray-700">이메일 제공업체</label>
-            <select 
-              value={provider} 
+            <select
+              value={provider}
               onChange={(e) => setProvider(e.target.value)}
               className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
             >
@@ -409,7 +411,7 @@ const SignupPage = () => {
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                   maxLength="6"
-                  disabled={!isVerificationEnabled} 
+                  disabled={!isVerificationEnabled}
                   className="flex-1 block w-full border-gray-300 rounded-l-md focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
                   placeholder="인증 코드를 입력해주세요"
                 />
