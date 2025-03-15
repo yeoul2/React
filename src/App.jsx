@@ -9,6 +9,7 @@ import FindPassword from "./page/auth/FindPassword";
 import FindId from "./page/auth/FindId";
 import TravelPage from "./page/notice/TravelPage";
 import TravelReviewForm from "./page/notice/TravelReviewForm";
+import TravelReviewEditForm from "./page/notice/TravelReviewEditForm";
 import MypageCheck from "./page/auth/MypageCheck";
 import "./index.css";
 import TripReview from "./page/notice/TripReview";
@@ -35,6 +36,7 @@ const App = () => {
             <Route path="/naver/callback" element={<NaverAuthCallback/>} />
             <Route path="/board" element={<TravelPage />} />
             <Route path="/board/:tb_no" element={<TripReview />} />
+            <Route path="/boardedit" element={<TravelReviewEditForm />} />
             <Route path="/write" element={<TravelReviewForm />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/themes/light.css";
 import "flatpickr/dist/l10n/ko.js";
@@ -8,6 +8,8 @@ import useStyle from "../../components/hooks/useStyle";
 import { insertBoard } from "../../services/boardLogic";
 
 const TravelReviewForm = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const customStyles = useStyle();
   const datePickerRef = useRef(null);
   const flatpickrInstance = useRef(null); // 📌 Flatpickr 인스턴스 저장
@@ -21,8 +23,11 @@ const TravelReviewForm = () => {
   const [review, setReview] = useState("");
   const [files, setFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]); // 이미지 미리보기 URL 저장
-  const [visibility, setVisibility] = useState("Y");
-  const navigate = useNavigate();
+  
+  // 수정할 게시글 데이터 받기
+  const tripData= location.state.tripData;
+  const tripdetailData = location.state.tripdetailData;
+  const [visibility, setVisibility] = useState(tripData.tb_public);
 
   // 공개 옵션값 변수 설정
   const options = [
@@ -204,7 +209,7 @@ const TravelReviewForm = () => {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
       <div className="bg-white shadow sm:rounded-lg p-6">
-        <h1 className="text-lg font-medium leading-6 text-gray-900 mb-4 select-none">여행 후기 작성</h1>
+        <h1 className="text-lg font-medium leading-6 text-gray-900 mb-4 select-none">여행 후기 수정</h1>
 
         <div className="space-y-6 select-none">
           <div>
@@ -212,7 +217,7 @@ const TravelReviewForm = () => {
             <input
               type="text"
               className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
-              placeholder="제목을 입력하세요"
+              placeholder= {tripData.tb_title}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
@@ -225,14 +230,14 @@ const TravelReviewForm = () => {
                 <input
                   type="text"
                   className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
-                  placeholder="나라"
+                  placeholder={tripData.tb_country}
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                 />
                 <input
                   type="text"
                   className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
-                  placeholder="도시"
+                  placeholder={tripData.tb_city}
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                 />
@@ -243,7 +248,7 @@ const TravelReviewForm = () => {
               <input
                 ref={datePickerRef}
                 className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none cursor-pointer"
-                placeholder="여행 날짜를 선택하세요"
+                placeholder= {`${tripData.tb_departure_date} ~ ${tripData.tb_return_date}`}
                 onClick={toggleDatePicker} // 📌 클릭 시 달력 토글
                 readOnly // 📌 키보드 입력 방지 (달력으로만 선택)
               />
@@ -378,7 +383,7 @@ const TravelReviewForm = () => {
           <textarea
             className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
             rows="4"
-            placeholder="전반적인 여행 후기를 작성해주세요"
+            placeholder={tripData.tb_review}
             value={review}
             onChange={(e) => setReview(e.target.value)}
           ></textarea>

@@ -55,6 +55,37 @@ export const getBoardDetail = async (tb_no) => {
       console.error("상세 게시글 가져오기 실패: "+error);
    }
 }
+// 글쓰기(보드디테일 함께 저장)
+export const insertBoard = async (boardData) => {
+   console.log(boardData);
+   try {
+      const response = await axios({
+         method:"post",
+         url:`${process.env.REACT_APP_SPRING_IP}api/board/tripboardInsert`,
+         data: boardData
+      })
+      return response.data;
+   } catch (error) {
+      console.error("글쓰기 실패: "+error)
+   }
+}
+// 글삭제(보드디테일 함께 자동 삭제)
+export const deleteBoard = async (tb_no) => {
+   console.log("삭제할 게시판 번호: "+tb_no);
+   try {
+      const response = await axios({
+         method:"delete",
+         url:`${process.env.REACT_APP_SPRING_IP}api/board/tripboardDelete`,
+         params: {
+            tb_no
+         }
+      })
+      return response.data;
+   } catch (error) {
+      console.error("글삭제 실패: "+error)
+      
+   }
+}
 // 좋아요 정보 가져오기 (유저가 좋아요를 눌렀는지)
 export const hasLiked = async (tb_no,user_id) => {
    console.log("tb_no: "+tb_no+", user_id: "+user_id);
