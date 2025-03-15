@@ -27,6 +27,8 @@ const useStyle = () => {
       pointerEvents: "none", // 마우스 이벤트 차단
     }),
   };
+
+  return customStyles;
 };
 
 export default useStyle;
