@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios"; // 🔹 백엔드 API 호출을 위한 axios 추가
-
-// 📌 Google Places API 키 (환경 변수에서 불러오기)
-const GOOGLE_PLACES_API_KEY = process.env.REACT_APP_GOOGLE_PLACES_API_KEY;
-const GOOGLE_PLACES_URL =
-  "https://maps.googleapis.com/maps/api/place/autocomplete/json";
+import { fetchAutocomplete } from "../../services/googlePlacesService"; // ✅ API 호출 파일 불러오기
 
 // 🔽 커스텀 훅 생성
 const useTravelSearch = () => {
@@ -73,49 +69,34 @@ const useTravelSearch = () => {
   const fetchPlaces = async (query, type, setSuggestions) => {
     if (!query) return;
 
-    // Google Places API 타입 옵션 설정
-    const typeOptions = {
-      regions: "(regions)", // 국가, 행정구역 단위 (예: 한국, 일본, 미국 등)
-      cities: "(cities)", // 도시 단위 (예: 서울, 부산, 도쿄 등)
-      geocode: "geocode", // 모든 지리적 위치 (상세 주소 포함)
-    };
+    console.log("🔍 API 요청 시작 - 검색어:", query, "타입:", type);
 
     try {
-      const response = await axios.get(GOOGLE_PLACES_URL, {
-        params: {
-          input: query,
-          types: typeOptions[type] || "geocode", // 타입이 없으면 geocode가 기본값
-          key: GOOGLE_PLACES_API_KEY,
-          language: "ko",
-        },
-      });
-
-      // API 응답이 있으면 결과를 상태에 저장
-      if (response.data?.predictions?.length > 0) {
-        setSuggestions(
-          response.data.predictions.map((place) => place.description)
-        );
-      } else {
-        setSuggestions([]); // 결과가 없으면 빈 배열
-      }
+      const results = await fetchAutocomplete(query, type); // ✅ googlePlacesApi.js에서 가져오기
+      setSuggestions(results);
     } catch (error) {
       console.error("Google Places API 장소 검색 오류:", error);
     }
   };
 
   // 📌 검색어 입력 시 자동완성 처리
-  const handleCountryChange = (e) => {
-    setSearchTerm(e.target.value); // 🔹 사용자가 입력한 검색어를 상태에 저장
+  const handleCountryChange = async (e) => {
+    const query = e.target.value;
+    setSearchTerm(query); // 🔹 사용자가 입력한 검색어를 상태에 저장
     setShowResults(true); // 🔹 자동완성 목록을 화면에 표시
-    fetchPlaces(e.target.value, "regions", setSuggestedCountries); // 🔹 Google Places API를 호출하여 나라 자동완성 목록을 가져옴
+
+    const results = await fetchAutocomplete(query, "regions"); // ✅ API 호출 변경
+    setSuggestedCountries(results);
   };
 
   // 📌 나라 선택 시 해당 나라의 도시 목록 불러오기
-  const handleCountrySelect = (country) => {
+  const handleCountrySelect = async (country) => {
     setSelectedCountry(country); // 🔹 사용자가 선택한 나라를 상태로 저장
     setSearchTerm(country); // 🔹 검색 입력창을 선택한 나라로 변경
     setSuggestedCountries([]); // 🔹 자동완성 목록을 초기화 (선택 후 목록 숨김)
-    fetchPlaces(country, "cities", setSuggestedCities); // 🔹 선택한 나라를 기반으로 도시 목록을 가져옴
+    
+    const results = await fetchAutocomplete(country, "cities"); // ✅ API 호출 변경
+    setSuggestedCities(results);
   };
 
   // 📌 도시 선택 핸들러 수정
@@ -127,7 +108,7 @@ const useTravelSearch = () => {
     setShowResults(false); // 🔹 선택 후 자동완성 닫기
 
     // 🔹 최근 검색어 업데이트 추가
-    updateRecentSearches(city);
+    updateRecentSearches(fullCity);
 
     if (!isLoggedIn) {
       console.log("❌ 로그인되지 않음 - 검색어 저장 안 함");
@@ -252,6 +233,7 @@ const getSuggestedCities = () => {
 */
 
   return {
+    fetchPlaces, // 🔹 공통 검색 함수
     isLoggedIn, // 🔹 로그인 여부 추가
     currentUser, // 🔹 현재 로그인한 사용자 정보 추가
     searchTerm, // 🔹 검색어 상태

@@ -14,6 +14,7 @@ import "./index.css";
 import TripReview from "./page/notice/TripReview";
 import GoogleAuthCallback from "./page/auth/social/GoogleAuthCallback";
 import NaverAuthCallback from "./page/auth/social/NaverAuthCallback";
+import MyPage from "./page/auth/MyPage";
 
 
 // ✅ 검색 상태를 전역 관리하는 Context 생성
@@ -42,6 +43,7 @@ const App = () => {
             <Route path="/find-pw" element={<FindPassword />} />
             <Route path="/find-id" element={<FindId />} />
             <Route path="/mypage-check" element={<MypageCheck />} />
+            <Route path="/mypage" element={<MyPage />} />
           </Routes>
         </Layout>
       </BrowserRouter>
