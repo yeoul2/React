@@ -14,7 +14,11 @@ export const fetchAutocomplete = async (query, type) => {
       params: { input: query, type },
     });
 
-    return response.data.predictions.map((place) => place.description);
+    console.log("✅ API 응답 데이터:", response.data); // 응답 데이터 확인용 로그 추가
+
+    return response.data.predictions
+      ? response.data.predictions.map((place) => place.description)
+      : [];
   } catch (error) {
     console.error("❌ 자동완성 API 호출 오류:", error);
     return [];
@@ -30,7 +34,7 @@ export const fetchAutocomplete = async (query, type) => {
  */
 export const fetchNearbyPlaces = async (location, type, radius = 5000) => {
   try {
-    const response = await axios.get("/api/places/nearbysearch", {
+    const response = await axios.get("/api/places/nearby-search", {
       params: { location, radius, type },
     });
 
@@ -48,7 +52,7 @@ export const fetchNearbyPlaces = async (location, type, radius = 5000) => {
  */
 export const fetchPlaceDetails = async (placeId) => {
   try {
-    const response = await axios.get("/api/places/details", {
+    const response = await axios.get("/api/places/place-details", {
       params: { placeId },
     });
 
@@ -60,7 +64,24 @@ export const fetchPlaceDetails = async (placeId) => {
 };
 
 /**
- * 🔹 4. 주소를 위도, 경도로 변환 (Geocoding)
+ * 🔹 4. 장소 사진 조회
+ * @param {string} photoReference - 사진의 참조값
+ * @returns {Promise<string>} - 장소 사진 URL
+ */
+export const fetchPlacePhoto = async (photoReference) => {
+  try {
+    const response = await axios.get("/api/places/place-photo", {
+      params: { photoReference },
+    });
+    return response.data.photoUrl;
+  } catch (error) {
+    console.error("❌ 사진 불러오기 실패:", error);
+    return "";
+  }
+};
+
+/**
+ * 🔹 5. 주소를 위도, 경도로 변환 (Geocoding)
  * @param {string} address - 변환할 주소
  * @returns {Promise<{ lat: number, lng: number }>} - 변환된 위도, 경도
  */
@@ -78,7 +99,7 @@ export const fetchGeocode = async (address) => {
 };
 
 /**
- * 🔹 5. 위도, 경도를 주소로 변환 (Reverse Geocoding)
+ * 🔹 6. 위도, 경도를 주소로 변환 (Reverse Geocoding)
  * @param {string} latlng - 변환할 위도, 경도 (예: "37.5665,126.9780")
  * @returns {Promise<string>} - 변환된 주소
  */

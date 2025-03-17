@@ -237,8 +237,8 @@ const HomePage = () => {
                   className="block w-full pl-10 pr-3 py-2 boder boder-white focus:outline-none bg-transparent placeholder-white cursor-pointer text-white"
                   placeholder="여행하고 싶은 나라, 도시를 입력하세요."
                   value={searchTerm}
-                  onChange={handleCountryChange}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  onChange={(e) => handleCountryChange(e.target.value)}
+                  /* onKeyDown={(e) => e.key === "Enter" && handleSearch()} */
                   onFocus={() => setShowResults(true)} // 🔹 포커스 시 자동완성 UI 열림
                 />
 
