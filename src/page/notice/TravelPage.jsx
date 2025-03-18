@@ -1,16 +1,26 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getBoardCount, getBoardList } from "../../services/boardLogic";
+import { useLocation, useNavigate } from "react-router-dom";
+import Select from 'react-select';
+import { getBoardCount, getBoardList } from "../../services/boardApi";
+import useStyle from "../../components/hooks/useStyle";
+
 const TravelPage = () => {
+  const {maskUserId,customStyles} = useStyle();
   const ImgPath = "/images/ui_image/"
   const navigate = useNavigate();
+  const location = useLocation();
   const [places, setPlaces] = useState([]); // DB에서 가져올 게시판 데이터
   const [searchFilter, setSearchFilter] = useState("제목만"); // 기본 필터 : 제목만
   const [searchQuery, setSearchQuery] = useState(""); // 검색어 입력
   const [searchTerm, setSearchTerm] = useState(""); // 실제 검색 실행 후 값
-  const [sortOrder, setSortOrder] = useState("latest"); // 정렬 기준
+  const [sortOrder, setSortOrder] = useState("최신순"); // 정렬 기준
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // 정렬 드롭다운 상태
-  const [currentPage, setCurrentPage] = useState(1); // 현재 페이지
+
+  // 페이지 관련
+  // ✅ URL에서 page 값 가져오기 (없으면 기본값 1)
+  const searchParams = new URLSearchParams(location.search);
+  const initialPage = parseInt(searchParams.get("page")) || 1;
+  const [currentPage, setCurrentPage] = useState(initialPage); // 현재 페이지
   const [totalPosts, setTotalPosts] = useState(0); // 총 게시물 수 상태
   const [totalPages, setTotalPages] = useState(0); // 총 페이지 수 상태
   const [pageNumbers, setPageNumbers] = useState([]); // 페이지 번호 상태
@@ -18,6 +28,7 @@ const TravelPage = () => {
   const pageGroupSize = 10; // 페이지 그룹 크기
   const [isLoggedIn, setIsLoggedIn] = useState(false); // 로그인 여부
   const dropdownRef = useRef(null); // 드롭다운 외부 클릭 감지를 위한 ref
+
 
   // ✅ 로그인 상태 확인 DB연결
   useEffect(() => {
@@ -71,10 +82,6 @@ const TravelPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const orderValue = sortOrder === "latest" ? "최신순" :
-          sortOrder === "rating" ? "만족도순" :
-            "인기순";
-
         // getBoardCount로 총 게시물 수 가져오기
         const boardCount = await getBoardCount(searchFilter, searchTerm);
         setTotalPosts(boardCount); // 총 게시물 수 상태 업데이트
@@ -84,7 +91,7 @@ const TravelPage = () => {
         setTotalPages(calculatedTotalPages);
 
         // getBoardList 호출하여 게시판 데이터 가져오기
-        const placesData = await getBoardList(orderValue, searchFilter, searchTerm, currentPage);
+        const placesData = await getBoardList(sortOrder, searchFilter, searchTerm, currentPage);
         setPlaces(placesData);
 
       } catch (error) {
@@ -125,26 +132,27 @@ const TravelPage = () => {
 
   // ✅ 정렬 옵션 목록 (이미지 포함)
   const sortOptions = [ // 인기순을 기본으로해서 순서 바꿈
-    { value: "popularity", label: " (인기순)", image: "/images/Yeoul_Logo.png" },
-    { value: "latest", label: "최신순" },
-    { value: "rating", label: "🍊 (만족도)" }
+    { value: "최신순", label: "최신순", image: "/images/ui_image/makebutton.png" },
+    { value: "인기순", label: "인기순", image: "/images/ui_image/clicklike.png" },
+    { value: "만족도순", label: "만족도", image: "/images/ui_image/lik5.png" }
   ];
 
   // ✅ 현재 선택된 정렬 옵션
   const selectedOption = sortOptions.find((option) => option.value === sortOrder) || sortOptions[0];
 
   // 만족도 수치별 사진 url
-  const ratingImages = (star)=>{
-    if(star<5 && star>=3){
-      return ImgPath+"like3.png";
+  const ratingImages = (star) => {
+    if (star < 5 && star >= 3) {
+      return ImgPath + "like3.png";
     }
-    else if(star>=5){
-      return ImgPath+"lik5.png";
+    else if (star >= 5) {
+      return ImgPath + "lik5.png";
     }
-    else{
-      return ImgPath+"lik1.png";
+    else {
+      return ImgPath + "lik1.png";
     }
   }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
 
@@ -152,75 +160,68 @@ const TravelPage = () => {
       <div className="flex flex-wrap items-center justify-between py-6">
 
         {/* 검색 필터 (왼쪽 배치) */}
-        <div className="flex items-center space-x-2 border p-2 rounded-md shadow-sm w-full md:w-auto">
-          <select
-            className="border-1.5px px-4 py-2 rounded-md focus:border-orange-500 focus:ring-orange-500"
-            value={searchFilter}
-            onChange={(e) => setSearchFilter(e.target.value)}
-          >
-            <option value="제목만">제목만</option>
-            <option value="내용만">내용만</option>
-            <option value="나라">나라</option>
-            <option value="제목+내용">제목+내용</option>
-          </select>
+        <div className="flex items-center space-x-2 p-2 rounded-md w-full md:w-auto">
+          <Select
+            className=""
+            value={{ value: searchFilter, label: searchFilter }}
+            onChange={(e) => setSearchFilter(e.value)}
+            styles={{
+              ...customStyles,
+              control: (provided, state) => ({
+                ...customStyles.control?.(provided, state),
+                minWidth: "130px",
+                height: "42px",
+              })
+            }}
+            options={["제목만", "내용만", "나라", "제목+내용"].map((option) => ({
+              value: option,
+              label: option
+            }))}
+            isSearchable={false}
+          />
 
           <input
             type="text"
             placeholder="검색어를 입력하세요."
-            className="border-1.5px px-4 py-2 rounded-md focus:border-orange-500 focus:ring-orange-500"
+            className="h-[42px] border-[1px] border-orange-300 px-4 py-2 rounded-md focus:border-orange-500 focus:ring-orange-500"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && setSearchTerm(searchQuery)} //  엔터 키 입력 시 검색 실행
           />
 
-          <button className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
-            onClick={(e) => setSearchTerm(searchQuery)}>🔍</button>
+          <button className="h-[42px] px-4 py-2 bg-orange-500 text-white text-2xl rounded-md hover:bg-orange-600 fa-solid fa-magnifying-glass"
+            onClick={(e) => setSearchTerm(searchQuery)}>
+          </button>
         </div>
 
         {/*✅ 정렬 (드롭다운) & 글쓰기 (오른쪽 배치) */}
         <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
 
-          {/* 드롭다운 (Ref 추가) */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              className="w-auto flex items-center justify-between border px-4 py-2 rounded-md bg-white shadow-md"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            >
-              {selectedOption.image &&
-                <img src={selectedOption.image} alt="icon" className="w-5 h-5 mr-2" />
-              }
-              {selectedOption.label}
-              <span className="ml-auto">▼</span>
-            </button>
-
-            {/* 드롭다운 메뉴 (자동 너비 조정) */}
-            {isDropdownOpen && (
-              <ul className="absolute left-0 w-auto min-w-max mt-1 bg-white border rounded-md shadow-md z-10 whitespace-nowrap">
-                <ul className="absolute left-0 w-full bg-white border-1.5 border-orange-500 rounded-md shadow-md z-10"></ul>
-                {sortOptions.map((option) => (
-                  <li
-                    key={option.value}
-                    className="flex items-center px-4 py-2 hover:bg-orange-400 hover:text-white cursor-pointer"
-                    onClick={() => {
-                      setSortOrder(option.value);
-                      setIsDropdownOpen(false);
-                    }}
-                  >
-                    {/* ✅ 아이콘과 텍스트를 묶어서 정렬 */}
-                    <div className="flex items-center w-full">
-                      {option.image && <img src={option.image} alt="icon" className="w-5 h-5 mr-2" />}
-                      <span>{option.label}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+          <Select
+            value={sortOptions.find((option) => option.value === sortOrder)} // 선택된 값 유지
+            onChange={(selectedOption) => setSortOrder(selectedOption.value)} // 값 변경 시 상태 업데이트
+            options={sortOptions} // 정렬 옵션 전달
+            styles={{
+              ...customStyles,
+              control: (provided, state) => ({
+                ...customStyles.control?.(provided, state),
+                height: "42px",
+              })
+            }}
+            getOptionLabel={(e) => (
+              <div className="flex items-center">
+                {e.image && <img src={e.image} alt={e.label} className="w-10 h-10 mr-2" />}
+                {e.label}
+              </div>
             )}
-          </div>
+            isSearchable={false} // 검색 기능 비활성화
+          />
+
 
           {/* ✅ 글쓰기 버튼 - 로그인 체크 */}
 
           <button
-            className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
+            className="h-[42px] bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
             onClick={() => navigateWithAuth("/write")}
           >
             글쓰기
@@ -235,7 +236,11 @@ const TravelPage = () => {
         {(places?.slice(0, 8) || []).map((place) => ( // ✅ 최대 8개만 표시 (4x2)
           <div key={place.tb_no} className="border p-4 rounded-md shadow-md">
             <img src={place.tb_photo1} className="w-full h-48 object-cover" alt={place.tb_title} />
-            <h3 className="text-lg font-semibold mt-2">{place.tb_title}</h3>
+            <div className="flex items-center">
+              <h3 className="text-lg font-semibold">{place.tb_title}</h3>
+              <p className="text-sm text-gray-500 ml-auto">{maskUserId(place.user_id)}</p>
+            </div>
+
             <p className="text-sm text-gray-600">여행지: {place.tb_country}</p>
             <p className="text-sm text-gray-500">리뷰 날짜: {place.tb_up_date}</p>
             {/* 만족도 및 좋아요 표시 (한 줄에 배치하고 오른쪽 정렬) */}
@@ -255,7 +260,7 @@ const TravelPage = () => {
 
             <button
               className="w-full bg-orange-500 text-white py-2 mt-2 rounded-md hover:bg-orange-600"
-              onClick={() => navigateWithAuth(`/board/${place.tb_no}`)} // ✅ 클릭한 게시글 tb_no 반영
+              onClick={() => navigateWithAuth(`/board/${place.tb_no}?page=${currentPage}`)} // ✅ 클릭한 게시글 tb_no 반영
             >
               상세보기
             </button>

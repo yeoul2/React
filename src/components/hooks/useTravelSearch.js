@@ -1,138 +1,181 @@
-import { useState, useEffect, useRef } from "react";
-import axios from "axios"; // 🔹 백엔드 API 호출을 위한 axios 추가
-
-// 📌 국가별 추천 도시 데이터
-const cities = {
-  대한민국: ["서울", "부산", "제주도", "대구", "광주"],
-  일본: ["도쿄", "오사카", "교토", "후쿠오카", "삿포로"],
-  프랑스: ["파리", "마르세유", "리옹", "보르도", "니스"],
-  미국: ["뉴욕", "로스앤젤레스", "시카고", "샌프란시스코", "라스베가스"],
-  이탈리아: ["로마", "밀라노", "베네치아", "피렌체", "나폴리"],
-};
+import { useState, useEffect, useRef, useCallback } from "react";
+import { fetchAutocomplete } from "../../services/googlePlacesService"; // ✅ API 호출 파일 불러오기
+import debounce from "lodash.debounce"; // ✅ Debounce를 사용하여 API 요청 최적화
+// ✅ RESTful API 요청을 travelSearchLogic.js에서 가져오도록 변경
+import {
+  getRecentSearches,
+  saveSearch,
+  deleteRecentSearch,
+  getPopularDestinations,
+} from "../../services/travelSearchLogic";
 
 // 🔽 커스텀 훅 생성
 const useTravelSearch = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(""); // 검색어 상태 관리
-  const [currentUser, setCurrentUser] = useState(null);
-  const [showResults, setShowResults] = useState(false); // 검색 결과 표시 여부 상태 관리
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // 🔹 로그인 상태 확인
+  const [searchTerm, setSearchTerm] = useState(""); // 🔹 검색어 상태
+  const [showResults, setShowResults] = useState(false); // 🔹 검색 결과 표시 여부
+  const [currentUser, setCurrentUser] = useState(null); // 🔹 현재 로그인한 사용자 정보 저장 (user_id 값 보관)
+  const [selectedCountry, setSelectedCountry] = useState(""); // 🔹 나라 선택 추가
   const [selectedCity, setSelectedCity] = useState(""); // 선택된 도시
-  const [recentSearches, setRecentSearches] = useState([]); // 최근 검색어 상태 관리
-  const [popularDestinations, setPopularDestinations] = useState([]); // 🔹 인기 여행지 상태 추가
-  const [suggestedCities, setSuggestedCities] = useState([]); // 🔹 구글 플레이스 API 결과 저장
-  const [useDummyData, setUseDummyData] = useState(true); // 🔹 API 연동 여부 (기본적으로 더미 데이터 사용)
+  const [recentSearches, setRecentSearches] = useState([]); // 최근 검색어
+  const [searchResults, setSearchResults] = useState([]); // 자동완성 결과
+  const [popularDestinations, setPopularDestinations] = useState([]); // 🔹 인기 여행지
+  const [suggestedCountries, setSuggestedCountries] = useState([]); // 🔹 나라 자동완성 결과
+  const [suggestedCities, setSuggestedCities] = useState([]); // 🔹 도시 자동완성 결과
 
-  const searchResultsRef = useRef(null); // 검색 결과 영역을 위한 참조
+  const searchResultsRef = useRef(null); // 🔹 검색 결과 영역 참조
 
-  // ✅ 모든 페이지에서 로그인 상태 자동 감지
+  /**
+   * 📌 하나의 함수로 국가, 도시, 상세 주소를 구분하여 검색하는 공통 함수
+   *
+   * @param {string} query 사용자가 입력한 검색어
+   * @param {string} type 검색 타입: 'regions' | 'cities' | 'geocode'
+   * @param {function} setSuggestions 결과값을 상태에 저장할 함수 (예: setSuggestedCountries)
+   */
+  const latestQueryRef = useRef(""); // ✅ 최신 검색어 추적 (불필요한 API 호출 방지)
+
+  const fetchPlaces = async (query, type, setSuggestions) => {
+    if (!query || typeof query !== "string" || query.trim() === "") return; // ✅ query가 유효한 문자열인지 체크
+
+    latestQueryRef.current = query; // ✅ 최신 검색어 저장
+
+    console.log("🔍 API 요청 시작 - 검색어:", query, "타입:", type);
+
+    try {
+      const results = await fetchAutocomplete(query, type); // ✅ googlePlacesApi.js에서 가져오기
+
+      // ✅ 최신 검색어가 변경되지 않은 경우에만 상태 업데이트
+      if (latestQueryRef.current === query) {
+        setSuggestions(results);
+      }
+    } catch (error) {
+      console.error("Google Places API 장소 검색 오류:", error);
+    }
+  };
+
+  // 📌 로그인 상태 감지 및 최근 검색어 불러오기 (DB에서)
   useEffect(() => {
-    const checkLoginStatus = () => {
+    const checkLoginStatus = async () => {
       const accessToken = localStorage.getItem("accessToken");
       const userId = localStorage.getItem("user_id");
 
       if (accessToken && userId) {
         setIsLoggedIn(true);
         setCurrentUser({ id: userId });
+
+        try {
+          // ✅ RESTful API로 변경
+          const data = await getRecentSearches(accessToken);
+          setRecentSearches(data);
+        } catch (error) {
+          console.error("검색어 불러오기 실패:", error);
+        }
       } else {
         setIsLoggedIn(false);
         setCurrentUser(null);
+        setRecentSearches([]); // 🔹 로그아웃 시 검색어 초기화
       }
     };
 
-    checkLoginStatus(); // ✅ 페이지 로드 시 로그인 상태 확인
-    window.addEventListener("storage", checkLoginStatus); // ✅ 로그인 변경 감지
-
-    return () => {
-      window.removeEventListener("storage", checkLoginStatus);
-    };
+    checkLoginStatus();
+    window.addEventListener("storage", checkLoginStatus);
+    return () => window.removeEventListener("storage", checkLoginStatus);
   }, []);
 
-  // 📌 구글 플레이스 API 호출 (자동완성 기능)
-  const fetchGooglePlaces = async (query) => {
-    if (!query) return;
+  // ✅ 검색어 저장 함수 (RESTful API 적용)
+  const handleSaveSearch = async (searchTerm, searchType) => {
+    if (!isLoggedIn) {
+      console.log("❌ 로그인되지 않음 - 검색어 저장 안 함");
+      return;
+    }
 
     try {
-      const response = await axios.get(`/api/search/places?query=${query}`);
-      if (response.data.predictions) {
-        setSuggestedCities(
-          response.data.predictions.map((place) => ({
-            city: place.structured_formatting.main_text,
-            country: place.structured_formatting.secondary_text,
-          }))
-        );
-        setUseDummyData(false); // 🔹 API가 성공하면 더미 데이터 사용 중지
-      }
+      const accessToken = localStorage.getItem("accessToken");
+      // ✅ RESTful API 호출로 변경
+      const updatedSearches = await saveSearch(
+        searchTerm,
+        searchType,
+        accessToken
+      );
+      setRecentSearches(updatedSearches);
     } catch (error) {
-      console.error("Google Places API 호출 오류:", error);
-      setUseDummyData(true); // 🔹 API 실패하면 더미 데이터 유지
+      console.error("검색어 저장 실패:", error);
     }
   };
 
-  // 📌 최근 검색어 업데이트 함수 수정
-  const updateRecentSearches = (search) => {
-    setRecentSearches((prevSearches) => {
-      const updatedSearches = [
-        search,
-        ...prevSearches.filter((item) => item !== search),
-      ].slice(0, 5);
+  // ✅ 최근 검색어 삭제 함수 (DB에서 삭제)
+  const handleRemoveRecentSearch = async (searchTerm, searchType) => {
+    if (!isLoggedIn) return;
 
-      // 🔹 API 연동 전, 최근 검색어를 로컬스토리지에 저장
-      localStorage.setItem("recentSearches", JSON.stringify(updatedSearches));
-      return updatedSearches;
-    });
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+
+      // ✅ API 요청을 보낼 때 `searchTerm`과 `searchType`만 전달
+      const updatedSearches = await deleteRecentSearch(
+        searchTerm,
+        searchType,
+        accessToken
+      );
+      setRecentSearches(updatedSearches);
+    } catch (error) {
+      console.error("검색어 삭제 실패:", error);
+    }
   };
 
-  // 📌 최근 검색어 삭제 기능
-  const handleRemoveRecentSearch = (searchToRemove) => {
-    const updatedSearches = recentSearches.filter(
-      (search) => search !== searchToRemove
-    );
-    setRecentSearches(updatedSearches);
-
-    // 🔹 로컬스토리지에서도 삭제
-    localStorage.setItem("recentSearches", JSON.stringify(updatedSearches));
-  };
-
-  // 📌 인기 여행지 자동 업데이트 (사용자 검색 데이터를 반영)
+  // 📌 인기 여행지 조회
   useEffect(() => {
-    const fetchPopularDestinations = async () => {
+    const loadPopularDestinations = async () => {
       try {
-        // 🔹 API가 아직 연동되지 않았으므로 더미 데이터 주석 처리
-        // const response = await axios.get("/api/search/popular");
-        // if (response.data.length > 0) { setPopularDestinations(response.data);}
-
-        // 📌 임시 더미 데이터 (실제 API 연동 후 제거 예정)
-        setPopularDestinations([
-          "서울",
-          "도쿄",
-          "후쿠오카",
-          "오사카",
-          "베이징",
-        ]);
+        // ✅ RESTful API 호출로 변경
+        const data = await getPopularDestinations();
+        setPopularDestinations(data);
       } catch (error) {
         console.error("인기 여행지 불러오기 오류:", error);
       }
     };
 
-    fetchPopularDestinations();
+    loadPopularDestinations();
   }, []);
 
-  // 📌 검색어 변경 핸들러
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-    setShowResults(true);
-    fetchGooglePlaces(e.target.value); // 🔹 검색어 입력 시 구글 API 호출
+  // 📌 검색어 입력 시 자동완성 처리
+  const handleCountryChange = (query) => {
+    if (!query?.trim()) return; // ✅ query가 유효한 문자열인지 확인
+
+    setSearchTerm(query); // ✅ 입력 즉시 반영
+    debounceFetchPlaces(query); // ✅ API 요청 실행 (Debounce 적용)
   };
 
-  // 📌 검색어 초기화
-  const handleClearSearch = () => {
-    setSearchTerm("");
-    setShowResults(false);
-    setSelectedCity("");
-    setSuggestedCities([]); // 🔹 자동완성 목록 초기화
+  // 📌 Google Places API 연동 (Debounce 적용)
+  const debounceFetchPlaces = useCallback(
+    debounce(async (query) => {
+      setShowResults(true);
+
+      try {
+        const results = await fetchAutocomplete(query, "regions");
+        setSuggestedCountries(results);
+      } catch (error) {
+        console.error("❌ Google Places API 오류:", error);
+      }
+    }, 300),
+    []
+  );
+
+  // 📌 나라 선택 시 해당 나라의 도시 목록 불러오기
+  const handleCountrySelect = async (country) => {
+    setSelectedCountry(country); // 🔹 사용자가 선택한 나라를 상태로 저장
+    setSearchTerm(country); // 🔹 검색 입력창을 선택한 나라로 변경
+    setSuggestedCountries([]); // 🔹 자동완성 목록을 초기화 (선택 후 목록 숨김)
+
+    try {
+      const results = await fetchAutocomplete(country, "cities");
+      setSuggestedCities(results.length > 0 ? results : []);
+    } catch (error) {
+      console.error("❌ 도시 목록 불러오기 오류:", error);
+      setSuggestedCities([]);
+    }
   };
 
-  // 📌 도시 선택 (검색어 입력 후 선택)
+  // 📌 도시 선택 핸들러 수정
   const handleCitySelect = async (city, country) => {
     const fullCity = `${city}, ${country}`;
     setSuggestedCities([]); // 🔹 자동완성 목록 초기화
@@ -140,45 +183,90 @@ const useTravelSearch = () => {
     setSearchTerm(fullCity); // 🔹 검색창에 선택한 도시 입력
     setShowResults(false); // 🔹 선택 후 자동완성 닫기
 
-    // 🔹 최근 검색어 업데이트 추가
-    updateRecentSearches(`${city}`);
-
-    if (!isLoggedIn) {
-      console.log("❌ 로그인되지 않음 - 검색어 저장 안 함");
-      return; // ✅ 로그인하지 않으면 저장하지 않음
+    if (typeof fullCity !== "string") {
+      console.error("🚨 fullCity 값이 문자열이 아님:", fullCity);
+      return;
     }
 
-    // ✅ 로그인한 경우 검색어를 DB에 저장
-    await axios
-      .post("/api/search/save", {
-        userId: currentUser.id,
-        searchTerm: fullCity,
-      })
-      .catch((error) => console.error("검색어 저장 실패:", error));
+    try {
+      // ✅ RESTful API 호출로 변경
+      handleSaveSearch(fullCity, "city"); // `await` 제거하여 비동기 처리 최적화
+    } catch (error) {
+      console.error("❌ 검색어 저장 또는 업데이트 실패:", error);
+    }
   };
 
-  // 📌 인기 여행지 선택 처리 (검색어 저장)
+  // 📌 최근 검색어 저장 (RESTful API 적용)
+  const updateRecentSearches = async (
+    search,
+    searchType,
+    setRecentSearches
+  ) => {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) return; // 🔹 로그인되지 않은 경우 실행 안 함
+
+      // ✅ RESTful API 호출
+      const updatedSearches = await saveSearch(search, searchType, accessToken);
+      setRecentSearches(updatedSearches);
+
+      console.log("✅ 최근 검색어 업데이트 완료:", search);
+    } catch (error) {
+      console.error("❌ 최근 검색어 업데이트 실패:", error);
+    }
+  };
+
+  // ✅ 검색어 초기화 (RESTful API 적용)
+  const handleClearSearch = async () => {
+    setSearchTerm(""); // 🔹 검색어 입력란을 비움
+    setShowResults(false); // 🔹 자동완성 목록을 닫음
+    setSelectedCity(""); // 🔹 선택된 도시를 초기화
+    setSuggestedCities([]); // 🔹 자동완성 목록을 초기화
+    setRecentSearches([]); // ✅ 🔹 최근 검색어 목록도 초기화 (isLoggedIn 상태 감지하여 유지)
+
+    if (isLoggedIn) {
+      try {
+        const accessToken = localStorage.getItem("accessToken");
+        // ✅ RESTful API 호출로 변경
+        const updatedSearches = await getRecentSearches(accessToken);
+        setRecentSearches(updatedSearches);
+      } catch (error) {
+        console.error("❌ 최근 검색어 불러오기 실패:", error);
+        setRecentSearches([]); // ✅ 서버 요청 실패 시 초기화
+      }
+    } else {
+      setRecentSearches([]); // ✅ 로그인되지 않은 경우 초기화
+    }
+  };
+
+  // ✅ 인기 여행지 선택 처리
   const handlePopularDestinationSelect = async (destination) => {
     setSearchTerm(destination);
     setSelectedCity(destination);
     setShowResults(false);
-    updateRecentSearches(destination);
 
     if (!isLoggedIn) {
       console.log("❌ 로그인되지 않음 - 검색어 저장 안 함");
-      return; // ✅ 로그인하지 않으면 저장하지 않음
+      return; // 📌 로그인하지 않으면 저장하지 않음
     }
 
-    // ✅ 로그인한 경우 검색어를 DB에 저장
-    await axios
-      .post("/api/search/save", {
-        userId: currentUser.id,
-        searchTerm: destination,
-      })
-      .catch((error) => console.error("검색어 저장 실패:", error));
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      // ✅ RESTful API 호출로 변경
+      const updatedSearches = await saveSearch(
+        destination,
+        "city",
+        accessToken
+      );
+      setRecentSearches(updatedSearches);
+
+      console.log("✅ 인기 여행지 선택 및 검색어 저장 완료:", destination);
+    } catch (error) {
+      console.error("❌ 검색어 저장 실패:", error);
+    }
   };
 
-  // 📌 검색창 외부 클릭 시 검색 결과 닫기
+  // ✅ 검색창 외부 클릭 시 검색 결과 닫기
   const handleClickOutside = (event) => {
     if (
       searchResultsRef.current &&
@@ -188,57 +276,51 @@ const useTravelSearch = () => {
     }
   };
 
-  useEffect(() => {
-    document.addEventListener("click", handleClickOutside);
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, []);
-
-  // 📌 도시 추천 기능 (더미 데이터 + API 동시 사용)
+  // ✅ 도시 추천 기능
   const getSuggestedCities = () => {
-    if (!searchTerm) return [];
+    if (!searchTerm?.trim()) return []; // ✅ 검색어가 없거나 공백이면 빈 배열 반환
 
-    if (!useDummyData) {
-      return suggestedCities; // 🔹 API 결과가 있으면 API 데이터 사용
-    }
+    // ✅ API에서 받은 데이터가 있으면 그대로 반환
+    if (suggestedCities?.length) return suggestedCities;
 
-    // 🔹 검색어가 국가명과 일치하는 경우 → 해당 국가의 도시 리스트 반환
-    const matchedCountry = Object.keys(cities).find((country) =>
-      country.includes(searchTerm)
+    // 📌 API 응답이 없거나 실패한 경우, 기본 데이터 제공
+    const fallbackCities = [
+      { country: "대한민국", city: "서울" },
+      { country: "일본", city: "도쿄" },
+      { country: "미국", city: "뉴욕" },
+      { country: "프랑스", city: "파리" },
+      { country: "이탈리아", city: "로마" },
+    ];
+
+    // ✅ 검색어 1글자도 검색 가능하도록 변경
+    return fallbackCities.filter(({ city }) =>
+      city.toLowerCase().includes(searchTerm.trim().toLowerCase())
     );
-
-    // 🔹 검색어가 개별 도시명과 일치하는 경우 → 해당 도시 반환
-    const matchedCities = Object.entries(cities)
-      .flatMap(([country, cityList]) =>
-        cityList.map((city) => ({ country, city }))
-      )
-      .filter(({ city }) => city.includes(searchTerm));
-
-    return matchedCountry
-      ? cities[matchedCountry].map((city) => ({
-          country: matchedCountry,
-          city,
-        }))
-      : matchedCities;
   };
 
   return {
-    searchTerm,
-    showResults,
-    selectedCity,
-    recentSearches,
-    popularDestinations,
-    suggestedCities: getSuggestedCities(), // 🔹 더미 데이터 or API 결과 반환
-    searchResultsRef,
-    setShowResults,
-    handleSearchChange,
-    handleClearSearch,
-    handleCitySelect,
-    handleRemoveRecentSearch, // ✅ 추가됨
-    handlePopularDestinationSelect,
-    getSuggestedCities, // ✅ 추가됨
-    handleClickOutside, // ✅ 추가됨
+    isLoggedIn, // 🔹 로그인 여부 추가
+    currentUser, // 🔹 현재 로그인한 사용자 정보 추가
+    searchTerm, // 🔹 검색어 상태
+    showResults, // 🔹 검색 결과 표시 여부
+    selectedCity, // 🔹 선택된 도시
+    recentSearches, // 🔹 최근 검색어 목록
+    suggestedCities, // 🔹 추천 도시 목록
+    popularDestinations, // 🔹 인기 여행지 목록
+    searchResultsRef, // 🔹 검색 결과 DOM 참조
+    handleCountryChange, // 🔹 나라 입력 시 자동완성 처리
+    fetchPlaces, // 🔹 공통 검색 함수
+    saveSearch, // 🔹 검색어 저장 함수 (백엔드 API 호출)
+    setSearchTerm, // 🔹 검색어 변경 함수
+    setShowResults, // 🔹 검색 결과 표시 여부 설정
+    handleClearSearch, // 🔹 검색어 초기화
+    handleCitySelect, // 🔹 도시 선택 처리
+    handleCountrySelect, // 🔹 나라 선택 처리
+    handlePopularDestinationSelect, // 🔹 인기 여행지 선택 처리
+    handleClickOutside, // 🔹 검색창 외부 클릭 시 닫기
+    getSuggestedCities, // 🔹 도시 추천 기능 (더미 데이터 + API 사용)
+    handleRemoveRecentSearch, // 🔹 최근 검색어 삭제
+    updateRecentSearches, // 🔹 최근 검색어 업데이트
   };
 };
 

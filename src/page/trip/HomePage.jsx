@@ -29,13 +29,13 @@ const HomePage = () => {
   const navigate = useNavigate(); // ✅ useNavigate 사용
   const [tripDuration, setTripDuration] = useState(""); // 여행 기간
   const [dateRange, setDateRange] = useState([]); // 날짜 선택
-  const [country, setCountry] = useState(""); // ✅ 나라 정보 상태 추가
   const [adults, setAdults] = useState(2); // 📌 성인 인원 수
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false); // 📌 달력 토글 상태
   const [isPeopleOpen, setIsPeopleOpen] = useState(false); // 인원 수 토글 상태
   const [continentSearchText, setContinentSearchText] = useState(""); // ✅ 나라 검색 상태
   const [filteredContinents, setFilteredContinents] = useState(continents);
   const [selectedCountry, setSelectedCountry] = useState(null); // 🔹 모달 상태 관리
+  const [countryInfo, setCountryInfo] = useState(null); // ✅ 나라 정보 상태 추가
 
   const datePickerRef = useRef(null);
   const flatpickrInstance = useRef(null);
@@ -44,19 +44,21 @@ const HomePage = () => {
   const {
     isLoggedIn, // 🔹 로그인 여부 추가
     currentUser, // 🔹 현재 로그인한 사용자 정보 추가
-    searchTerm,
-    showResults,
-    selectedCity,
-    recentSearches,
-    popularDestinations,
-    suggestedCities,
-    searchResultsRef,
-    setShowResults,
-    handleSearchChange,
-    handleClearSearch,
-    handleCitySelect,
-    handleRemoveRecentSearch,
-    handlePopularDestinationSelect,
+    searchTerm, // 🔹 검색어 상태
+    showResults, // 🔹 검색 결과 표시 여부
+    selectedCity, // 🔹 선택된 도시
+    recentSearches, // 🔹 최근 검색어 목록
+    suggestedCities, // 🔹 추천 도시 목록
+    popularDestinations, // 🔹 인기 여행지 목록
+    searchResultsRef, // 🔹 검색 결과 DOM 참조
+    setShowResults, // 🔹 검색 결과 표시 여부 설정
+    handleCountryChange, // 🔹 나라 입력 시 자동완성 처리
+    handleClearSearch, // 🔹 검색어 초기화
+    handleCitySelect, // 🔹 도시 선택 처리
+    handleCountrySelect, // 🔹 나라 선택 처리
+    handlePopularDestinationSelect, // 🔹 인기 여행지 선택 처리
+    handleClickOutside, // 🔹 검색창 외부 클릭 시 닫기
+    handleRemoveRecentSearch, // 🔹 최근 검색어 삭제
   } = useTravelSearch();
 
   // 📌 Flatpickr 초기화 및 관리
@@ -65,13 +67,33 @@ const HomePage = () => {
       if (flatpickrInstance.current) flatpickrInstance.current.destroy(); // 기존 인스턴스 제거
 
       flatpickrInstance.current = flatpickr(datePickerRef.current, {
-        locale: "ko",
-        mode: "range",
-        dateFormat: "Y.m.d",
-        minDate: "today",
-        disableMobile: true,
+        locale: "ko", // 📌 한국어 설정
+        mode: "range", // 📌 시작일 - 종료일 선택
+        dateFormat: "Y.m.d", // 📌 날짜 포맷 (예: 03.14)
+        minDate: "today", // 📌 오늘 이전 날짜 선택 불가
+        disableMobile: true, // 📌 모바일 기본 datepicker 비활성화
         onChange: (selectedDates) => {
-          setDateRange(selectedDates);
+          if (selectedDates.length === 2) {
+            setDateRange(selectedDates); // 선택된 날짜 저장
+
+            // ✅ 날짜 포맷 변환 함수 (MM월 DD일 (요일))
+            const formatDate = (date) => {
+              const month = String(date.getMonth() + 1).padStart(2, "0");
+              const day = String(date.getDate()).padStart(2, "0");
+              const weekday = date.toLocaleDateString("ko-KR", { weekday: "short" }).replace("요일", ""); // 🔹 요일을 한 글자로 변환
+              return `${month}월 ${day}일 (${weekday})`;
+            };
+
+            // ✅ 출발 날짜 & 종료 날짜 설정
+            const startDate = selectedDates[0];
+            const endDate = selectedDates[1];
+
+            // ✅ 숙박 일수 계산
+            const nights = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+            // ✅ "MM월 DD일 (요일) ~ MM월 DD일 (요일) (X박)" 형식으로 변환
+            setTripDuration(`${formatDate(startDate)} ~ ${formatDate(endDate)} (${nights}박)`); // 📌 여행 기간 표시
+          }
           setIsDatePickerOpen(false); // 📌 날짜 선택 시 달력 닫기
         },
         onClose: () => setIsDatePickerOpen(false), // 📌 빈 곳 클릭 시 달력 닫기
@@ -88,7 +110,7 @@ const HomePage = () => {
       alert("도시와 여행 기간을 입력하세요.");
       return;
     }
-    navigate(`/planner?city=${selectedCity}&start=${dateRange[0]}&end=${dateRange[1]}&adults=${adults}`);
+    navigate(`/course?city=${selectedCity}&start=${dateRange[0]}&end=${dateRange[1]}&adults=${adults}`);
   };
 
   /** ✅ 메인 배너 검색 (여행 코스 검색) */
@@ -108,25 +130,40 @@ const HomePage = () => {
       const result = await response.json();
 
       // 🔹 검색 결과가 존재하는 경우, MainContent로 이동
-      window.location.href = `/course?search=${encodeURIComponent(searchTerm)}`;
+      window.location.href = `/ course ? search = ${ encodeURIComponent(searchTerm) }`;
     } catch (error) {
       console.error("검색 중 오류 발생:", error);
       alert("검색 중 문제가 발생했습니다.");
     } */
   };
 
-  // ✅ 나라 목록 검색
-  const handleContinentSearch = () => {
+  // ✅ 나라 검색 자동완성 기능 개선
+  const handleContinentSearch = (e) => {
+    const searchText = e.target.value.toLowerCase();
+    setContinentSearchText(searchText);
+
+    if (searchText.trim() === "" && filteredContinents !== continents) {
+      setFilteredContinents(continents);
+      return;
+    }
+
+    // 🔍 입력값이 포함된 나라만 필터링
     const filtered = continents.filter((continent) =>
-      continent.name.includes(continentSearchText)
+      continent.name.toLowerCase().includes(searchText)
     );
+
     setFilteredContinents(filtered);
   };
 
   //** ✅ 나라 클릭 시 모달 표시
-  const handleClick = (continent) => {
-    console.log("선택된 나라:", continent); // 🔹 디버깅용 콘솔 로그 추가
-    setSelectedCountry(continent); // 🔹 나라 클릭 시 모달 열기
+  const handleClick = async (continent) => {
+    setSelectedCountry(continent);
+    try {
+      const response = await axios.get(`https://restcountries.com/v3.1/name/${continent.name}`);
+      setCountryInfo(response.data[0]);
+    } catch (error) {
+      console.error("나라 정보 불러오기 실패:", error);
+    }
   };
 
   const handleCloseModal = () => {
@@ -162,11 +199,17 @@ const HomePage = () => {
     setIsPeopleOpen(false);
   };
 
+  useEffect(() => {
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
 
   return (
     <main className="pt-10">
       {/* ✅ 메인 배너 검색 */}
-      <section className="relative bg-gray-900 h-[600px] overflow-hidden flex flex-col justify-center items-center text-white">
+      <section className="relative bg-gray-900 h-[600px] overflow-hidden flex flex-col justify-center items-center">
         {/* 배경 이미지 */}
         <img
           src={mainImg}
@@ -175,184 +218,188 @@ const HomePage = () => {
         />
 
         {/* 배너 타이틀 */}
-        <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-full max-w-4xl z-50 bg-transparent p-6">
-          <h1 className="text-4xl font-bold text-center z-10 mb-6">여울아~ 여행 코스 쒼나게 말아보자!!</h1>
-          <h2 className="text-xl font-bold text-center z-10 mb-6">여행 정보 입력</h2>
+        <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-full max-w-6xl z-50 bg-transparent p-6">
+          <h1 className="text-6x1 font-bold text-center text-white mt-20 mb-20">여울아~ 여행 코스 쒼나게 말아보자!!</h1>
 
-            <div className="grid grid-cols-4 gap-4 sm:grid-cols-4">
+          <div className="grid grid-flow-col auto-cols-[4.3fr_4fr_1fr_1fr] gap-4 flex items-end">
 
-              {/* 여행 국가 입력 */}
-              <div className="relative max-w-lg w-full" ref={searchResultsRef}>
-                <label className="block text-sm font-medium text-white">여행 국가</label>
+            {/* 여행 국가 입력 */}
+            <div className="relative max-w-lg w-full" ref={searchResultsRef}>
+              <label className="block text-sm font-medium text-white">여행 국가</label>
 
-                <div className="relative">
-                  {/* 🔍 검색 아이콘 */}
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <FaSearch className="text-white text-lg" />
-                  </div>
-
-                  {/* 🔹 여행 국가 검색 입력창 */}
-                  <input
-                    type="text-white"
-                    className="block w-full pl-10 pr-10 py-2 boder-white bg-transparent text-white placeholder-white cursor-pointer"
-                    placeholder="여행하고 싶은 나라나 도시를 입력하세요"
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    onFocus={() => setShowResults(true)} // 🔹 포커스 시 자동완성 UI 열림
-                  />
-
-                  {/* ❌ X 버튼 (검색어 초기화) */}
-                  {searchTerm.length > 0 || selectedCity ? (
-                    <div
-                      className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
-                      onClick={handleClearSearch}
-                    >
-                      <FaTimes className="text-gray-400 text-lg" />
-                    </div>
-                  ) : null}
+              <div className="relative w-full border border-gray-300 rounded-md shadow-sm cursor-pointer flex justify-between items-center">
+                {/* 🔍 검색 아이콘 */}
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                  <FaSearch className="text-white text-lg" />
                 </div>
 
-                {/* 🔹 자동완성 UI (최근 검색어 + 추천 도시 + 인기 여행지 포함) */}
-                {showResults && suggestedCities && (
-                  <div className="absolute w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-50">
+                {/* 🔹 여행 국가 검색 입력창 */}
+                <input
+                  type="text-white"
+                  className="block w-full pl-10 pr-3 py-2 boder boder-white focus:outline-none bg-transparent placeholder-white cursor-pointer text-white"
+                  placeholder="여행하고 싶은 나라, 도시를 입력하세요."
+                  value={searchTerm}
+                  onChange={handleCountryChange}
+                  onFocus={() => setShowResults(true)} // 🔹 포커스 시 자동완성 UI 열림
+                />
+                {/* ❌ X 버튼 (검색어 초기화) */}
+                {searchTerm.length > 0 || selectedCity ? (
+                  <div
+                    className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
+                    onClick={handleClearSearch}
+                  >
+                    <FaTimes className="text-white text-lg" />
+                  </div>
+                ) : null}
+              </div>
 
-                    {/* 📌 최근 검색어 */}
-                    {recentSearches.length > 0 && (
-                      <>
-                        <h3 className="text-sm font-medium text-gray-500">최근 검색어</h3>
-                        <div className="flex flex-wrap gap-2 mt-1 mb-2">
-                          {recentSearches.map((search, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-3 py-1 rounded-full text-sm text-white bg-orange-300 cursor-pointer"
-                              onClick={() => handleCitySelect(search, "")}
-                            >
-                              {search}
-                              <FaTimes
-                                className="ml-2 text-gray-500 hover:text-white cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation(); // 🔹 이벤트 버블링 방지
-                                  handleRemoveRecentSearch(search);
-                                }}
-                              />
-                            </span>
-                          ))}
+              {/* 자동완성 UI (최근 검색어 + 추천 도시 + 인기 여행지 포함) */}
+              {showResults && suggestedCities && (
+                <div
+                  className="absolute top-full left-0 mt-1 border border-white rounded-lg shadow-lg p-3 z-50 w-[700px] max-h-[220px] overflow-y-auto scrollbar-hide"
+                >
+                  {/* 📌 최근 검색어 */}
+                  {recentSearches.length > 0 && (
+                    <>
+                      <h3 className="text-sm font-medium text-white mb-2">최근 검색어</h3>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {recentSearches.map((search, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-sm text-white bg-orange-500 cursor-pointer"
+                            onClick={() => handleCitySelect(search, "")}
+                          >
+                            {search}
+                            <FaTimes
+                              className="ml-2 text-gray-500 hover:text-white cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation(); // 🔹 이벤트 버블링 방지
+                                handleRemoveRecentSearch(search);
+                              }}
+                            />
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* 📌 자동완성 추천 도시 */}
+                  {searchTerm.length > 0 ? (
+                    suggestedCities.length > 0 ? (
+                      suggestedCities.map(({ city, country }, index) => (
+                        <div
+                          key={index}
+                          className="p-2 hover:bg-orange-500 rounded-lg cursor-pointer"
+                          onClick={() => {
+                            handleCitySelect(city, country);
+                            setShowResults(false); // 🔹 선택 후 목록 닫기
+                          }}
+                        >
+                          <div className="font-medium text-white">{city}</div>
+                          <div className="text-sm text-white">{country}</div>
                         </div>
-                      </>
-                    )}
-
-                    {/* 📌 자동완성 추천 도시 */}
-                    {searchTerm.length > 0 ? (
-                      suggestedCities.length > 0 ? (
-                        suggestedCities.map(({ city, country }, index) => (
+                      ))
+                    ) : (
+                      <p className="text-white">검색 결과 없음</p>
+                    )
+                  ) : (
+                    <>
+                      {/* 📌 인기 여행지 */}
+                      <h3 className="text-sm font-medium text-white">인기 여행지</h3>
+                      <div className="grid grid-cols-5 grid-rows-2 gap-2">
+                        {popularDestinations.map((destination, index) => (
                           <div
                             key={index}
-                            className="p-2 hover:bg-orange-300 rounded-lg cursor-pointer group"
+                            className="px-2 py-1 text-left font-medium text-white hover:text-white hover:bg-orange-500 rounded-lg cursor-pointer"
                             onClick={() => {
-                              handleCitySelect(city, country);
-                              setShowResults(false); // 🔹 선택 후 목록 닫기
+                              handlePopularDestinationSelect(destination);
+                              setShowResults(false);
                             }}
                           >
-                            <div className="flex flex-col">
-                              <div className="font-medium group-hover:text-white">{city}</div>
-                              <div className="text-sm text-gray-500 group-hover:text-white">{country}</div>
-                            </div>
+                            {destination}
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-500">검색 결과 없음</p>
-                      )
-                    ) : (
-                      <>
-                        {/* 📌 인기 여행지 */}
-                        <h3 className="text-sm font-medium text-gray-500 mt-4 mb-3">인기 여행지</h3>
-                        <div className="flex flex-wrap gap-4">
-                          {popularDestinations.map((destination, index) => (
-                            <div
-                              key={index}
-                              className="px-4 py-2 text-center font-medium text-gray-900 hover:text-white hover:bg-orange-300 rounded-lg cursor-pointer"
-                              onClick={() => {
-                                handlePopularDestinationSelect(destination);
-                                setShowResults(false); // 🔹 선택 후 목록 닫기
-                              }}
-                            >
-                              {destination}
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* 여행 기간 선택 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">여행 기간</label>
-                <div className="relative">
-                  <i
-                    className="far fa-calendar-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer"
-                    onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-                  ></i>
-                  <input
-                    ref={datePickerRef}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-custom focus:border-custom cursor-pointer"
-                    placeholder="여행 날짜를 선택하세요"
-                    onClick={toggleDatePicker} // 📌 클릭 시 달력 토글
-                    readOnly // 📌 키보드 입력 방지 (달력으로만 선택)
-                  />
-                </div>
-                {tripDuration &&
-                  <div className="mt-2 text-xl text-gray-600">
-                    <span>{tripDuration}</span>
-                  </div>
-                }
-              </div>
-
-              {/* 📌 인원 선택 기능 추가 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">인원수</label>
-                <div
-                  className="w-full border border-gray-300 px-3 py-2 rounded-md shadow-sm focus:ring-custom focus:border-custom cursor-pointer flex justify-between items-center"
-                  onClick={() => setIsPeopleOpen(!isPeopleOpen)}
-                >
-                  <span className="text-gray-700">
-                    인원 {adults}명
-                  </span>
-                  <i className={`fas fa-chevron-${isPeopleOpen ? "up" : "down"} text-gray-500`}></i>
-                </div>
-
-                {/* 📌 인원 선택 드롭다운 */}
-                {isPeopleOpen && (
-                  <div className="border border-gray-300 mt-2 rounded-lg p-4 shadow-lg bg-white">
-                    {/* 성인 선택 */}
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-gray-700">인원 수</span>
-                      <div className="flex items-center">
-                        <button
-                          className="px-3 py-1 border rounded-full text-blue-500 hover:text-white hover:bg-orange-500"
-                          onClick={() => setAdults(Math.max(1, adults - 1))}
-                        >
-                          −
-                        </button>
-                        <span className="mx-3">{adults}</span>
-                        <button
-                          className="px-3 py-1 border rounded-full text-blue-500 hover:text-white hover:bg-orange-500"
-                          onClick={() => setAdults(adults + 1)}
-                        >
-                          +
-                        </button>
+                        ))}
                       </div>
-                    </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
 
-                    {/* 확인 버튼 */}
-                    <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg" onClick={() => setIsPeopleOpen(false)}>
-                      확인
-                    </button>
-                  </div>
-                )}
+            {/* 여행 기간 선택 */}
+            <div>
+              <label className="block text-sm font-medium text-white">여행 기간</label>
+              <div className="relative">
+                <i
+                  className="far fa-calendar-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer"
+                  onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                ></i>
+
+                <input
+                  ref={datePickerRef}
+                  className="block w-full pl-10 pr-3 py-2 text-white border boder-white bg-transparent placeholder-white rounded-md shadow-sm focus:ring-white focus:border-white cursor-pointer"
+                  placeholder="여행 날짜를 선택하세요"
+                  onClick={toggleDatePicker} // 📌 클릭 시 달력 토글
+                  readOnly // 📌 키보드 입력 방지 (달력으로만 선택)
+                  value={tripDuration || ""} // 📌 tripDuration 값을 input에 표시 (없을 때 빈 문자열)
+                />
               </div>
             </div>
+
+            {/* 인원 선택 */}
+            <div className="relative">
+              <label className="block text-sm font-medium text-white">인원수</label>
+
+              {/* 인원 선택 버튼 */}
+              <div
+                className="relative w-[180.98px] max-w-[180.98px] border border-white px-3 py-2 rounded-md shadow-sm focus:ring-white focus:border-white cursor-pointer flex items-center gap-3"
+                onClick={() => setIsPeopleOpen(!isPeopleOpen)}
+              >
+                <i className="fas fa-user text-white"></i>
+                <span className="text-white">{adults}명</span>
+                <i className={`fas ${isPeopleOpen ? "fa-chevron-up" : "fa-chevron-down"} text-white ml-auto`}></i>
+              </div>
+
+              {/* 인원 선택 드롭다운 (absolute 적용) */}
+              {isPeopleOpen && (
+                <div className="absolute top-full left-0 mt-2 border border-gray-300 rounded-lg p-4 shadow-lg bg-white w-full z-50">
+                  {/* 성인 선택 */}
+                  <div className="flex justify-between items-center mb-3">
+                    <button
+                      className="px-3 py-1 border rounded-full text-blue-500 hover:text-white hover:bg-orange-500"
+                      onClick={() => setAdults(Math.max(1, adults - 1))}
+                    >
+                      −
+                    </button>
+                    <span className="mx-3">{adults}</span>
+                    <button
+                      className="px-3 py-1 border rounded-full text-blue-500 hover:text-white hover:bg-orange-500"
+                      onClick={() => setAdults(adults + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* 확인 버튼 */}
+                  <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg" onClick={() => setIsPeopleOpen(false)}>
+                    확인
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 확인 버튼 */}
+            <div>
+              <div className="relative">
+                <label className="block text-sm font-medium text-white" />
+                <div className="w-full border-orange-500 border-orange-500 rounded-md shadow-sm focus:ring-custom focus:border-custom cursor-pointer flex justify-between items-center mt-3">
+                  <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg" onClick={handlePlanTrip}>
+                    확인
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -362,7 +409,7 @@ const HomePage = () => {
 
         {/* 🔹 검색 입력창 및 버튼 */}
         <div className="flex gap-2 mb-6 justify-left">
-          <div className="flex border rounded-md overflow-hidden">
+          <div className="flex border hover:border-orange-500 rounded-md overflow-hidden">
             <input
               type="text"
               placeholder="나라 검색"
@@ -381,28 +428,54 @@ const HomePage = () => {
             filteredContinents.map((continent, index) => (
               <div
                 key={index}
-                className="relative rounded-lg overflow-hidden group cursor-pointer"
+                className="relative rounded-lg overflow-hidden group cursor-pointer transition-transform duration-200 transform hover:scale-105 shadow-md"
                 onClick={() => handleClick(continent)}
               >
-                <img src={continent.image} className="w-full h-48 object-cover" alt={continent.name} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-                  <span className="text-white font-medium">{continent.name}</span>
+                <img src={continent.image} className="w-full h-56 object-cover rounded-t-lg" alt={continent.name} />
+                <div className="bg-white p-4 flex flex-col items-center rounded-b-lg">
+                  <h3 className="text-lg font-bold text-gray-900">{continent.name}</h3>
+                  <p className="text-sm text-gray-600 text-center">{continent.description}</p>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-center text-gray-600">검색한 결과를 찾지 못했습니다. <br /> 빠른 시일 내에 기능구현 하겠습니다. </p>
+            <p className="text-center text-gray-600">검색한 결과를 찾지 못했습니다.</p>
           )}
         </div>
 
-        {/* 🔹 모달 창 */}
+        {/* ✅ 나라 상세 정보 모달 */}
         {selectedCountry && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-md shadow-md w-80 relative">
-              <h2 className="text-xl font-bold mb-2">{selectedCountry.name}</h2>
-              <p className="mb-4">{selectedCountry.description}</p>
-              <div className="flex justify-end"> {/* 버튼을 오른쪽으로 정렬 */}
-                <button className="bg-orange-500 text-white hover:bg-orange-600 px-4 py-2 rounded-md" onClick={handleCloseModal}>확인</button>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white w-[500px] p-6 rounded-lg shadow-xl relative">
+
+              {/* 닫기 버튼 */}
+              <button
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                onClick={handleCloseModal}
+              >
+                <FaTimes size={20} />
+              </button>
+
+              <h2 className="text-2xl font-bold text-gray-900">{selectedCountry.name}</h2>
+              <p className="text-gray-600">{selectedCountry.description}</p>
+
+              {/* 나라 이미지 추가 */}
+              <img src={selectedCountry.image} className="w-full h-40 object-cover rounded-md mt-3" alt={selectedCountry.name} />
+
+              {/* 추가 정보 */}
+              {countryInfo && (
+                <div className="mt-4 space-y-2">
+                  <p>🌎 수도: <strong>{countryInfo.capital?.[0] || "정보 없음"}</strong></p>
+                  <p>📍 지역: <strong>{countryInfo.region}</strong></p>
+                  <p>🗣️ 언어: <strong>{Object.values(countryInfo.languages || {}).join(", ")}</strong></p>
+                  <p>💰 화폐: <strong>{Object.values(countryInfo.currencies || {}).map(c => c.name).join(", ")}</strong></p>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-4">
+                <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md" onClick={handleCloseModal}>
+                  닫기
+                </button>
               </div>
             </div>
           </div>

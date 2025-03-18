@@ -7,6 +7,7 @@ import "flatpickr/dist/l10n/ko.js";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import axios from "axios";
 import useTravelSearch from "../../components/hooks/useTravelSearch"; // ✅ 커스텀 훅 추가
+import { Navigate } from "react-router";
 
 // 📌 지도 크기 설정
 const containerStyle = {
@@ -49,7 +50,7 @@ const PlannerPage = () => {
     suggestedCities,
     searchResultsRef,
     setShowResults,
-    handleSearchChange,
+    handleCountryChange,
     handleClearSearch,
     handleCitySelect,
     handleRemoveRecentSearch,
@@ -143,7 +144,7 @@ const PlannerPage = () => {
       };
   
       // ✅ AI API 요청 (실제 AI 연동 시 API URL 수정 필요)
-      const response = await axios.post("/api/ai-recommendation", requestData);
+      const response = await axios.post("/api/ai/trip-recommendation", requestData);
   
       // ✅ AI 응답 처리
       if (response.data) {
@@ -184,7 +185,7 @@ const PlannerPage = () => {
       setIsSaving(true); // 📌 저장 로딩 상태 활성화
 
       // ✅ 로그인 여부 확인
-      if (!isLoggedIn) {
+      if (!isLoggedIn || !currentUser?.id) {
         alert("로그인 후 여행 일정을 저장할 수 있습니다.");
         return;
       }
@@ -199,7 +200,7 @@ const PlannerPage = () => {
       };
 
       // 📌 DB 저장 요청
-      await axios.post("/api/schedule/save", newCourse);
+      await axios.post("/api/schedule/save-course", newCourse);
 
       // ✅ 마이페이지에 저장 (로그인한 경우만 로컬스토리지에 저장)
       const savedCourses = JSON.parse(localStorage.getItem(`savedCourses_${currentUser.id}`)) || [];
@@ -212,6 +213,27 @@ const PlannerPage = () => {
     } finally {
       setIsSaving(false); // 📌 저장 로딩 상태 해제
     }
+  };
+
+  /** ✅ 메인 배너 검색 (여행 코스 검색) */
+  const handleSearch = () => {
+
+    /* try {
+      // 🔹 AI API 요청 (axios 사용)
+      const response = await axios.post("https://your-ai-api.com/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: searchTerm }),
+      });
+
+      const result = await response.json();
+
+      // 🔹 검색 결과가 존재하는 경우, MainContent로 이동
+      window.location.href = `/ course ? search = ${ encodeURIComponent(searchTerm) }`;
+    } catch (error) {
+      console.error("검색 중 오류 발생:", error);
+      alert("검색 중 문제가 발생했습니다.");
+    } */
   };
 
   return (
@@ -247,7 +269,8 @@ const PlannerPage = () => {
                 className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
                 placeholder="여행하고 싶은 나라나 도시를 입력하세요"
                 value={searchTerm}
-                onChange={handleSearchChange}
+                onChange={(e) => handleCountryChange(e.target.value || "")} // ✅ 값이 없으면 빈 문자열("")로 설정
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 onFocus={() => setShowResults(true)} // 🔹 포커스 시 자동완성 UI 열림
               />
 
@@ -265,6 +288,7 @@ const PlannerPage = () => {
             {/* 🔹 자동완성 UI (최근 검색어 + 추천 도시 + 인기 여행지 포함) */}
             {showResults && suggestedCities && (
               <div className="absolute w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-50">
+                {/* <div className="absolute top-full left-0 mt-1 border border-white rounded-lg shadow-lg p-3 z-50 w-[700px] max-h-[220px] overflow-y-auto scrollbar-hide"> */}
 
                 {/* 📌 최근 검색어 */}
                 {recentSearches.length > 0 && (
@@ -353,7 +377,7 @@ const PlannerPage = () => {
               />
             </div>
             {tripDuration &&
-              <div className="mt-2 text-xl text-gray-600">
+              <div className="mt-2 text-xl text-white">
                 <span>{tripDuration}</span>
               </div>
             }

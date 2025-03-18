@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import axios from "axios";
-import { deleteComment, getBoardDetail, hasLiked, insertComment, toggleLike, updateComment } from "../../services/boardLogic";
-import { set } from "react-hook-form";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { deleteBoard, deleteComment, getBoardDetail, hasLiked, insertComment, toggleLike, updateComment } from "../../services/boardApi";
+import useStyle from "../../components/hooks/useStyle";
 
 const TripReview = () => {
-  //params에서 가져와서 int로 바꾸기
+  const {maskUserId} = useStyle();
+  const navigate = useNavigate();
+  const location = useLocation();
+  //params에서 tb_no 가져오기
   const { tb_no } = useParams();
-
   let prevDay = null; // 이전 tbd_day 값을 추적
 
   // 여행 데이터 상태 관리
   const [tripData, setTripData] = useState({}); // DB에서 불러올 게시글 정보 담기
   const [tripdetailData, setTripdetailData] = useState({});
+
+  // 삭제 모달창 관리
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   // 댓글 및 대댓글 상태 관리
   const [comments, setComments] = useState([]); // DB에서 불러올 댓글 정보 담기
@@ -42,10 +47,7 @@ const TripReview = () => {
     const Data = async () => {
       try {
         const boardData = await getBoardDetail(tb_no);
-        //console.log(boardData);
         setTripData(boardData[0]);
-        console.log(tripData);
-        console.log("게시판 제목: " + tripData.tb_title);
         if (boardData[1].course) {
           setTripdetailData(boardData[1].course)
           console.log(tripdetailData);
@@ -61,7 +63,41 @@ const TripReview = () => {
     Data()
     userLike()
   }, [liked])
+  // 게시글 수정 메소드
+  const handleEditBoard = (tripData, tripdetailData) => {
+    console.log(tripData);
+    console.log(tripdetailData);
+    navigate(`/boardedit/${tb_no}`, { state: { tripData, tripdetailData } })
+  }
 
+  // 삭제 버튼 클릭 시 모달 열기
+  const handleOpenDeleteModal = (tb_no) => {
+    setDeleteTarget(tb_no);
+    setShowDeleteModal(true);
+  };
+
+  // 게시글 삭제 메소드
+  const handleDeleteBoard = async (tb_no) => {
+    try {
+      // 삭제 확인 메시지 띄우기
+      const isConfirmed = window.confirm("게시글을 삭제하시겠습니까?");
+
+      if (!isConfirmed) {
+        return; // 사용자가 "아니오"를 누르면 함수 종료
+      }
+
+      const response = await deleteBoard(tb_no)
+      console.log("게시글 삭제 결과: " + response)
+
+      // 게시글 삭제 후, 페이지 이동
+      if (response === 1) {
+        alert("게시글이 삭제되었습니다.")
+        navigate("/board")
+      }
+    } catch (error) {
+      console.error("게시글 삭제 실패: " + error)
+    }
+  }
   // 유저가 좋아요 눌렀는지 확인하는 메소드
   const userLike = async () => {
     try {
@@ -98,7 +134,6 @@ const TripReview = () => {
       }
       const commentinsert = await insertComment(commentdata)
       setNewComment(""); // 댓글 입력 필드 초기화
-      alert("댓글이 작성되었습니다.")
       // 댓글 목록 다시 가져오기 (새로고침 효과)
       const boardData = await getBoardDetail(tb_no);
       setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
@@ -127,7 +162,6 @@ const TripReview = () => {
       setParentc(null); // 대댓글 확인용 부모댓글 번호 초기화
       setNewReply(""); // 대댓글 입력 필드 초기화
       setReplyingTo(null); // 대댓글창 닫기
-      alert("댓글이 작성되었습니다.")
       // 댓글 목록 다시 가져오기 (새로고침 효과)
       const boardData = await getBoardDetail(tb_no);
       setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
@@ -164,7 +198,6 @@ const TripReview = () => {
       // 댓글 목록 다시 가져오기
       const boardData = await getBoardDetail(tb_no);
       setComments(boardData[2].comments); // 댓글 목록 업데이트
-      alert("댓글이 수정되었습니다.");
     } catch (error) {
       console.error("댓글 수정 실패:", error);
     }
@@ -175,7 +208,6 @@ const TripReview = () => {
   const handlecommentdelete = async (tbc_no) => {
     try {
       const c_delete_response = await deleteComment(tbc_no);
-      alert("댓글이 삭제되었습니다.")
       // 댓글 목록 다시 가져오기 (새로고침 효과)
       const boardData = await getBoardDetail(tb_no);
       setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
@@ -193,9 +225,73 @@ const TripReview = () => {
         <div className="p-8">
           {/* 여행 제목 및 작성자 정보 */}
           <header className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">{tripData.tb_title}</h1>
+            {/* 제목과 버튼 그룹 */}
+            <div className="flex items-center justify-between w-full">
+              {/* 제목 (왼쪽 정렬) */}
+              <h3 className="text-3xl font-bold text-gray-900">{tripData.tb_title}</h3>
+              {/* 버튼 그룹 (오른쪽 정렬, 세로 배치) */}
+              <div className="flex flex-col items-end space-y-2">
+                {/* 목록 버튼 */}
+                <button
+                  className="text-base text-white bg-orange-500 px-3 py-1 rounded-md hover:scale-105"
+                  onClick={() => navigate(`/board?page=${new URLSearchParams(location.search).get("page") || 1}`)}
+                >
+                  목록
+                </button>
+
+                {/* 수정 / 삭제 버튼 */}
+                {localStorage.user_id === tripData.user_id && (
+                  <div className="flex space-x-2">
+                    <button
+                      className="text-sm text-gray-500"
+                      onClick={() => handleEditBoard(tripData, tripdetailData)}
+                    >
+                      수정
+                    </button>
+                    <div>
+                      {/* 삭제 버튼 */}
+                      <button
+                        className="text-sm text-gray-500 px-3 py-1 rounded-md hover:bg-red-100"
+                        onClick={() => handleOpenDeleteModal(tb_no)}
+                      >
+                        삭제
+                      </button>
+                      {/* 삭제 확인 모달 */}
+                      {showDeleteModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                          <div className="bg-white p-6 rounded-lg shadow-lg text-center w-80">
+                            <h3 className="text-lg font-semibold text-gray-900">정말 삭제하시겠습니까?</h3>
+                            <p className="text-gray-500 text-sm mt-2">이 작업은 되돌릴 수 없습니다.</p>
+                            <div className="mt-4 flex justify-center space-x-4">
+                              <button
+                                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                                onClick={() => setShowDeleteModal(false)}
+                              >
+                                취소
+                              </button>
+                              <button
+                                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                onClick={handleDeleteBoard}
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="flex items-center text-sm text-gray-500 space-x-4">
-              <span className="text-gray-500">{tripData.user_id}</span>
+              <img
+                src={`/images/icon_image/profile.png`}
+                alt={tripData.user_id}
+                className="w-10 h-10 border-[1.5px] border-gray-600 rounded-full" // 이미지 크기 및 둥근 모서리 설정
+              />
+              <span className="text-gray-500 ">{maskUserId(tripData.user_id)}</span>
               <span>{tripData.tb_up_date}</span>
             </div>
           </header>
@@ -208,7 +304,7 @@ const TripReview = () => {
             </div>
             <div className="bg-gray-50 p-6 rounded-lg">
               <h3 className="text-lg font-medium text-gray-900 mb-2">여행 기간</h3>
-              <p className="text-gray-600">{tripData.tb_departure_date} - {tripData.tb_return_date}</p>
+              <p className="text-gray-600">{tripData.tb_departure_date} ~ {tripData.tb_return_date}</p>
             </div>
           </section>
 
@@ -255,17 +351,72 @@ const TripReview = () => {
             </div>
           </section>
 
-
-          {/* 좋아요 기능 배치 */}
-          <section className="mb-12 flex justify-end">
-            <button
-              className={`text-3xl font-medium px-3 py-1 rounded-lg shadow-md border border-gray-300 flex items-center space-x-2 ${liked ? "text-white bg-orange-300" : "text-gray-400 bg-white"}`}
-              onClick={handleLike}
-            >
-              <img src={liked ? "/images/ui_image/clicklike.png" : "/images/ui_image/unclicklike.png"} alt="" className="w-[80px] h-[80px]" />
-              {tripData.tb_like_count}
-            </button>
+          {/* 여행 리뷰(내용) */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">여행 후기 내용</h2>
+            <p>{tripData.tb_review}</p>
           </section>
+
+          {/* 여행 후기 사진 */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">여행 후기 사진</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {[tripData.tb_photo1, tripData.tb_photo2, tripData.tb_photo3]
+                .filter(url => url) // null 값 제거
+                .map((url, index) => (
+                  <img key={index} src={url} alt={`여행 후기 사진 ${index + 1}`} className="w-full h-64 object-cover rounded-lg shadow-md" />
+                ))}
+            </div>
+          </section>
+
+          <section className="mb-12 flex justify-between items-center">
+            {/* 만족도 표시 */}
+            <div className="flex flex-col">
+              <label className="text-2xl font-bold text-gray-900 mb-6">만족도</label>
+              <div className="flex items-center space-x-2">
+                {[1, 2, 3, 4, 5].map((num) => {
+                  let filledImage = "";
+                  let unfilledImage = "";
+                  let l = "70px"
+
+                  if (num <= 2) {
+                    filledImage = "/images/ui_image/lik1.png";
+                    unfilledImage = "/images/ui_image/unlike1.png";
+                  } else if (num <= 4) {
+                    filledImage = "/images/ui_image/like3.png";
+                    unfilledImage = "/images/ui_image/unlike3.png";
+                    l = "78px"
+                  } else {
+                    filledImage = "/images/ui_image/lik5.png";
+                    unfilledImage = "/images/ui_image/unlike5.png";
+                    l = "88px"
+                  }
+                  return (
+                    <span key={num} className="text-2xl">
+                      <img
+                        src={tripData.tb_star >= num ? filledImage : unfilledImage}
+                        alt=""
+                        className={`w-[${l}] h-[${l}]`}
+                      />
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+
+            {/* 좋아요 버튼 배치 */}
+            <div>
+              <button
+                className={`text-3xl font-medium px-3 py-1 mt-5 rounded-lg shadow-md border border-gray-300 flex items-center space-x-2 ${liked ? "text-white bg-orange-300" : "text-gray-400 bg-white"}`}
+                onClick={handleLike}
+              >
+                <img src={liked ? "/images/ui_image/clicklike.png" : "/images/ui_image/unclicklike.png"} alt="" className="w-[80px] h-[80px]" />
+                {tripData.tb_like_count}
+              </button>
+            </div>
+          </section>
+
 
           {/* 댓글 입력 및 목록 */}
           <section className="mb-12">
@@ -293,21 +444,24 @@ const TripReview = () => {
                   return (
                     <div key={comment.tbc_no} className="border p-2 rounded-lg">
                       <div className="flex justify-between items-center mt-2 ml-2 mb-1 mr-2">
-                        <p className="text-gray-700 mb-0">{comment.user_id}</p>
-                        <div className="flex space-x-2">
-                          <button
-                            className="text-sm text-gray-400  mb-0 rounded-lg hover:scale-105"
-                            onClick={() => handleEditComment(comment)}
-                          >
-                            수정
-                          </button>
-                          <button
-                            className="text-sm text-gray-400  mb-0 rounded-lg hover:scale-105"
-                            onClick={() => handlecommentdelete(comment.tbc_no)}
-                          >
-                            삭제
-                          </button>
-                        </div>
+                        <p className="text-gray-700 mb-0">{maskUserId(comment.user_id)}</p>
+                        {/* 댓글 작성한 id가 로그인한 id와 같을 경우에만 수정,삭제 버튼 노출 */}
+                        {comment.user_id === localStorage.user_id && (
+                          <div className="flex space-x-2">
+                            <button
+                              className="text-sm text-gray-400 mb-0 rounded-lg hover:scale-105"
+                              onClick={() => handleEditComment(comment)}
+                            >
+                              수정
+                            </button>
+                            <button
+                              className="text-sm text-gray-400 mb-0 rounded-lg hover:scale-105"
+                              onClick={() => handlecommentdelete(comment.tbc_no)}
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        )}
                       </div>
                       {/* 댓글 내용 수정 모드 */}
                       {editingComment?.tbc_no === comment.tbc_no ? (
@@ -380,27 +534,30 @@ const TripReview = () => {
                       {/* 이미지 추가 부분 */}
                       <div className="flex items-center space-x-4">
                         <img
-                          src={`/images/ui_image/arrow-right.png`} // 예시로, 사용자 ID에 맞는 이미지 경로 설정
+                          src={`/images/ui_image/arrow-right.png`}
                           alt={comment.user_id}
                           className="w-10 h-10" // 이미지 크기 및 둥근 모서리 설정
                         />
                         <div className="flex-1 border p-2 rounded-lg ml-12">
                           <div className="flex justify-between items-center mt-2 ml-2 mb-1 mr-2">
-                            <p className="text-gray-700 mb-0">{comment.user_id}</p>
-                            <div className="flex space-x-2">
-                              <button
-                                className="text-sm text-gray-400  mb-0 rounded-lg hover:scale-105"
-                                onClick={() => handleEditComment(comment)}
-                              >
-                                수정
-                              </button>
-                              <button
-                                className="text-sm text-gray-400  mb-0 rounded-lg hover:scale-105"
-                                onClick={() => handlecommentdelete(comment.tbc_no)}
-                              >
-                                삭제
-                              </button>
-                            </div>
+                            <p className="text-gray-700 mb-0">{maskUserId(comment.user_id)}</p>
+                            {/* 댓글 작성한 id가 로그인한 id와 같을 경우에만 수정,삭제 버튼 노출 */}
+                            {comment.user_id === localStorage.user_id && (
+                              <div className="flex space-x-2">
+                                <button
+                                  className="text-sm text-gray-400 mb-0 rounded-lg hover:scale-105"
+                                  onClick={() => handleEditComment(comment)}
+                                >
+                                  수정
+                                </button>
+                                <button
+                                  className="text-sm text-gray-400 mb-0 rounded-lg hover:scale-105"
+                                  onClick={() => handlecommentdelete(comment.tbc_no)}
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            )}
                           </div>
                           {editingComment?.tbc_no === comment.tbc_no ? (
                             <div className="mt-2">

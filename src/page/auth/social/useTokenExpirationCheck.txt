@@ -1,0 +1,51 @@
+// hook 폴더가 없으므로 나중에 머지하고 나서 hook으로 옮길 예정
+
+import { useEffect, useState } from "react";
+
+const useTokenExpirationCheck = (logout) => {
+    const [isExpired, setIsExpired] = useState(false);
+
+    useEffect(() => {
+        const checkToken = () => {
+            console.log("🔄 [토큰 체크] 실행됨!");
+
+            const accessToken = localStorage.getItem("accessToken");
+            if (!accessToken) {
+                console.log("❌ 토큰 없음 → 로그아웃 필요");
+                setIsExpired(true);
+                logout(); // ✅ 자동 로그아웃 실행
+                return;
+            }
+
+            // 🔍 액세스 토큰 만료 시간 확인
+            const tokenPayload = JSON.parse(atob(accessToken.split(".")[1]));
+            const accessExp = tokenPayload.exp * 1000; // ✅ 밀리초 변환
+            const now = new Date().getTime();
+
+            console.log(`🔍 액세스 토큰 만료시간: ${new Date(accessExp).toLocaleString()}`);
+
+            if (now > accessExp) {
+                console.log("❌ 액세스 토큰 만료 → 로그아웃 필요");
+                setIsExpired(true);
+                logout(); // ✅ 자동 로그아웃 실행
+            } else {
+                setIsExpired(false);
+            }
+        };
+
+        console.log("🚀 [토큰 체크] 24시간마다 실행 설정됨!");
+        const interval = setInterval(checkToken, 86400000); // ✅ 24시간마다 체크
+
+        checkToken(); // ✅ 페이지 로드 시 한 번 실행
+
+        return () => {
+            clearInterval(interval); // ✅ 언마운트 시 정리
+            console.log("🛑 [토큰 체크] 중지됨!");
+        };
+    }, [logout]); // ✅ `logout`이 변경될 때도 실행
+
+    return isExpired;
+};
+
+export default useTokenExpirationCheck;
+

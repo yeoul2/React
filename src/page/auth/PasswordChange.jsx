@@ -13,6 +13,8 @@ const PasswordChange = () => {
     confirmPassword: false,
   });
 
+  const [loading, setLoading] = useState(false); // 로딩 상태 추가
+
   // 입력 필드 변경 핸들러
   const handleChange = (e) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -22,14 +24,38 @@ const PasswordChange = () => {
     setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
 
   // 폼 제출 핸들러
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.newPassword !== form.confirmPassword) {
       alert("새 비밀번호가 일치하지 않습니다.");
       return;
     }
-    console.log("비밀번호 변경 요청:", form);
-    // 여기서 API 호출 가능 (fetch 또는 axios)
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/change-pw", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tempPassword: form.tempPassword, newPassword: form.newPassword }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        alert("비밀번호가 성공적으로 변경되었습니다.");
+        // TODO: 비밀번호 변경 후 로그인 페이지로 리디렉션 (예: window.location.href = "/login")
+      } else {
+        alert(data.message || "비밀번호 변경에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("네트워크 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -115,8 +141,9 @@ const PasswordChange = () => {
             <button
               type="submit"
               className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium text-white bg-custom hover:bg-custom/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom rounded-md"
+              disabled={loading}
             >
-              비밀번호 변경
+              {loading ? "변경 중..." : "비밀번호 변경"}
             </button>
           </div>
           <p className="text-sm text-center text-gray-500">비밀번호 변경 후 자동으로 로그인 페이지로 이동됩니다</p>
