@@ -1,20 +1,26 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getBoardCount, getBoardList } from "../../services/boardLogic";
-import useStyle from "../../components/hooks/useStyle";
+import { useLocation, useNavigate } from "react-router-dom";
 import Select from 'react-select';
+import { getBoardCount, getBoardList } from "../../services/boardApi";
+import useStyle from "../../components/hooks/useStyle";
 
 const TravelPage = () => {
+  const {maskUserId,customStyles} = useStyle();
   const ImgPath = "/images/ui_image/"
   const navigate = useNavigate();
-  const customStyles = useStyle();
+  const location = useLocation();
   const [places, setPlaces] = useState([]); // DB에서 가져올 게시판 데이터
   const [searchFilter, setSearchFilter] = useState("제목만"); // 기본 필터 : 제목만
   const [searchQuery, setSearchQuery] = useState(""); // 검색어 입력
   const [searchTerm, setSearchTerm] = useState(""); // 실제 검색 실행 후 값
   const [sortOrder, setSortOrder] = useState("최신순"); // 정렬 기준
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // 정렬 드롭다운 상태
-  const [currentPage, setCurrentPage] = useState(1); // 현재 페이지
+
+  // 페이지 관련
+  // ✅ URL에서 page 값 가져오기 (없으면 기본값 1)
+  const searchParams = new URLSearchParams(location.search);
+  const initialPage = parseInt(searchParams.get("page")) || 1;
+  const [currentPage, setCurrentPage] = useState(initialPage); // 현재 페이지
   const [totalPosts, setTotalPosts] = useState(0); // 총 게시물 수 상태
   const [totalPages, setTotalPages] = useState(0); // 총 페이지 수 상태
   const [pageNumbers, setPageNumbers] = useState([]); // 페이지 번호 상태
@@ -22,6 +28,7 @@ const TravelPage = () => {
   const pageGroupSize = 10; // 페이지 그룹 크기
   const [isLoggedIn, setIsLoggedIn] = useState(false); // 로그인 여부
   const dropdownRef = useRef(null); // 드롭다운 외부 클릭 감지를 위한 ref
+
 
   // ✅ 로그인 상태 확인 DB연결
   useEffect(() => {
@@ -145,6 +152,7 @@ const TravelPage = () => {
       return ImgPath + "lik1.png";
     }
   }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
 
@@ -152,7 +160,7 @@ const TravelPage = () => {
       <div className="flex flex-wrap items-center justify-between py-6">
 
         {/* 검색 필터 (왼쪽 배치) */}
-        <div className="flex items-center space-x-2 border p-2 rounded-md shadow-sm w-full md:w-auto">
+        <div className="flex items-center space-x-2 p-2 rounded-md w-full md:w-auto">
           <Select
             className=""
             value={{ value: searchFilter, label: searchFilter }}
@@ -175,14 +183,15 @@ const TravelPage = () => {
           <input
             type="text"
             placeholder="검색어를 입력하세요."
-            className="border-1.5px px-4 py-2 rounded-md focus:border-orange-500 focus:ring-orange-500"
+            className="h-[42px] border-[1px] border-orange-300 px-4 py-2 rounded-md focus:border-orange-500 focus:ring-orange-500"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && setSearchTerm(searchQuery)} //  엔터 키 입력 시 검색 실행
           />
 
-          <button className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
-            onClick={(e) => setSearchTerm(searchQuery)}>🔍</button>
+          <button className="h-[42px] px-4 py-2 bg-orange-500 text-white text-2xl rounded-md hover:bg-orange-600 fa-solid fa-magnifying-glass"
+            onClick={(e) => setSearchTerm(searchQuery)}>
+          </button>
         </div>
 
         {/*✅ 정렬 (드롭다운) & 글쓰기 (오른쪽 배치) */}
@@ -196,7 +205,7 @@ const TravelPage = () => {
               ...customStyles,
               control: (provided, state) => ({
                 ...customStyles.control?.(provided, state),
-                height: "40px",
+                height: "42px",
               })
             }}
             getOptionLabel={(e) => (
@@ -212,7 +221,7 @@ const TravelPage = () => {
           {/* ✅ 글쓰기 버튼 - 로그인 체크 */}
 
           <button
-            className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
+            className="h-[42px] bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
             onClick={() => navigateWithAuth("/write")}
           >
             글쓰기
@@ -229,7 +238,7 @@ const TravelPage = () => {
             <img src={place.tb_photo1} className="w-full h-48 object-cover" alt={place.tb_title} />
             <div className="flex items-center">
               <h3 className="text-lg font-semibold">{place.tb_title}</h3>
-              <p className="text-sm text-gray-500 ml-auto">{place.user_id}</p>
+              <p className="text-sm text-gray-500 ml-auto">{maskUserId(place.user_id)}</p>
             </div>
 
             <p className="text-sm text-gray-600">여행지: {place.tb_country}</p>
@@ -251,7 +260,7 @@ const TravelPage = () => {
 
             <button
               className="w-full bg-orange-500 text-white py-2 mt-2 rounded-md hover:bg-orange-600"
-              onClick={() => navigateWithAuth(`/board/${place.tb_no}`)} // ✅ 클릭한 게시글 tb_no 반영
+              onClick={() => navigateWithAuth(`/board/${place.tb_no}?page=${currentPage}`)} // ✅ 클릭한 게시글 tb_no 반영
             >
               상세보기
             </button>
