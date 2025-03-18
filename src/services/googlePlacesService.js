@@ -34,7 +34,7 @@ export const fetchAutocomplete = async (query, type) => {
  */
 export const fetchNearbyPlaces = async (location, type, radius = 5000) => {
   try {
-    const response = await axios.get("/api/places/nearby-search", {
+    const response = await axios.get("/api/places/nearby_search", {
       params: { location, radius, type },
     });
 
@@ -52,7 +52,7 @@ export const fetchNearbyPlaces = async (location, type, radius = 5000) => {
  */
 export const fetchPlaceDetails = async (placeId) => {
   try {
-    const response = await axios.get("/api/places/place-details", {
+    const response = await axios.get("/api/places/place_details", {
       params: { placeId },
     });
 
@@ -68,14 +68,18 @@ export const fetchPlaceDetails = async (placeId) => {
  * @param {string} photoReference - 사진의 참조값
  * @returns {Promise<string>} - 장소 사진 URL
  */
-export const fetchPlacePhoto = async (photoReference) => {
+export const fetchPlacePhoto = async (photoReference, maxWidth = 400) => {
   try {
-    const response = await axios.get("/api/places/place-photo", {
-      params: { photoReference },
+    const response = await axios.get("/api/places/place_photo", {
+      params: { photoReference, maxWidth },
+      responseType: "arraybuffer", // ✅ byte[] 형태로 수신
     });
-    return response.data.photoUrl;
+
+    const mimeType = "image/jpeg"; // Google API는 기본적으로 JPEG 이미지를 반환함
+    const blob = new Blob([response.data], { type: mimeType });
+    return URL.createObjectURL(blob); // ✅ 브라우저에서 사용할 수 있는 URL 생성
   } catch (error) {
-    console.error("❌ 사진 불러오기 실패:", error);
+    console.error("❌ 장소 사진 요청 실패:", error);
     return "";
   }
 };
@@ -105,7 +109,7 @@ export const fetchGeocode = async (address) => {
  */
 export const fetchReverseGeocode = async (latlng) => {
   try {
-    const response = await axios.get("/api/places/reverse-geocode", {
+    const response = await axios.get("/api/places/reverse_geocode", {
       params: { latlng },
     });
 
