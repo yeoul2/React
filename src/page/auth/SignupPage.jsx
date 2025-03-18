@@ -31,13 +31,8 @@ const SignupPage = () => {
   const [emailVerified, setEmailVerified] = useState(false); // 이메일 인증 성공 여부
   const [showVerificationInput, setShowVerificationInput] = useState(false); // 인증 코드 입력 필드 표시 여부
   const [isVerificationEnabled, setIsVerificationEnabled] = useState(false); // 인증번호 입력 가능 여부
-
-  // ✅ 이메일 인증 상태를 `localStorage`에서 불러오기 (새로고침 방지)
-  useEffect(() => {
-    const isEmailVerified = localStorage.getItem("emailVerified") === "true";
-    console.log("🚀 로컬스토리지 emailVerified 상태:", isEmailVerified); // 디버깅용
-    setEmailVerified(isEmailVerified); // 🔥 로컬 저장값 반영
-  }, []);
+  const [isSubmitting, setIsSubmitting] = useState(false); // 중복 요청 방지 상태 추가
+  const [isVerifying, setIsVerifying] = useState(false); // 인증 요청 중 상태
 
 
   // 📌 입력값 변경 핸들러
@@ -146,7 +141,6 @@ const SignupPage = () => {
 
     try {
       console.log("📩 인증 요청: ", { user_email: formData.user_email, provider }); // ✅ 콘솔 확인
-      //const response = await fetch("http://localhost:7007/api/verify-email", {
       const response = await fetch("/api/verify-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -154,6 +148,7 @@ const SignupPage = () => {
       });
 
       const data = await response.json();
+      console.log("📩 이메일 인증 요청 결과:", data);
 
       if (!response.ok) {
         alert(`이메일 인증 실패: ${data.message || "오류 발생"}`);
@@ -175,56 +170,63 @@ const SignupPage = () => {
       alert("이메일과 인증 코드를 입력해주세요.");
       return;
     }
-
+  
+    if (isVerifying) return; // ✅ 중복 요청 방지
+    setIsVerifying(true); // 요청 시작
+  
     try {
-      console.log("🔍 인증 코드 확인 요청:", {
-        user_email: formData.user_email,
-        code: verificationCode
-      });
-
-        // ✅ 1️⃣ **이메일 중복 체크를 먼저 수행**
-        const duplicateCheck = await fetch("/api/check-email-duplicate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_email: formData.user_email }),
-        });
-
-        const duplicateData = await duplicateCheck.json();
-
-        if (duplicateData.duplicate) {
-            alert("이미 가입된 이메일입니다. 다른 이메일을 사용해주세요.");
-            return;  // ❌ 중복된 이메일이면 인증 진행 X
-        }
-
-        // ✅ 2️⃣ **이메일 중복이 없으면 인증 코드 확인 진행**
-      const response = await fetch("/api/check-verification", {
+      console.log("🔍 인증 코드 확인 요청:", { user_email: formData.user_email, code: verificationCode });
+      
+      // 이메일 중복 확인
+      const duplicateCheck = await fetch("/api/check-email-duplicate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_email: formData.user_email,  // ✅ 이메일
-          code: verificationCode  // ✅ 사용자가 입력한 인증 코드
-        }),
+        body: JSON.stringify({ user_email: formData.user_email }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(`인증 실패: ${data.message || "오류 발생"}`);
+  
+      const duplicateData = await duplicateCheck.json();
+      console.log("🔄 이메일 중복 체크 결과:", duplicateData);
+  
+      if (duplicateData.duplicate) {
+      //if (duplicateData === "이미 가입된 이메일입니다.") {
+        alert("이미 가입된 이메일입니다. 다른 이메일을 사용해주세요.");
+        setIsVerifying(false);
         return;
       }
 
-        // ✅ 3️⃣ 인증 성공 후 메시지 출력 및 상태 업데이트
-        alert("인증 성공! 회원가입을 진행해주세요.");
-        setEmailVerified(true);  // 인증 상태 업데이트
-        localStorage.setItem("emailVerified", "true"); // ✅ 인증 상태 저장
+      if (duplicateData.message === "이메일 인증이 완료된 계정입니다. 로그인하세요.") {
+        alert("이메일 인증이 완료된 계정입니다. 로그인 후 이용해주세요.");
+        setIsVerifying(false);
+        return;
+      }
+      
+      // 이메일 인증 코드 확인
+      const response = await fetch("/api/check-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_email: formData.user_email, code: verificationCode }),
+      });
+  
+      const data = await response.json();
+      console.log("✅ 이메일 인증 코드 확인 결과:", data);
+  
+      if (!response.ok) {
+        alert(`인증 실패: ${data.message || "오류 발생"}`);
+        setIsVerifying(false);
+        return;
+      }
+  
       alert("인증 성공! 회원가입을 진행해주세요.");
-      setEmailVerified(true);  // 인증 상태 업데이트
-
+      setEmailVerified(true);
+      localStorage.setItem("emailVerified", "true");
     } catch (error) {
       console.error("인증 확인 오류:", error);
       alert("서버 오류가 발생했습니다. 다시 시도해주세요.");
+      localStorage.removeItem("emailVerified"); // ❌ 서버 오류 발생 시 제거
+    } finally {
+      setIsVerifying(false); // 요청 종료 후 다시 요청 가능하도록 변경
     }
-};
+  };
 
 
   const handleCheckUsername = async () => {
@@ -264,74 +266,77 @@ const SignupPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ `emailVerified`가 `true`인지 `localStorage`에서도 확인
-    const isEmailVerified = localStorage.getItem("emailVerified") === "true";
+    // ✅ 회원가입 전에 중복 요청 방지 (isSubmitting이 true이면 요청 막음)
+    if (isSubmitting) return; // 🔥 이미 요청 중이면 실행하지 않음
+    setIsSubmitting(true); // 🔥 요청 시작 시 상태 변경
 
+    // ✅ 회원가입 전에 localStorage 값 확인 및 초기화
+    console.log("📌 localStorage 확인: emailVerified =", localStorage.getItem("emailVerified"));
 
-    if (!emailVerified) {
+    if (localStorage.getItem("emailVerified") !== "true") {
       alert("이메일 인증을 완료해야 회원가입이 가능합니다.");
       return;
-    }
-
+  }
+  
     if (passwordError) {
       alert("비밀번호를 올바르게 입력하세요.");
+      setIsSubmitting(false);
       return;
     }
-
+  
     if (formData.user_pw !== formData.confirmPassword) {
       alert("비밀번호가 일치하지 않습니다.");
+      setIsSubmitting(false);
       return;
     }
-
+  
     if (!formData.agreeTerms) {
       alert("개인정보 수집 및 이용에 동의해야 합니다.");
+      setIsSubmitting(false);
       return;
     }
-
+  
     // role 기본 USER로 설정
-    const requestData = {
-      ...formData,
-      role: "USER" //백엔드에서 필요한 role 값
-    }
-
-    // 생년월일을 안넣을수도 있다는 가정하에 작성
-    if (!requestData.user_birth) {
-      delete requestData.user_birth; // 빈 값이면 제거
-    }
-
-    // 서버로 보낼 때마다 `confirmPassword` 제거
-    const { confirmPassword, ...singupData } = formData
-
+    //const token = localStorage.getItem("accessToken"); // 🔍 JWT 토큰 가져오기
+    const requestData = { ...formData };
+    if (!requestData.user_birth) delete requestData.user_birth;
+  
+    const { confirmPassword, ...signupData } = requestData;
+  
     try {
-      //const response = await fetch("http://localhost:7007/api/signup", {
       const response = await fetch("/api/signup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(singupData), // `confirmPassword` 없이 전송
+        headers: { 
+          "Content-Type": "application/json",
+          //"Authorization": token ? `Bearer ${token}` : "",  // ✅ null 방지
+        },
+        body: JSON.stringify(signupData),
       });
 
       let data;
       try {
-        data = await response.json(); // ✅ JSON 형식 응답이면 정상 처리
+        data = await response.json();
       } catch (error) {
-        const text = await response.text(); // ❗ JSON이 아닐 경우, 문자열로 처리
-        alert(text); // 🚨 "회원가입이 성공적으로 완료되었습니다." 같은 문자열도 정상 출력
+        const text = await response.text();
+        alert(text);
+        setIsSubmitting(false); // ❗ 실패 시 다시 요청 가능하도록 상태 변경
         return;
       }
-      alert(data.message); // ✅ JSON 응답이면 정상 출력
-      //const data = await response.json(); 수정으로 인해 잠시 주석처리
-
+  
       if (!response.ok) {
         alert(`회원가입 실패: ${data.message || "알 수 없는 오류 발생"}`);
+        setIsSubmitting(false);
         return;
       }
-
+  
       alert("회원가입이 완료되었습니다!");
-      localStorage.removeItem("emailVerified"); // ✅ 회원가입 후 인증 상태 초기화
+      localStorage.removeItem("emailVerified"); // ✅ 회원가입 완료 후 인증 상태 초기화
       navigate("/login");
     } catch (error) {
       console.error("회원가입 오류:", error);
       alert("서버 오류가 발생했습니다. 나중에 다시 시도해주세요.");
+    } finally {
+      setIsSubmitting(false); // 요청 종료 후 다시 요청 가능하도록 변경
     }
   };
 

@@ -45,7 +45,6 @@ const Header = ({ resetSearch }) => {
         }
 
         //axiosInstance 사용 (Authorization 헤더 자동 추가됨)
-        //const response = await axiosInstance.get("/api/check")/* , { */
         const response = await axiosInstance.get("/api/check"); /* , { */
 
         /* headers: {
@@ -56,8 +55,7 @@ const Header = ({ resetSearch }) => {
         /* }); */
 
         console.log("로그인 확인 응답:", response.data);
-        console.log("📌 check 값 확인:", response.data.check); // 🔥 check 값이 실제로 있는지 확인
-        //console.log("tokenToUse :" +tokenToUse)
+        console.log("tokenToUse :" +tokenToUse)
 
         if (response.data.isAuthenticated && response.data.userId) {
           setIsLoggedIn(true);
@@ -131,7 +129,7 @@ const Header = ({ resetSearch }) => {
               onClick={() => navigate("/course")}
             >
               <img
-                src="/images/capybara_icon.png"
+                src="/images/icon_image/course.png"
                 alt="여울 아이콘"
                 className="h-6 w-6"
               />

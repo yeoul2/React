@@ -17,6 +17,8 @@ import GoogleAuthCallback from "./page/auth/social/GoogleAuthCallback";
 import NaverAuthCallback from "./page/auth/social/NaverAuthCallback";
 import CourseBoard from "./page/course/CoursePage";
 import PageTransition from "./components/layout/PageTransition";
+import MyPage from "./page/auth/MyPage";
+import PasswordChange from "./page/auth/PasswordChange";
 
 
 // ✅ 검색 상태를 전역 관리하는 Context 생성
@@ -45,8 +47,10 @@ const App = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/find-pw" element={<FindPassword />} />
+            <Route path="/change-pw" element={<PasswordChange />} />  {/* 추가된 라우트 */}
             <Route path="/find-id" element={<FindId />} />
             <Route path="/mypage-check" element={<MypageCheck />} />
+            <Route path="/mypage" element={<MyPage />} />
           </Routes>
         </Layout>
       </BrowserRouter>

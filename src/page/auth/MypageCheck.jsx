@@ -1,78 +1,87 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // ✅ useNavigate 추가
 
 const MypageCheck = () => {
-  const [password, setPassword] = useState(""); // 비밀번호 상태
-  const [loading, setLoading] = useState(false); // 로딩 상태
+  const [user_pw, setUser_pw] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate(); // ✅ 페이지 이동을 위한 useNavigate 사용
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (password.length < 8) {
+    console.log("📩 [비밀번호 확인 요청] 입력된 비밀번호:", user_pw);
+
+    if (user_pw.length < 8) {
       alert("비밀번호는 최소 8자 이상 입력해야 합니다.");
       return;
     }
-
-    setLoading(true); // 로딩 시작
+    setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8080/api/check-password", {
+      const accessToken = localStorage.getItem("accessToken"); // ✅ 로컬스토리지에서 JWT 가져오기
+      console.log("🔑 [JWT 토큰 확인]:", accessToken);
+
+      if (!accessToken) {
+        alert("로그인이 필요합니다.");
+        navigate("/login"); // ✅ 로그인 페이지로 이동
+        return;
+      }
+
+      console.log("🚀 [API 요청] /api/check-password로 POST 요청 시작");
+
+      const response = await fetch("/api/check-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`, // ✅ JWT 토큰을 헤더에 포함
         },
-        body: JSON.stringify({ password }), // 비밀번호 JSON 데이터 전송
+        body: JSON.stringify({ user_pw }),
       });
 
-      const data = await response.json();
+      console.log("📩 [서버 응답 수신]", response);
 
-      if (response.ok) {
-        if (data.success) {
-          alert("비밀번호 확인 완료! 마이페이지로 이동합니다.");
-          window.location.href = "/mypage"; // 마이페이지 이동
-        } else {
-          alert("비밀번호가 틀렸습니다. 다시 입력해주세요.");
-          setPassword(""); // 입력값 초기화
-        }
+      const data = await response.json();
+      console.log("📨 [서버 응답 데이터]", data);
+
+      if (response.ok && data.success) {
+        alert("비밀번호 확인 완료! 마이페이지로 이동합니다.");
+        navigate("/mypage"); // ✅ 마이페이지로 이동
       } else {
-        alert("서버 오류가 발생했습니다. 다시 시도해주세요.");
+        alert(data.message || "비밀번호가 틀렸습니다. 다시 입력해주세요.");
+        setUser_pw(""); // 입력값 초기화
       }
     } catch (error) {
       console.error("Error:", error);
       alert("네트워크 오류가 발생했습니다.");
     } finally {
-      setLoading(false); // 로딩 종료
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* 메인 컨텐츠 */}
       <main className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-sm">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">마이페이지 접근</h2>
-            <p className="text-sm text-gray-600">
-              보안을 위해 비밀번호를 한번 더 입력해주세요.
-            </p>
+            <p className="text-sm text-gray-600">보안을 위해 비밀번호를 한번 더 입력해주세요.</p>
           </div>
 
           {/* 비밀번호 입력 폼 */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="rounded-md shadow-sm">
               <div className="relative">
-                <label htmlFor="password" className="sr-only">
-                  비밀번호
-                </label>
+                <label htmlFor="password" className="sr-only">비밀번호</label>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <i className="fas fa-lock text-gray-400"></i>
                 </div>
                 <input
                   id="password"
-                  name="password"
+                  name="user_pw"
                   type="password"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={user_pw}
+                  onChange={(e) => setUser_pw(e.target.value)}
                   className="appearance-none relative block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
                   placeholder="비밀번호를 입력하세요"
                   disabled={loading}
@@ -99,6 +108,16 @@ const MypageCheck = () => {
               </button>
             </div>
           </form>
+
+          {/* 🔥 추가: 마이페이지 이동 버튼 */}
+          <div className="mt-4">
+            <button
+              onClick={() => navigate("/mypage")}
+              className="w-full py-2 px-4 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600"
+            >
+              마이페이지로 이동
+            </button>
+          </div>
         </div>
       </main>
     </div>
