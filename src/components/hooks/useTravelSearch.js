@@ -104,14 +104,15 @@ const useTravelSearch = () => {
   };
 
   // ✅ 최근 검색어 삭제 함수 (DB에서 삭제)
-  const handleRemoveRecentSearch = async (searchToRemove, searchType) => {
+  const handleRemoveRecentSearch = async (searchTerm, searchType) => {
     if (!isLoggedIn) return;
 
     try {
       const accessToken = localStorage.getItem("accessToken");
-      // ✅ RESTful API 호출로 변경
+
+      // ✅ API 요청을 보낼 때 `searchTerm`과 `searchType`만 전달
       const updatedSearches = await deleteRecentSearch(
-        searchToRemove,
+        searchTerm,
         searchType,
         accessToken
       );
@@ -181,6 +182,11 @@ const useTravelSearch = () => {
     setSelectedCity(fullCity); // 🔹 선택된 도시 저장
     setSearchTerm(fullCity); // 🔹 검색창에 선택한 도시 입력
     setShowResults(false); // 🔹 선택 후 자동완성 닫기
+
+    if (typeof fullCity !== "string") {
+      console.error("🚨 fullCity 값이 문자열이 아님:", fullCity);
+      return;
+    }
 
     try {
       // ✅ RESTful API 호출로 변경

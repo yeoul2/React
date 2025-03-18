@@ -168,8 +168,10 @@ const HomePage = () => {
 
   const handleCloseModal = () => {
     setSelectedCountry(null);
+    setContinentSearchText(""); // 🔹 검색어 초기화
     setFilteredContinents(continents); // 🔹 나라 목록 초기화
   };
+
 
   /** ✅ 엔터 키 입력 시 검색 실행 */
   const handleKeyDown = (e, type) => {
@@ -237,11 +239,9 @@ const HomePage = () => {
                   className="block w-full pl-10 pr-3 py-2 boder boder-white focus:outline-none bg-transparent placeholder-white cursor-pointer text-white"
                   placeholder="여행하고 싶은 나라, 도시를 입력하세요."
                   value={searchTerm}
-                  onChange={(e) => handleCountryChange(e.target.value)}
-                  /* onKeyDown={(e) => e.key === "Enter" && handleSearch()} */
+                  onChange={handleCountryChange}
                   onFocus={() => setShowResults(true)} // 🔹 포커스 시 자동완성 UI 열림
                 />
-
                 {/* ❌ X 버튼 (검색어 초기화) */}
                 {searchTerm.length > 0 || selectedCity ? (
                   <div
