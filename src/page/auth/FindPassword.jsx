@@ -1,40 +1,62 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // useNavigate 훅 추가
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const FindPassword = () => {
+  const [error, setError] = useState(""); // 오류 메시지 상태
   const [user_id, setUser_id] = useState(""); // 아이디 상태
   const [user_email, setUser_email] = useState(""); // 이메일 상태
-  const [isIdFocused, setIsIdFocused] = useState(false); // 이름 필드의 포커스 상태
-  const [isEmailFocused, setIsEmailFocused] = useState(false); // 이메일 필드의 포커스 상태
+  const [message, setMessage] = useState(""); // 응답 메시지 상태
+  const [isIdFocused, setIsIdFocused] = useState(false); // 아이디 필드 포커스
+  const [isEmailFocused, setIsEmailFocused] = useState(false); // 이메일 필드 포커스
   const navigate = useNavigate(); // useNavigate 훅 사용 
 
-  // 로그인 페이지로 이동
-  const handleNavigateToLogin = () => {
-    navigate("/login");
-  };
-
-  // 아이디 찾기 페이지로 이동
-  const handleNavigateToFindId = () => {
-    navigate("/find-id");
-  };
-
-  // 홈으로 이동
-  const handleNavigateToHome = () => {
-    navigate("/");
+  // 페이지 이동 핸들러
+  const handleNavigate = (path) => {
+    navigate(path);
   };
 
   // 폼 제출 핸들러
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (user_id && user_email) {
-      alert("비밀번호 찾기 요청이 전송되었습니다.");
+    setError(""); // 초기화
+    setMessage(""); // 초기화
+
+    if (!user_id || !user_email) {
+      setError("아이디와 이메일을 모두 입력해주세요.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/find-pw", { // API 엔드포인트 확인
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id , user_email }),
+      });
+
+      const data = await response.json(); // JSON 변환
+
+      // 성공 여부에 따라 메시지 업데이트
+      if (data.success) {
+        setMessage(data.message || "임시 비밀번호가 이메일로 전송되었습니다.");
+
+        // ✅ 성공 시 /change-pw 페이지로 이동
+      setTimeout(() => {
+        navigate("/change-pw");
+      }, 2000); // 2초 후 이동 (사용자에게 메시지 보여주기 위해)
+
+      } else {
+        setError(data.message || "비밀번호 찾기에 실패했습니다.");
+      }
+
+    } catch (error) {
+      setError("서버에 오류가 발생하였습니다. 나중에 다시 시도해주세요.");
     }
   };
 
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-no-repeat flex flex-col font-['Noto_Sans_KR']"
-      style={{ backgroundImage: "url('/images/korea_pw.jpg')" }} // ✅ 배경 이미지 추가
+      style={{ backgroundImage: "url('/images/korea_pw.jpg')" }}
     >
       <main className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-sm">
@@ -43,7 +65,7 @@ const FindPassword = () => {
               alt="Logo"
               src="/images/icon_image/Yeoul_Logo.png"
               className="h-17 mx-auto cursor-pointer"
-              onClick={handleNavigateToHome} // ✅ 함수 분리
+              onClick={() => handleNavigate("/")} // 함수 단순화
             />
             <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
               비밀번호 찾기
@@ -57,12 +79,9 @@ const FindPassword = () => {
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
 
-              {/* 이름 입력 필드 */}
+              {/* 아이디 입력 필드 */}
               <div>
-                <label
-                  htmlFor="user-id"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="user_id" className="block text-sm font-medium text-gray-700 mb-1">
                   아이디
                 </label>
                 <div className="mt-1 relative">
@@ -70,25 +89,24 @@ const FindPassword = () => {
                     <i className={`fas fa-user ${isIdFocused ? "text-orange-500" : "text-gray-400"}`}></i>
                   </span>
                   <input
-                    id="user-id"
-                    name="user-id"
+                    id="user_id"
+                    name="user_id" //name 수정 (fetch body와 일치)
                     type="text"
-                    maxLength={12} // 최대 12자 제한 추가
+                    maxLength={12}
                     required
                     value={user_id}
                     onChange={(e) => setUser_id(e.target.value)}
-                    onFocus={() => setIsIdFocused(true)}  // 이름 필드 포커스 시
-                    onBlur={() => setIsIdFocused(false)}  // 이름 필드 포커스 해제 시
+                    onFocus={() => setIsIdFocused(true)}
+                    onBlur={() => setIsIdFocused(false)}
                     className="!rounded-button block w-full pl-10 py-3 border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                     placeholder="아이디를 입력하세요."
                   />
                 </div>
               </div>
+
+              {/* 이메일 입력 필드 */}
               <div>
-                <label
-                  htmlFor="email"
-                  className="block mb-1 text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="user_email" className="block mb-1 text-sm font-medium text-gray-700">
                   이메일
                 </label>
                 <div className="mt-1 relative">
@@ -96,14 +114,14 @@ const FindPassword = () => {
                     <i className={`fas fa-envelope ${isEmailFocused ? "text-orange-500" : "text-gray-400"}`}></i>
                   </span>
                   <input
-                    id="email"
-                    name="email"
+                    id="user_email"
+                    name="user_email"
                     type="email"
                     required
                     value={user_email}
                     onChange={(e) => setUser_email(e.target.value)}
-                    onFocus={() => setIsEmailFocused(true)}  // 이메일 필드 포커스 시
-                    onBlur={() => setIsEmailFocused(false)}  // 이메일 필드 포커스 해제 시
+                    onFocus={() => setIsEmailFocused(true)}
+                    onBlur={() => setIsEmailFocused(false)}
                     className="!rounded-button block w-full pl-10 py-3 border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                     placeholder="이메일을 입력하세요."
                   />
@@ -111,31 +129,28 @@ const FindPassword = () => {
               </div>
             </div>
 
+            {/* 메시지 출력 */}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {message && <p className="text-green-500 text-sm">{message}</p>}
+
             <div>
               <button
                 type="submit"
-                disabled={!user_id || !user_email} // ✅ isFormValid 제거 후 간단히 처리
-                className={`!rounded-button group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium text-white ${user_id && user_email
-                  ? "bg-orange-500 hover:bg-orange-600"
-                  : "bg-orange-500 cursor-not-allowed"
-                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom`}
+                disabled={!user_id || !user_email}
+                className={`!rounded-button group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium text-white ${
+                  user_id && user_email ? "bg-orange-500 hover:bg-orange-600" : "bg-orange-500 cursor-not-allowed"
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom`}
               >
                 비밀번호 찾기
               </button>
             </div>
 
             <div className="flex items-center justify-center space-x-4 text-sm">
-              <button
-                onClick={handleNavigateToFindId} // 아이디 찾기 페이지로 이동
-                className="text-black-500 hover:text-orange-500"
-              >
+              <button onClick={() => handleNavigate("/find-id")} className="text-black-500 hover:text-orange-500">
                 아이디 찾기
               </button>
               <span className="text-gray-300">|</span>
-              <button
-                onClick={handleNavigateToLogin} // 로그인 페이지로 이동
-                className="text-black-500 hover:text-orange-500"
-              >
+              <button onClick={() => handleNavigate("/login")} className="text-black-500 hover:text-orange-500">
                 로그인으로 돌아가기
               </button>
             </div>

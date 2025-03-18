@@ -23,19 +23,21 @@ const FindId = () => {
       setError(null); // 이전 오류 초기화
       setUser_id(null); // 이전 아이디 초기화
 
-      //const response = await fetch("http://localhost:7007/api/find-id", {
       const response = await fetch("/api/find-id", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          "user_name" : formData.name,
+          "user_email" : formData.email,
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setUser_id(data.userId); // 찾은 아이디 저장
+        setUser_id(data.user_id); // 찾은 아이디 저장
       } else {
-        setUser_id(null);
+        //setUser_id(null);
         setError("입력하신 정보와 일치하는 아이디를 찾을 수 없습니다.");
       }
     } catch (error) {
