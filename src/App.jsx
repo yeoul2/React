@@ -15,6 +15,8 @@ import "./index.css";
 import TripReview from "./page/notice/TripReview";
 import GoogleAuthCallback from "./page/auth/social/GoogleAuthCallback";
 import NaverAuthCallback from "./page/auth/social/NaverAuthCallback";
+import CourseBoard from "./page/course/CoursePage";
+import PageTransition from "./components/layout/PageTransition";
 import MyPage from "./page/auth/MyPage";
 import PasswordChange from "./page/auth/PasswordChange";
 
@@ -29,6 +31,7 @@ const App = () => {
     <SearchContext.Provider value={{ searchText, setSearchText }}>
       <BrowserRouter>
         <Layout> {/* ✅ Layout을 감싸서 자동으로 Header, Footer 적용 */}
+        <PageTransition /> {/* 페이지 이동 시 스크롤 맨 위로 이동 */}
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/course" element={<PlannerPage />} />
@@ -38,8 +41,9 @@ const App = () => {
             <Route path="/naver/callback" element={<NaverAuthCallback/>} />
             <Route path="/board" element={<TravelPage />} />
             <Route path="/board/:tb_no" element={<TripReview />} />
-            <Route path="/boardedit" element={<TravelReviewEditForm />} />
+            <Route path="/boardedit/:tb_no" element={<TravelReviewEditForm />} />
             <Route path="/write" element={<TravelReviewForm />} />
+            <Route path="/course_list" element={<CourseBoard />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/find-pw" element={<FindPassword />} />
