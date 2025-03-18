@@ -18,7 +18,7 @@ const Footer = () => {
           {/* 로고 및 설명 */}
           <div>
             <img
-              src="/images/Yeoul_Logo.png"
+              src="/images/icon_image/Yeoul_Logo.png"
               alt="로고"
               className="h-12 mb-4"
               onClick={() => {
