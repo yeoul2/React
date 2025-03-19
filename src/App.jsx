@@ -19,6 +19,7 @@ import CourseBoard from "./page/course/CoursePage";
 import PageTransition from "./components/layout/PageTransition";
 import MyPage from "./page/auth/MyPage";
 import PasswordChange from "./page/auth/PasswordChange";
+import TravelPlanner from "./page/planner/TravelPlanner";
 
 
 // ✅ 검색 상태를 전역 관리하는 Context 생성
