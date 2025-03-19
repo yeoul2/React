@@ -7,6 +7,20 @@ import "flatpickr/dist/l10n/ko.js";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import axios from "axios";
 import useTravelSearch from "../../components/hooks/useTravelSearch"; // ✅ 커스텀 훅 추가
+import { Navigate } from "react-router";
+
+
+// 📌 모달 스타일 설정
+const modalStyles = {
+  overlay: { backgroundColor: "rgba(0, 0, 0, 0.5)" },
+  content: {
+    width: "60%",
+    height: "60%",
+    margin: "auto",
+    padding: "20px",
+    borderRadius: "10px",
+  },
+};
 
 // 📌 지도 크기 설정
 const containerStyle = {
@@ -32,7 +46,10 @@ const PlannerPage = () => {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false); // 📌 달력 토글 상태
   const [isPeopleOpen, setIsPeopleOpen] = useState(false); // 📌 인원 선택 드롭다운 상태
   const [adults, setAdults] = useState(2); // 📌 성인 인원 수
-  // const [itinerary, setItinerary] = useState([]); // 📌 AI 추천 일정 (기본은 빈 값)
+  const [plans, setPlans] = useState([]); // 📌 AI가 만든 일정 목록
+  const [selectedPlanIndex, setSelectedPlanIndex] = useState(null); // 📌 현재 보고 있는 일정
+  const [selectedComparisons, setSelectedComparisons] = useState([]); // 📌 비교 선택 일정
+  const [isModalOpen, setIsModalOpen] = useState(false); // 📌 비교 모달 상태
 
   const datePickerRef = useRef(null);
   const flatpickrInstance = useRef(null); // 📌 Flatpickr 인스턴스 저장
@@ -110,7 +127,7 @@ const PlannerPage = () => {
   };
 
   // AI 추천 일정 데이터
-  const itinerary = [
+  const aiPlan = [
     {
       day: "Day 1",
       activities: [
@@ -143,15 +160,15 @@ const PlannerPage = () => {
       };
   
       // ✅ AI API 요청 (실제 AI 연동 시 API URL 수정 필요)
-      const response = await axios.post("/api/ai-recommendation", requestData);
+      const response = await axios.post("/api/ai/trip-recommendation", requestData);
   
       // ✅ AI 응답 처리
       if (response.data) {
-        setItinerary(response.data.itinerary); // AI가 생성한 일정 반영
+        setPlans(response.data.plans); // AI가 생성한 일정 반영
   
         // ✅ AI 추천 일정의 첫 번째 장소로 지도 이동
-        if (response.data.itinerary.length > 0 && response.data.itinerary[0].activities.length > 0) {
-          const firstLocation = response.data.itinerary[0].activities[0];
+        if (response.data.plans.length > 0 && response.data.plans[0].activities.length > 0) {
+          const firstLocation = response.data.plans[0].activities[0];
           setMapCenter({ lat: firstLocation.lat, lng: firstLocation.lng, zoom: 12 });
         }
       }
@@ -184,7 +201,7 @@ const PlannerPage = () => {
       setIsSaving(true); // 📌 저장 로딩 상태 활성화
 
       // ✅ 로그인 여부 확인
-      if (!isLoggedIn) {
+      if (!isLoggedIn || !currentUser?.id) {
         alert("로그인 후 여행 일정을 저장할 수 있습니다.");
         return;
       }
@@ -199,7 +216,7 @@ const PlannerPage = () => {
       };
 
       // 📌 DB 저장 요청
-      await axios.post("/api/schedule/save", newCourse);
+      await axios.post("/api/schedule/save-course", newCourse);
 
       // ✅ 마이페이지에 저장 (로그인한 경우만 로컬스토리지에 저장)
       const savedCourses = JSON.parse(localStorage.getItem(`savedCourses_${currentUser.id}`)) || [];
@@ -212,6 +229,27 @@ const PlannerPage = () => {
     } finally {
       setIsSaving(false); // 📌 저장 로딩 상태 해제
     }
+  };
+
+  /** ✅ 메인 배너 검색 (여행 코스 검색) */
+  const handleSearch = () => {
+
+    /* try {
+      // 🔹 AI API 요청 (axios 사용)
+      const response = await axios.post("https://your-ai-api.com/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: searchTerm }),
+      });
+
+      const result = await response.json();
+
+      // 🔹 검색 결과가 존재하는 경우, MainContent로 이동
+      window.location.href = `/ course ? search = ${ encodeURIComponent(searchTerm) }`;
+    } catch (error) {
+      console.error("검색 중 오류 발생:", error);
+      alert("검색 중 문제가 발생했습니다.");
+    } */
   };
 
   return (
@@ -247,7 +285,8 @@ const PlannerPage = () => {
                 className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
                 placeholder="여행하고 싶은 나라나 도시를 입력하세요"
                 value={searchTerm}
-                onChange={handleCountryChange}
+                onChange={(e) => handleCountryChange(e.target.value || "")} // ✅ 값이 없으면 빈 문자열("")로 설정
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 onFocus={() => setShowResults(true)} // 🔹 포커스 시 자동완성 UI 열림
               />
 
@@ -265,6 +304,7 @@ const PlannerPage = () => {
             {/* 🔹 자동완성 UI (최근 검색어 + 추천 도시 + 인기 여행지 포함) */}
             {showResults && suggestedCities && (
               <div className="absolute w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-50">
+                {/* <div className="absolute top-full left-0 mt-1 border border-white rounded-lg shadow-lg p-3 z-50 w-[700px] max-h-[220px] overflow-y-auto scrollbar-hide"> */}
 
                 {/* 📌 최근 검색어 */}
                 {recentSearches.length > 0 && (
@@ -453,8 +493,8 @@ const PlannerPage = () => {
           <div className="w-1/2 p-4 bg-white">
             <h2 className="text-2xl font-bold mb-4">AI 추천 여행 일정</h2>
             {/* 📌 일정 목록 */}
-            {itinerary.map((dayPlan, index) => (
-              <div key={index} className={`border-t-4 pt-4 px-6 min-w-[300px] ${index === 0 ? "border-custom" : "border-indigo-300"}`}>
+            {aiPlan.map((dayPlan, index) => (
+              <div key={index} className={`border-t-4 border-orange-300 pt-4 px-6 min-w-[300px]`}>
                 <h3 className="text-lg font-medium mb-2">{dayPlan.day}</h3>
                 <div className="space-y-3">
                   {dayPlan.activities.map((activity, idx) => (

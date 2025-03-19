@@ -52,6 +52,7 @@ const App = () => {
             <Route path="/find-id" element={<FindId />} />
             <Route path="/mypage-check" element={<MypageCheck />} />
             <Route path="/mypage" element={<MyPage />} />
+            <Route path="/pl" element={<TravelPlanner />} />
           </Routes>
         </Layout>
       </BrowserRouter>
