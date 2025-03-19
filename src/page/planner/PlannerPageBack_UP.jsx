@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { GoogleMap, LoadScript } from "@react-google-maps/api";
-import { FaSearch, FaTimes } from "react-icons/fa";
+import { GoogleMap, LoadScript, Marker, Polyline } from "@react-google-maps/api";
+import { FaSearch, FaTimes, FaTrashAlt, FaSave } from "react-icons/fa";
+import Modal from "react-modal";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/themes/light.css";
 import "flatpickr/dist/l10n/ko.js";
@@ -8,7 +9,7 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import axios from "axios";
 import useTravelSearch from "../../components/hooks/useTravelSearch"; // ✅ 커스텀 훅 추가
 import { Navigate } from "react-router";
-
+import { v4 as uuidv4 } from 'uuid';
 
 // 📌 모달 스타일 설정
 const modalStyles = {
@@ -47,9 +48,17 @@ const PlannerPage = () => {
   const [isPeopleOpen, setIsPeopleOpen] = useState(false); // 📌 인원 선택 드롭다운 상태
   const [adults, setAdults] = useState(2); // 📌 성인 인원 수
   const [plans, setPlans] = useState([]); // 📌 AI가 만든 일정 목록
+  const [isLoading, setIsLoading] = useState(false); // ✅ AI가 일정 만드는 로딩 상태 추가
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(null); // 📌 현재 보고 있는 일정
   const [selectedComparisons, setSelectedComparisons] = useState([]); // 📌 비교 선택 일정
   const [isModalOpen, setIsModalOpen] = useState(false); // 📌 비교 모달 상태
+  const [expandedDays, setExpandedDays] = useState({}); // ✅ 하루 일정 펼침 상태
+  const [zoomLevel, setZoomLevel] = useState(12); // 🔹 기본 줌 레벨 설정
+  const [selectedDayIndex, setSelectedDayIndex] = useState(null); // ✅ 선택된 DAY
+
+  // 📌 모달 열기 및 닫기
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
 
   const datePickerRef = useRef(null);
   const flatpickrInstance = useRef(null); // 📌 Flatpickr 인스턴스 저장
@@ -100,6 +109,41 @@ const PlannerPage = () => {
     };
   }, []);
 
+  // 📌 접기/펼치기 토글 함수
+  const toggleDay = (dayId) => {
+    setExpandedDays((prev) => ({
+      ...prev,
+      [dayId]: !prev[dayId], // ✅ 해당 DAY의 상태 반전
+    }));
+  };
+
+  const toggleSelectComparison = (id) => {
+    setSelectedComparisons((prev = []) => {
+      if (prev.includes(id)) {
+        return prev.filter((planId) => planId !== id);
+      }
+      return prev.length < 3 ? [...prev, id] : prev;
+    });
+  };
+
+  // ✅ selectedPlanIndex가 변경될 때 selectedDayIndex 자동 변경
+  useEffect(() => {
+    if (selectedPlanIndex !== null && plans[selectedPlanIndex]?.days?.length > 0) {
+      setSelectedDayIndex(0); // 첫 번째 DAY 자동 선택
+    }
+  }, [selectedPlanIndex]); // 🔹 selectedPlanIndex 변경될 때 실행
+
+  // 📌 DAY 클릭 시 해당 일정으로 지도 이동
+  const handleSelectDay = (dayIndex) => {
+    setSelectedDayIndex(dayIndex);
+
+    // ✅ 해당 DAY의 첫 번째 위치로 지도 이동 및 줌 조정
+    if (plans[selectedPlanIndex]?.days?.length > dayIndex && plans[selectedPlanIndex].days[dayIndex]?.coordinates?.length > 0) {
+      setMapCenter(plans[selectedPlanIndex].days[dayIndex].coordinates[0]);
+      setZoomLevel(14);
+    }
+  };
+
   // 📌 여행 스타일 선택 및 해제 기능 (최대 6개 선택 가능)
   const travelStyles = [
     { id: "도시 관광", icon: "fas fa-city" },
@@ -126,60 +170,194 @@ const PlannerPage = () => {
     });
   };
 
-  // AI 추천 일정 데이터
-  const aiPlan = [
-    {
-      day: "Day 1",
-      activities: [
-        { time: "09:00", title: "🏰 명동 관광", description: "쇼핑과 현지 음식 체험" },
-        { time: "14:00", title: "🏛️ 경복궁", description: "한국의 대표적인 고궁 관람" },
-        { time: "18:00", title: "🌆 광화문 광장", description: "야경 감상 및 저녁 식사" },
-      ],
-    },
-    {
-      day: "Day 2",
-      activities: [
-        { time: "10:00", title: "🗼 남산서울타워", description: "서울 전경 감상" },
-        { time: "15:00", title: "🌎 이태원", description: "다문화 거리 탐방" },
-      ],
-    },
-  ];
+  // 📌 일정 버튼 클릭 시 첫 번째 DAY 선택 및 지도 이동
+  const handleSelectPlan = (planIndex) => {
+    setSelectedPlanIndex(planIndex);
 
-  /* 
-  // 📌 AI 연동 함수 (AI가 추천 일정 생성)
-  const handleAIRecommendation = async () => {
+    // ✅ 첫 번째 DAY의 첫 번째 위치로 지도 이동
+    if (plans[planIndex]?.days?.length > 0 && plans[planIndex].days[0].coordinates.length > 0) {
+      setMapCenter(plans[planIndex].days[0].coordinates[0]);
+      setZoomLevel(14);
+    }
+  };
+
+  // ✅ useEffect를 활용하여 plans 변경 감지 후 최신 인덱스 설정
+  useEffect(() => {
+    if (Array.isArray(plans) && plans.length > 0) {
+      setSelectedPlanIndex(Array.isArray(plans) && plans.length - 1);
+    }
+  }, [plans]);
+
+  // ✅ AI 일정 생성 + 더미 데이터 방식 통합
+  const handleGenerateAIPlan = async () => {
     try {
+      if (Array.isArray(plans) && plans.length >= 5) {
+        alert("최대 5개의 일정만 생성할 수 있습니다.");
+        return;
+      }
+
       setIsLoading(true); // 📌 로딩 상태 활성화
-  
-      // ✅ AI에 전달할 데이터 준비
+      console.log("🚀 AI 요청 시작...");
+
+      // 🔹 AI 요청 데이터 준비
       const requestData = {
         country,
         dateRange,
         tripDuration,
         travelStyle,
       };
+
+      console.log("📡 AI 요청 데이터:", requestData);
+
+      let aiPlans = null; // 🛑 AI 응답 데이터를 저장할 변수
+
+      // 🚀 [AI 연동 시 활성화]
+      /*
+      try {
+        const response = await axios.post("/api/ai/generate-plan", requestData);
+        aiPlans = response.data.map((plan) => ({
+          ...plan,
+          id: plan.id || uuidv4(), // ✅ AI 응답 데이터에도 ID 추가
+        }));
   
-      // ✅ AI API 요청 (실제 AI 연동 시 API URL 수정 필요)
-      const response = await axios.post("/api/ai/trip-recommendation", requestData);
-  
-      // ✅ AI 응답 처리
-      if (response.data) {
-        setPlans(response.data.plans); // AI가 생성한 일정 반영
-  
-        // ✅ AI 추천 일정의 첫 번째 장소로 지도 이동
-        if (response.data.plans.length > 0 && response.data.plans[0].activities.length > 0) {
-          const firstLocation = response.data.plans[0].activities[0];
-          setMapCenter({ lat: firstLocation.lat, lng: firstLocation.lng, zoom: 12 });
+        if (!aiPlans || aiPlans?.length === 0) {
+          throw new Error("AI 일정 응답이 없습니다."); 
         }
+  
+        console.log("✅ AI 응답 데이터:", aiPlans);
+      } catch (error) {
+        console.error("❌ AI 일정 추천 실패:", error);
+        alert("AI 일정 추천 중 오류가 발생했습니다. 더미 데이터를 사용합니다.");
       }
-    } catch (error) {
-      console.error("AI 일정 추천 실패", error);
-      alert("AI 일정 추천 중 오류가 발생했습니다.");
+      */
+
+      // 🛑 [AI 활성화 후 삭제]
+      const dummyPlans = [
+        {
+          id: uuidv4(),
+          day: `DAY 1`,
+          coordinates: [
+            { lat: 37.5651, lng: 126.9783 }, // 명동
+            { lat: 37.5796, lng: 126.9770 }, // 경복궁
+            { lat: 37.5724, lng: 126.9768 }, // 광화문
+          ],
+          activities: [
+            { time: "09:00", title: "🏰 명동 관광", desc: "쇼핑과 현지 음식 체험" },
+            { time: "14:00", title: "🏛️ 경복궁", desc: "한국의 대표적인 고궁 관람" },
+            { time: "18:00", title: "🌆 광화문 광장", desc: "야경 감상 및 저녁 식사" },
+          ],
+        },
+        {
+          id: uuidv4(),
+          day: `DAY 2`,
+          coordinates: [
+            { lat: 37.5512, lng: 126.9882 }, // 남산서울타워
+            { lat: 37.5348, lng: 126.9948 }, // 이태원
+          ],
+          activities: [
+            { time: "10:00", title: "🗼 남산서울타워", desc: "서울 전경 감상" },
+            { time: "15:00", title: "🌎 이태원", desc: "다문화 거리 탐방" },
+          ],
+        },
+      ];
+      // 🛑 [AI 활성화 후 삭제]
+
+      // 🚀 AI 일정이 있으면 AI 데이터 사용, 없으면 더미 데이터 사용
+      const finalPlans = aiPlans && aiPlans?.length > 0 ? aiPlans : dummyPlans;
+
+      // ✅ 일정 중복 방지 (ID 기반) + 기본값 설정
+      const uniquePlans = finalPlans.filter(
+        (newPlan) => !(plans || []).some((existingPlan) => existingPlan.id === newPlan.id)
+      );
+
+      // ✅ 여기서 setPlans()를 수정합니다.
+      setPlans((prevPlans = []) => {
+        const updatedPlans = [...(prevPlans || []), ...uniquePlans];
+
+        // 🔹 추가된 일정 콘솔 로그 확인
+        console.log("📌 업데이트된 일정 목록:", updatedPlans);
+
+        return updatedPlans; // 🔹 여기서 `setSelectedPlanIndex()`를 실행하지 않음
+      });
+
     } finally {
-      setIsLoading(false); // 📌 로딩 상태 해제
+      setIsLoading(false);
     }
   };
-  */
+
+  // ✅ 일정 저장 함수 (로컬스토리지 + API 연동)
+  const handleSave = async () => {
+    try {
+      setIsSaving(true); // 📌 저장 로딩 상태 활성화
+
+      // ✅ 로그인 여부 확인
+      if (!isLoggedIn || !currentUser?.id) {
+        alert("로그인 후 여행 일정을 저장할 수 있습니다.");
+        setIsSaving(false);
+        return;
+      }
+
+      // ✅ DB에 저장할 데이터 준비
+      const newSchedule = {
+        userId: currentUser.id, // ✅ 로그인한 사용자의 ID 추가
+        country,
+        dateRange,
+        tripDuration,
+        travelStyle,
+        plans, // ✅ 기존 코드에는 없던 일정 목록도 추가 저장
+      };
+
+      // 🚀 [API 요청] - DB 연동 시 이 부분 활성화
+      await axios.post("/api/schedule/save", newSchedule); // 🛑 [DB 연동 후 유지]
+
+      // 🛑 [로컬스토리지 저장] - DB 연동 후 삭제해야 함
+      const savedSchedules = JSON.parse(localStorage.getItem(`savedSchedules_${currentUser.id}`)) || [];
+      localStorage.setItem(`savedSchedules_${currentUser.id}`, JSON.stringify([...savedSchedules, newSchedule]));
+      // ❌ [DB 연동 후 삭제] ↑ 이 부분 제거 가능
+
+      alert("여행 일정이 성공적으로 저장되었습니다!");
+    } catch (error) {
+      console.error("일정 저장 실패", error);
+      alert("일정 저장 중 오류가 발생했습니다.");
+    } finally {
+      setIsSaving(false); // 📌 저장 로딩 상태 해제
+    }
+  };
+
+  // ✅ 일정 불러오기 함수 (페이지 로드 시 실행)
+  useEffect(() => {
+    if (isLoggedIn && currentUser?.id) {
+      const savedSchedules = JSON.parse(localStorage.getItem(`savedSchedules_${currentUser.id}`)) || [];
+      if (savedSchedules?.length > 0) {
+        setPlans(savedSchedules[savedSchedules?.length - 1].plans); // 🔹 마지막 저장된 일정 불러오기
+      }
+    }
+  }, [isLoggedIn, currentUser]);
+
+  // ✅ 일정 삭제 함수
+  const handleDeletePlan = (id) => {
+    if (Array.isArray(plans) && plans.length === 0) {
+      alert("삭제할 일정이 없습니다.");
+      return;
+    }
+
+    setPlans((prevPlans) => {
+      const updatedPlans = prevPlans.filter((plan) => plan.id !== id);
+      setSelectedComparisons((prev) => prev.filter((planId) => planId !== id));
+
+      // ✅ 남은 일정이 있으면 첫 번째 일정으로 이동, 없으면 초기화
+      setSelectedPlanIndex(updatedPlans.length > 0 ? 0 : null);
+
+      // ✅ [로컬스토리지 반영] - DB 연동 후 삭제 가능
+      if (isLoggedIn && currentUser?.id) {
+        localStorage.setItem(`savedSchedules_${currentUser.id}`, JSON.stringify(updatedPlans));
+      }
+
+      return updatedPlans;
+    });
+
+    alert("일정이 삭제되었습니다.");
+  };
 
   // 📌 달력 토글 기능
   const toggleDatePicker = () => {
@@ -194,41 +372,6 @@ const PlannerPage = () => {
 
     // ✅ 인원수 드롭다운 닫기 (달력과 인원수가 동시에 열리지 않도록)
     setIsPeopleOpen(false);
-  };
-
-  const handleSave = async () => {
-    try {
-      setIsSaving(true); // 📌 저장 로딩 상태 활성화
-
-      // ✅ 로그인 여부 확인
-      if (!isLoggedIn || !currentUser?.id) {
-        alert("로그인 후 여행 일정을 저장할 수 있습니다.");
-        return;
-      }
-
-      // ✅ DB에 저장할 데이터 준비
-      const newCourse = {
-        userId: currentUser.id, // ✅ 로그인한 사용자의 ID 추가
-        country,
-        dateRange,
-        tripDuration,
-        travelStyle,
-      };
-
-      // 📌 DB 저장 요청
-      await axios.post("/api/schedule/save-course", newCourse);
-
-      // ✅ 마이페이지에 저장 (로그인한 경우만 로컬스토리지에 저장)
-      const savedCourses = JSON.parse(localStorage.getItem(`savedCourses_${currentUser.id}`)) || [];
-      localStorage.setItem(`savedCourses_${currentUser.id}`, JSON.stringify([...savedCourses, newCourse]));
-
-      alert("여행 일정이 저장되었습니다!");
-    } catch (error) {
-      console.error("일정 저장 실패", error);
-      alert("일정 저장 중 오류가 발생했습니다.");
-    } finally {
-      setIsSaving(false); // 📌 저장 로딩 상태 해제
-    }
   };
 
   /** ✅ 메인 배너 검색 (여행 코스 검색) */
@@ -291,7 +434,7 @@ const PlannerPage = () => {
               />
 
               {/* ❌ X 버튼 (검색어 초기화) */}
-              {searchTerm.length > 0 || selectedCity ? (
+              {searchTerm?.length > 0 || selectedCity ? (
                 <div
                   className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
                   onClick={handleClearSearch}
@@ -332,8 +475,8 @@ const PlannerPage = () => {
                 )}
 
                 {/* 📌 자동완성 추천 도시 */}
-                {searchTerm.length > 0 ? (
-                  suggestedCities.length > 0 ? (
+                {searchTerm?.length > 0 ? (
+                  suggestedCities?.length > 0 ? (
                     suggestedCities.map(({ city, country }, index) => (
                       <div
                         key={index}
@@ -475,7 +618,7 @@ const PlannerPage = () => {
           <div className="mt-6 text-center flex justify-end">
             <button
               className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg text-lg font-bold shadow-md items-center justify-center gap-2"
-            // onClick={handleAIRecommendation}
+              onClick={handleGenerateAIPlan} // ✅ AI 일정 생성 실행
             >
               {/* 여울 로고 이미지 */}
               <img src="images/ui_image/makebutton.png" alt="여울 로고" className="h-12 w-auto m-auto" />
@@ -493,8 +636,8 @@ const PlannerPage = () => {
           <div className="w-1/2 p-4 bg-white">
             <h2 className="text-2xl font-bold mb-4">AI 추천 여행 일정</h2>
             {/* 📌 일정 목록 */}
-            {aiPlan.map((dayPlan, index) => (
-              <div key={index} className={`border-t-4 border-orange-300 pt-4 px-6 min-w-[300px]`}>
+            {plans.map((dayPlan, index) => (
+              <div key={index} className={`border-t-4 pt-4 px-6 min-w-[300px] ${index === 0 ? "border-custom" : "border-indigo-300"}`}>
                 <h3 className="text-lg font-medium mb-2">{dayPlan.day}</h3>
                 <div className="space-y-3">
                   {dayPlan.activities.map((activity, idx) => (
