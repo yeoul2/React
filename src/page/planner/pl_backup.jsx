@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { GoogleMap, LoadScript, Marker, Polyline } from "@react-google-maps/api";
-import { FaSearch, FaTimes, FaTrashAlt, FaSave, FaBalanceScale } from "react-icons/fa";
+import { FaSearch, FaTimes, FaTrashAlt, FaSave } from "react-icons/fa";
 import Modal from "react-modal";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/themes/light.css";
@@ -70,7 +70,7 @@ const PlannerPage = () => {
     searchTerm,
     showResults,
     selectedCity,
-    recentSearches = [],
+    recentSearches,
     popularDestinations,
     suggestedCities,
     searchResultsRef,
@@ -81,24 +81,6 @@ const PlannerPage = () => {
     handleRemoveRecentSearch,
     handlePopularDestinationSelect,
   } = useTravelSearch();
-
-  // 📌 여행 스타일 선택 및 해제 기능 (최대 6개 선택 가능)
-  const travelStyles = [
-    { id: "도시 관광", icon: "fas fa-city" },
-    { id: "문화지 관광", icon: "fas fa-landmark" },
-    { id: "랜드마크 투어", icon: "fas fa-map-marked-alt" },
-    { id: "체험 중심 투어", icon: "fas fa-hands-helping" },
-    { id: "맛집 투어", icon: "fas fa-utensils" },
-    { id: "쇼핑 투어", icon: "fas fa-shopping-bag" },
-    { id: "액티비티", icon: "fas fa-running" },
-    { id: "효도 관광", icon: "fas fa-user-friends" },
-    { id: "힐링", icon: "fas fa-spa" },
-    { id: "호캉스", icon: "fas fa-hotel" },
-    { id: "휴양", icon: "fas fa-umbrella-beach" },
-    { id: "반려동물과 함께", icon: "fas fa-paw" },
-    { id: "명소 투어", icon: "fas fa-binoculars" },
-    { id: "축제 문화 투어", icon: "fas fa-music" },
-  ];
 
   // 📌 Flatpickr 초기화 및 관리
   useEffect(() => {
@@ -135,12 +117,6 @@ const PlannerPage = () => {
     }));
   };
 
-  // ✅ 새로고침 시 일정 초기화
-  useEffect(() => {
-    setPlans([]); // 새로고침하면 초기화됨
-  }, []);
-
-  // 📌 일정 비교 선택 토글
   const toggleSelectComparison = (id) => {
     setSelectedComparisons((prev = []) => {
       if (prev.includes(id)) {
@@ -155,119 +131,7 @@ const PlannerPage = () => {
     if (selectedPlanIndex !== null && plans[selectedPlanIndex]?.days?.length > 0) {
       setSelectedDayIndex(0); // 첫 번째 DAY 자동 선택
     }
-  }, [selectedPlanIndex, plans]); // 🔹 selectedPlanIndex 변경될 때 실행
-
-  // ✅ AI 일정 생성 + 더미 데이터 방식 통합
-  const handleGenerateAIPlan = async () => {
-    if (plans?.length >= 5) return alert("최대 5개의 일정만 생성할 수 있습니다.");
-
-    setIsLoading(true);
-    console.log("🚀 AI 요청 시작...");
-
-    const requestData = { country, dateRange, tripDuration, travelStyle };
-    console.log("📡 AI 요청 데이터:", requestData);
-
-    let aiPlans = null;
-
-    /*
-    try {
-        const response = await axios.post("/api/ai/generate-plan", requestData);
-        aiPlans = response.data.map(plan => ({
-            ...plan,
-            id: plan.id || uuidv4(),
-        }));
-        if (!aiPlans?.length) throw new Error("AI 일정 응답 없음.");
-    } catch (error) {
-        console.error("❌ AI 일정 추천 실패:", error);
-        alert("AI 일정 추천 중 오류 발생. 더미 데이터를 사용합니다.");
-    }
-    */
-
-    // ✅ 일정 5개 + 각 일정에 5일 치 상세 일정 포함
-    const dummyPlans = [
-      {
-        id: uuidv4(),
-        name: "서울 여행",
-        days: Array.from({ length: 5 }, (_, dayIndex) => ({
-          day: `DAY ${dayIndex + 1}`,
-          activities: [
-            { time: "09:00", title: "🏰 명소 방문", desc: "서울 주요 관광지 방문" },
-            { time: "12:00", title: "🍜 점심", desc: "서울 대표 음식 체험" },
-            { time: "14:00", title: "🎭 문화 체험", desc: "박물관 및 랜드마크 방문" },
-            { time: "18:00", title: "🌆 야경 감상", desc: "서울 야경 명소 방문" },
-            { time: "20:00", title: "🍷 저녁", desc: "서울 맛집에서 저녁 식사" },
-          ],
-        })),
-      },
-      {
-        id: uuidv4(),
-        name: "부산 여행",
-        days: Array.from({ length: 5 }, (_, dayIndex) => ({
-          day: `DAY ${dayIndex + 1}`,
-          activities: [
-            { time: "09:00", title: "🌊 해변 산책", desc: "해운대 및 광안리 방문" },
-            { time: "12:00", title: "🍣 점심", desc: "부산 횟집 체험" },
-            { time: "14:00", title: "🎢 놀이공원", desc: "롯데월드 어드벤처 방문" },
-            { time: "18:00", title: "🌅 일몰 감상", desc: "광안대교에서 일몰 감상" },
-            { time: "20:00", title: "🍶 야시장 방문", desc: "깡통시장 및 국제시장 탐방" },
-          ],
-        })),
-      },
-      {
-        id: uuidv4(),
-        name: "제주도 여행",
-        days: Array.from({ length: 5 }, (_, dayIndex) => ({
-          day: `DAY ${dayIndex + 1}`,
-          activities: [
-            { time: "09:00", title: "⛰️ 한라산 등반", desc: "한라산 자연 탐방" },
-            { time: "12:00", title: "🍜 점심", desc: "제주 흑돼지 체험" },
-            { time: "14:00", title: "🏝️ 해변 휴식", desc: "협재해변 또는 함덕해수욕장" },
-            { time: "18:00", title: "🌅 일몰 감상", desc: "성산일출봉 근처 감상" },
-            { time: "20:00", title: "🍷 저녁", desc: "제주 오션 뷰 레스토랑" },
-          ],
-        })),
-      },
-      {
-        id: uuidv4(),
-        name: "강릉 여행",
-        days: Array.from({ length: 5 }, (_, dayIndex) => ({
-          day: `DAY ${dayIndex + 1}`,
-          activities: [
-            { time: "09:00", title: "🏄 서핑 체험", desc: "강릉 경포대 서핑" },
-            { time: "12:00", title: "🍲 점심", desc: "초당순두부 맛집 탐방" },
-            { time: "14:00", title: "🎨 박물관 방문", desc: "강릉 선교장 문화 체험" },
-            { time: "18:00", title: "🌊 해변 야경", desc: "주문진 방파제에서 산책" },
-            { time: "20:00", title: "🍷 저녁", desc: "로컬 펍 및 카페 방문" },
-          ],
-        })),
-      },
-      {
-        id: uuidv4(),
-        name: "전주 여행",
-        days: Array.from({ length: 5 }, (_, dayIndex) => ({
-          day: `DAY ${dayIndex + 1}`,
-          activities: [
-            { time: "09:00", title: "🏯 한옥마을 방문", desc: "전주 한옥마을 산책" },
-            { time: "12:00", title: "🍚 점심", desc: "전주 비빔밥 체험" },
-            { time: "14:00", title: "🖼️ 전통문화 체험", desc: "전통 공예 체험" },
-            { time: "18:00", title: "🌇 한강 야경", desc: "전주 한강 야경 감상" },
-            { time: "20:00", title: "🍶 막걸리 투어", desc: "전주 막걸리 골목 투어" },
-          ],
-        })),
-      },
-    ];
-
-    const newPlan = aiPlans?.length ? aiPlans[0] : dummyPlans[0];
-
-    setPlans((prevPlans) => {
-      const safePrevPlans = Array.isArray(prevPlans) ? prevPlans : []; // ✅ prevPlans가 배열이 아닐 경우 빈 배열로 초기화
-      const updatedPlans = [...safePrevPlans, newPlan]; // ✅ 기존 일정에 새 일정 추가
-      setSelectedPlanIndex(updatedPlans.length - 1); // ✅ 가장 마지막 일정 선택
-      return updatedPlans;
-    });
-
-    setIsLoading(false);
-  };
+  }, [selectedPlanIndex]); // 🔹 selectedPlanIndex 변경될 때 실행
 
   // 📌 DAY 클릭 시 해당 일정으로 지도 이동
   const handleSelectDay = (dayIndex) => {
@@ -280,6 +144,24 @@ const PlannerPage = () => {
     }
   };
 
+  // 📌 여행 스타일 선택 및 해제 기능 (최대 6개 선택 가능)
+  const travelStyles = [
+    { id: "도시 관광", icon: "fas fa-city" },
+    { id: "문화지 관광", icon: "fas fa-landmark" },
+    { id: "랜드마크 투어", icon: "fas fa-map-marked-alt" },
+    { id: "체험 중심 투어", icon: "fas fa-hands-helping" },
+    { id: "맛집 투어", icon: "fas fa-utensils" },
+    { id: "쇼핑 투어", icon: "fas fa-shopping-bag" },
+    { id: "액티비티", icon: "fas fa-running" },
+    { id: "효도 관광", icon: "fas fa-user-friends" },
+    { id: "힐링", icon: "fas fa-spa" },
+    { id: "호캉스", icon: "fas fa-hotel" },
+    { id: "휴양", icon: "fas fa-umbrella-beach" },
+    { id: "반려동물과 함께", icon: "fas fa-paw" },
+    { id: "명소 투어", icon: "fas fa-binoculars" },
+    { id: "축제 문화 투어", icon: "fas fa-music" },
+  ];
+
   const toggleTravelStyle = (id) => {
     setTravelStyle((prev) => {
       if (prev.includes(id)) return prev.filter((style) => style !== id);
@@ -289,21 +171,13 @@ const PlannerPage = () => {
   };
 
   // 📌 일정 버튼 클릭 시 첫 번째 DAY 선택 및 지도 이동
-  const handleSelectPlan = (planIndex, event) => {
-    // ✅ 체크박스 클릭 시 일정 변경 방지
-    if (event?.target?.type === "checkbox") {
-      return;
-    }
-
-    // ✅ 선택된 일정 변경
+  const handleSelectPlan = (planIndex) => {
     setSelectedPlanIndex(planIndex);
 
-    // ✅ 선택된 일정의 첫 번째 DAY가 존재하는지 확인
-    const firstDay = plans?.[planIndex]?.days?.[0];
-
-    if (firstDay && Array.isArray(firstDay.coordinates) && firstDay.coordinates.length > 0) {
-      setMapCenter(firstDay.coordinates[0]); // ✅ 첫 번째 위치로 지도 이동
-      setZoomLevel(14); // ✅ 줌 레벨 설정
+    // ✅ 첫 번째 DAY의 첫 번째 위치로 지도 이동
+    if (plans[planIndex]?.days?.length > 0 && plans[planIndex].days[0].coordinates.length > 0) {
+      setMapCenter(plans[planIndex].days[0].coordinates[0]);
+      setZoomLevel(14);
     }
   };
 
@@ -313,6 +187,103 @@ const PlannerPage = () => {
       setSelectedPlanIndex(Array.isArray(plans) && plans.length - 1);
     }
   }, [plans]);
+
+  // ✅ AI 일정 생성 + 더미 데이터 방식 통합
+  const handleGenerateAIPlan = async () => {
+    try {
+      if (Array.isArray(plans) && plans.length >= 5) {
+        alert("최대 5개의 일정만 생성할 수 있습니다.");
+        return;
+      }
+
+      setIsLoading(true); // 📌 로딩 상태 활성화
+      console.log("🚀 AI 요청 시작...");
+
+      // 🔹 AI 요청 데이터 준비
+      const requestData = {
+        country,
+        dateRange,
+        tripDuration,
+        travelStyle,
+      };
+
+      console.log("📡 AI 요청 데이터:", requestData);
+
+      let aiPlans = null; // 🛑 AI 응답 데이터를 저장할 변수
+
+      // 🚀 [AI 연동 시 활성화]
+      /*
+      try {
+        const response = await axios.post("/api/ai/generate-plan", requestData);
+        aiPlans = response.data.map((plan) => ({
+          ...plan,
+          id: plan.id || uuidv4(), // ✅ AI 응답 데이터에도 ID 추가
+        }));
+  
+        if (!aiPlans || aiPlans?.length === 0) {
+          throw new Error("AI 일정 응답이 없습니다."); 
+        }
+  
+        console.log("✅ AI 응답 데이터:", aiPlans);
+      } catch (error) {
+        console.error("❌ AI 일정 추천 실패:", error);
+        alert("AI 일정 추천 중 오류가 발생했습니다. 더미 데이터를 사용합니다.");
+      }
+      */
+
+      // 🛑 [AI 활성화 후 삭제]
+      const dummyPlans = [
+        {
+          id: uuidv4(),
+          day: `DAY 1`,
+          coordinates: [
+            { lat: 37.5651, lng: 126.9783 }, // 명동
+            { lat: 37.5796, lng: 126.9770 }, // 경복궁
+            { lat: 37.5724, lng: 126.9768 }, // 광화문
+          ],
+          activities: [
+            { time: "09:00", title: "🏰 명동 관광", desc: "쇼핑과 현지 음식 체험" },
+            { time: "14:00", title: "🏛️ 경복궁", desc: "한국의 대표적인 고궁 관람" },
+            { time: "18:00", title: "🌆 광화문 광장", desc: "야경 감상 및 저녁 식사" },
+          ],
+        },
+        {
+          id: uuidv4(),
+          day: `DAY 2`,
+          coordinates: [
+            { lat: 37.5512, lng: 126.9882 }, // 남산서울타워
+            { lat: 37.5348, lng: 126.9948 }, // 이태원
+          ],
+          activities: [
+            { time: "10:00", title: "🗼 남산서울타워", desc: "서울 전경 감상" },
+            { time: "15:00", title: "🌎 이태원", desc: "다문화 거리 탐방" },
+          ],
+        },
+      ];
+      // 🛑 [AI 활성화 후 삭제]
+
+      // 🚀 AI 일정이 있으면 AI 데이터 사용, 없으면 더미 데이터 사용
+      const finalPlans = aiPlans && aiPlans?.length > 0 ? aiPlans : dummyPlans;
+
+      // ✅ 일정 중복 방지 (ID 기반) + 기본값 설정
+      const uniquePlans = finalPlans.filter(
+        (newPlan) => !(plans || []).some((existingPlan) => existingPlan.id === newPlan.id)
+      );
+
+      // ✅ 여기서 setPlans()를 수정합니다.
+      setPlans((prevPlans = []) => {
+        const updatedPlans = [...(prevPlans || []), ...uniquePlans];
+
+        // 🔹 추가된 일정 콘솔 로그 확인
+        console.log("📌 업데이트된 일정 목록:", updatedPlans);
+
+        return updatedPlans; // 🔹 여기서 `setSelectedPlanIndex()`를 실행하지 않음
+      });
+
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // ✅ 일정 저장 함수 (로컬스토리지 + API 연동)
   const handleSave = async () => {
@@ -363,31 +334,29 @@ const PlannerPage = () => {
     }
   }, [isLoggedIn, currentUser]);
 
-  // 📌 일정 삭제 함수
+  // ✅ 일정 삭제 함수
   const handleDeletePlan = (id) => {
     if (Array.isArray(plans) && plans.length === 0) {
       alert("삭제할 일정이 없습니다.");
       return;
     }
 
-    const deletedPlanId = plans[selectedPlanIndex].id;
+    setPlans((prevPlans) => {
+      const updatedPlans = prevPlans.filter((plan) => plan.id !== id);
+      setSelectedComparisons((prev) => prev.filter((planId) => planId !== id));
 
-    // ✅ 선택된 일정 삭제
-    const updatedPlans = plans.filter((_, index) => index !== selectedPlanIndex);
-    setPlans(updatedPlans);
+      // ✅ 남은 일정이 있으면 첫 번째 일정으로 이동, 없으면 초기화
+      setSelectedPlanIndex(updatedPlans.length > 0 ? 0 : null);
 
-    // ✅ 비교 리스트에서도 삭제된 일정 제거
-    setSelectedComparisons((prev) => prev.filter((id) => id !== deletedPlanId));
+      // ✅ [로컬스토리지 반영] - DB 연동 후 삭제 가능
+      if (isLoggedIn && currentUser?.id) {
+        localStorage.setItem(`savedSchedules_${currentUser.id}`, JSON.stringify(updatedPlans));
+      }
 
-    // ✅ 삭제 후 selectedPlanIndex 조정
-    setSelectedPlanIndex(updatedPlans.length > 0 ? 0 : null);
+      return updatedPlans;
+    });
 
-    // ✅ 로컬스토리지 반영 (로그인된 경우)
-    if (isLoggedIn && currentUser?.id) {
-      localStorage.setItem(`savedSchedules_${currentUser.id}`, JSON.stringify(updatedPlans));
-    }
-
-    return updatedPlans;
+    alert("일정이 삭제되었습니다.");
   };
 
   // 📌 달력 토글 기능
@@ -475,11 +444,13 @@ const PlannerPage = () => {
               ) : null}
             </div>
 
-            {/* 🔹 자동완성 UI */}
+            {/* 🔹 자동완성 UI (최근 검색어 + 추천 도시 + 인기 여행지 포함) */}
             {showResults && suggestedCities && (
               <div className="absolute w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-50">
+                {/* <div className="absolute top-full left-0 mt-1 border border-white rounded-lg shadow-lg p-3 z-50 w-[700px] max-h-[220px] overflow-y-auto scrollbar-hide"> */}
+
                 {/* 📌 최근 검색어 */}
-                {Array.isArray(recentSearches) && recentSearches.length > 0 && (
+                {recentSearches.length > 0 && (
                   <>
                     <h3 className="text-sm font-medium text-gray-500">최근 검색어</h3>
                     <div className="flex flex-wrap gap-2 mt-1 mb-2">
@@ -487,14 +458,14 @@ const PlannerPage = () => {
                         <span
                           key={index}
                           className="inline-flex items-center px-3 py-1 rounded-full text-sm text-white bg-orange-300 cursor-pointer"
-                          onClick={() => handleCitySelect(search?.search_term || "", "")}
+                          onClick={() => handleCitySelect(search, "")}
                         >
-                          {search?.search_term || "알 수 없음"}
+                          {search}
                           <FaTimes
                             className="ml-2 text-gray-500 hover:text-white cursor-pointer"
                             onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveRecentSearch(search?.search_term || "");
+                              e.stopPropagation(); // 🔹 이벤트 버블링 방지
+                              handleRemoveRecentSearch(search);
                             }}
                           />
                         </span>
@@ -617,7 +588,7 @@ const PlannerPage = () => {
         </div>
 
         {/* 여행 테마 */}
-        < div className="bg-white shadow sm:rounded-lg p-6 mb-1" >
+        <div className="bg-white shadow sm:rounded-lg p-6 mb-1">
           <h2 className="text-xl font-semibold mb-6">여행 테마 선택 (최대 6개)</h2>
 
           {/* 초기화 버튼을 오른쪽 끝으로 배치 및 기능 구현 */}
@@ -658,146 +629,182 @@ const PlannerPage = () => {
       </div>
 
       {/* 📌 AI 추천 일정 */}
-      <div div className="bg-white shadow sm:rounded-lg p-6 rounded-lg shadow" >
-        <div className="grid grid-cols-2 gap-6">
+      <div className="bg-white shadow sm:rounded-lg p-6 rounded-lg shadow">
+        <div className="flex gap-6 justify-between overflow-x-auto md-3">
 
-          {/* AI 추천 일정 */}
-          <div className="col-span-2 flex flex-col gap-6 overflow-y-auto max-h-[600px]">
+          {/* 📌 AI 추천 일정 */}
+          <div className="w-1/2 p-4 bg-white">
             <h2 className="text-2xl font-bold mb-4">AI 추천 여행 일정</h2>
-
-            {/* 📌 일정 목록 버튼 UI (일정 1, 일정 2...) */}
-            <div className="flex flex-row gap-2 mb-4 items-start w-full whitespace-nowrap">
-              {Array.isArray(plans) && Array.isArray(plans) && plans.length > 0 ? (
-                plans.map((plan, index) => (
-                  <button
-                    key={plan.id}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md w-32 justify-between ${selectedPlanIndex === index ? "bg-orange-500 text-white hover:bg-orange-600" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                      }`}
-                    onClick={(e) => handleSelectPlan(index, e)}
-                  >
-                    <span>일정 {index + 1}</span>
-                    <input
-                      type="checkbox"
-                      className="border-white focus:outline-sky-500 h-5 w-5 text-sky-400 cursor-pointer"
-                      checked={selectedComparisons.includes(plan.id)}
-                      onChange={() => toggleSelectComparison(plan.id)}
-                    />
-                  </button>
-                ))
-              ) : (
-                <p className="text-gray-500">일정이 없습니다.</p>
-              )}
-            </div>
-          </div>
-
-          {/* 📌 선택된 일정 표시 */}
-          {plans?.length > 0 && selectedPlanIndex !== null && plans[selectedPlanIndex] && (
-            <div className="border-l-4 border-orange-500 pt-4">
-              <h3 className="text-lg font-medium mb-2">{plans[selectedPlanIndex]?.name}</h3>
-
-              {/* 🔹 선택된 일정의 5일 치 표시 */}
-              <div className="space-y-3">
-                {plans[selectedPlanIndex]?.days?.map((day, idx) => (
-                  <div key={idx} className="mb-4">
-                    {/* 🔸 DAY 표시 */}
-                    <h4 className="font-bold text-md text-orange-600">{day?.day}</h4>
-
-                    {/* 🔹 해당 DAY의 activity 리스트를 순회 */}
-                    {day?.activities?.map((activity, actIdx) => (
-                      <div key={actIdx} className="flex items-start gap-4">
-                        <div className="w-20 text-sm text-gray-500">{activity?.time}</div>
-                        <div>
-                          <p className="font-medium">{activity?.title}</p>
-                          <p className="text-sm text-gray-600">{activity?.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 지도 및 저장 버튼을 포함한 컨테이너 */}
-          <div className="col-span-1 flex flex-col items-end gap-4">
-            <div className="sticky top-20 right-0 w-[400px]">
-              {/* 비교, 삭제, 저장 버튼 */}
-              <div className="flex gap-2 items-center w-full md:w-auto justify-end">
-                <button onClick={openModal} className={`flex flex-col items-center justify-center gap-1 w-24 h-15 py-2 text-sm rounded-md ${selectedComparisons.length >= 2 ? "bg-orange-500 text-white hover:bg-orange-600" : "bg-gray-400 text-gray-200 cursor-not-allowed"
-                  }`}
-                  disabled={selectedComparisons.length < 2}
-                >
-                  <FaBalanceScale className="text-lg" /> 비교하기
-                </button>
-
-                {/* 삭제하기 */}
-                <button onClick={handleDeletePlan} className="flex flex-col items-center justify-center gap-1 w-24 h-15 py-2 text-sm rounded-md bg-red-500 text-white">
-                  <FaTrashAlt className="text-lg" /> 삭제
-                </button>
-
-                {/* 저장하기 */}
-                <button onClick={() => handleSave(plans[selectedPlanIndex])} className="flex flex-col items-center justify-center gap-1 w-24 h-15 py-2 text-sm rounded-md bg-blue-500 text-white">
-                  <FaSave className="text-lg" /> 저장하기
-                </button>
-              </div>
-              <h2 className="text-2xl font-bold mb-4">지도 보기</h2>
-              <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_KEY || ""}>
-                <GoogleMap mapContainerStyle={containerStyle} center={mapCenter} zoom={defaultCenter.zoom} />
-              </LoadScript>
-            </div>
-          </div>
-
-          {/* 비교 모달 */}
-          <Modal isOpen={isModalOpen} onRequestClose={closeModal} style={modalStyles}>
-            <h2 className="text-2xl font-bold mb-4">일정 비교</h2>
-
-            {/* 비교할 일정이 있는지 확인 */}
-            {selectedComparisons.length > 0 ? (
-              <div className="grid grid-cols-3 gap-4">
-                {selectedComparisons.map((id) => {
-                  // ✅ 선택된 일정 ID를 기반으로 `plans`에서 해당 일정 찾기
-                  const plan = plans.find((p) => p.id === id);
-
-                  return plan ? (
-                    <div key={id} className="border p-4 rounded-lg">
-                      <h3 className="text-lg font-semibold">{plan.name}</h3> {/* ✅ 일정명이 올바르게 표시되는지 확인 */}
-                      <ul>
-                        {Array.isArray(plan.days) && plan.days.length > 0 ? (
-                          plan.days.map((day, idx) => (
-                            <li key={idx} className="mb-2">
-                              <h4 className="text-md font-bold text-orange-600">{day.day}</h4>
-                              {Array.isArray(day.activities) && day.activities.length > 0 ? (
-                                day.activities.map((activity, actIdx) => (
-                                  <p key={actIdx}>
-                                    {activity.time} - {activity.title}
-                                  </p>
-                                ))
-                              ) : (
-                                <p className="text-gray-500">활동 정보 없음</p>
-                              )}
-                            </li>
-                          ))
-                        ) : (
-                          <p className="text-gray-500">세부 일정이 없습니다.</p>
-                        )}
-                      </ul>
+            <div class="flex flex-wrap items-center justify-between py-6">
+              
+              {/* 📌 일정 버튼 UI (일정 1, 일정 2...) */}
+              <div className="flex gap-2 mb-4 items-center w-full md:w-auto">
+                {Array.isArray(plans) && Array.isArray(plans) && plans.length > 0 ? (
+                  plans.map((plan, index) => (
+                    <div key={plan.id} className="flex items-center gap-2">
+                      <button
+                        className={`px-4 py-2 rounded-md text-sm ${selectedPlanIndex === index ? "bg-orange-500 text-white" : "bg-gray-100"
+                          }`}
+                        onClick={() => handleSelectPlan(index)}
+                      >
+                        일정 {index + 1}
+                      </button>
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5 text-orange-500"
+                        checked={selectedComparisons.includes(plan.id)}
+                        onChange={() => toggleSelectComparison(plan.id)}
+                      />
                     </div>
-                  ) : (
-                    <p key={id} className="text-gray-500">일정을 찾을 수 없습니다.</p>
-                  );
-                })}
+                  ))
+                ) : (
+                  <p className="text-gray-500">일정이 없습니다.</p>
+                )}
               </div>
-            ) : (
-              <p className="text-gray-500">비교할 일정이 없습니다.</p>
-            )}
+            </div>
 
-            <div className="flex justify-end mt-4">
-              <button onClick={closeModal} className="mt-4 px-6 py-2 bg-orange-600 text-white rounded-lg">
-                확인
+            {/* 비교, 삭제, 저장 버튼 */}
+            <div className="flex gap-2 items-center space-x-2 w-full md:w-auto justify-end">
+              <button
+                onClick={openModal}
+                disabled={selectedComparisons.length < 2}
+                className={`px-4 py-2 text-sm rounded-md ${selectedComparisons.length >= 2 ? "bg-orange-500 text-white" : "bg-gray-400 text-gray-200 cursor-not-allowed"
+                  }`}
+              >
+                비교하기
+              </button>
+              <button onClick={handleDeletePlan} className="px-4 py-2 text-sm rounded-md bg-red-500 text-white">
+                <FaTrashAlt className="mr-1" /> 삭제
+              </button>
+              <button onClick={() => handleSave(plans[selectedPlanIndex])} className="px-4 py-2 text-sm rounded-md bg-blue-500 text-white">
+                <FaSave className="mr-1" /> 저장하기
               </button>
             </div>
-          </Modal>
+          </div>
         </div>
+
+        {/* 📌 선택된 일정 표시 */}
+        {Array.isArray(plans) && plans.length > 0 && selectedPlanIndex !== null && (
+          <div className="border-l-4 border-orange-500 pl-4">
+            <h3 className="text-lg font-medium mb-2">{plans[selectedPlanIndex].day}</h3>
+            <div className="space-y-3">
+              {plans[selectedPlanIndex].activities.map((activity, idx) => (
+                <div key={idx} className="flex items-start gap-4">
+                  <div className="w-20 text-sm text-gray-500">{activity.time}</div>
+                  <div>
+                    <p className="font-medium">{activity.title}</p>
+                    <p className="text-sm text-gray-600">{activity.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between items-start">
+          {/* 📍 AI 추천 일정 목록 (좌측 정렬) */}
+          <div className="w-1/2 p-4 bg-white">
+            {selectedPlanIndex !== null &&
+              Array.isArray(plans) &&
+              plans[selectedPlanIndex]?.days &&
+              plans[selectedPlanIndex].days.length > 0 ? (
+              plans[selectedPlanIndex].days.map((day, index) => (
+                <div key={day.id || index} className="border-t-4 border-orange-300 pt-4 px-6 min-w-[300px]">
+                  {/* 🔹 DAY 제목 (클릭 시 접기/펼치기) */}
+                  <h3 className="text-lg font-medium mb-2 cursor-pointer flex justify-between" onClick={() => handleSelectDay(index)}>
+                    {day.day} <span className="text-gray-500">{selectedDayIndex === index ? "▲" : "▼"}</span>
+                  </h3>
+                  {selectedDayIndex === index && (
+                    <div className="space-y-3">
+                      {Array.isArray(day.activities) ? (
+                        day.activities.map((activity, idx) => (
+                          <div key={idx} className="flex items-start gap-4">
+                            <div className="w-32 text-sm text-white font-medium bg-orange-300 rounded px-2 py-1">
+                              {activity.time}
+                            </div>
+                            <div>
+                              <p className="font-medium">{activity.title}</p>
+                              <p className="text-sm text-gray-600">{activity.desc}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-500">활동 정보가 없습니다.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">선택된 일정이 없습니다.</p>
+            )}
+          </div>
+
+          {/* 🗺️ 지도 표시 (우측 정렬) */}
+          <div className="w-1/2 p-4 bg-white">
+            <h2 className="text-2xl font-bold mb-4">이동 경로</h2>
+            {Array.isArray(plans) && plans.length > 0 && (
+              <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_KEY || ""}>
+                <GoogleMap
+                  mapContainerStyle={containerStyle}
+                  center={mapCenter}
+                  zoom={zoomLevel}
+                >
+                  {/* ✅ 이동 경로 표시 */}
+                  {selectedDayIndex !== null &&
+                    Array.isArray(plans) &&
+                    plans[selectedPlanIndex]?.days?.[selectedDayIndex]?.coordinates?.length > 0 && (
+                      <Polyline
+                        path={plans[selectedPlanIndex].days[selectedDayIndex].coordinates}
+                        options={{
+                          strokeColor: "#FF5733",
+                          strokeOpacity: 0.8,
+                          strokeWeight: 3,
+                        }}
+                      />
+                    )}
+
+                  {/* ✅ 마커 표시 */}
+                  {selectedDayIndex !== null &&
+                    plans[selectedPlanIndex]?.days[selectedDayIndex]?.coordinates &&
+                    plans[selectedPlanIndex].days[selectedDayIndex].coordinates.map((coord, index) => (
+                      <Marker key={index} position={coord} />
+                    ))}
+                </GoogleMap>
+              </LoadScript>
+            )}
+          </div>
+        </div>
+        {/* 📌 비교 모달 */}
+        <Modal isOpen={isModalOpen} onRequestClose={closeModal} style={modalStyles}>
+          <h2 className="text-2xl font-bold mb-4">일정 비교</h2>
+          <div className="grid grid-cols-3 gap-4">
+            {selectedComparisons.map((id) => {
+              const plan = plans.find((p) => p.id === id);
+              return plan ? (
+                <div key={id} className="border p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold">{plan.day}</h3>
+                  <ul>
+                    {Array.isArray(plan.activities) ? (
+                      plan.activities.map((activity, idx) => (
+                        <li key={idx}>{activity.time} - {activity.title}</li>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">활동 정보가 없습니다.</p>
+                    )}
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-gray-500">일정을 찾을 수 없습니다.</p>
+              );
+            })}
+          </div>
+          <div className="flex justify-end mt-4">
+            <button onClick={closeModal} className="mt-4 px-6 py-2 bg-orange-600 text-white rounded-lg">
+              확인
+            </button>
+          </div>
+        </Modal>
       </div>
     </main >
   );
