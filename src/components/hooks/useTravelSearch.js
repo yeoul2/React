@@ -201,6 +201,9 @@ const useTravelSearch = () => {
 
   // 📌 도시 선택 핸들러 수정
   const handleCitySelect = async (city, country) => {
+    if (typeof city === "object" && city !== null && "search_term" in city) {
+      city = city.search_term;
+    }
     const fullCity = `${city}, ${country}`;
     setSuggestedCities([]); // 🔹 자동완성 목록 초기화
     setSelectedCity(fullCity); // 🔹 선택된 도시 저장

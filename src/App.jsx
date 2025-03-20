@@ -19,7 +19,7 @@ import CourseBoard from "./page/course/CoursePage";
 import PageTransition from "./components/layout/PageTransition";
 import MyPage from "./page/auth/MyPage";
 import PasswordChange from "./page/auth/PasswordChange";
-import TravelPlanner from "./page/planner/TravelPlanner";
+import PlannerPageBack_UP from "./page/planner/PlannerPageBack_UP";
 
 
 // ✅ 검색 상태를 전역 관리하는 Context 생성
@@ -32,14 +32,14 @@ const App = () => {
     <SearchContext.Provider value={{ searchText, setSearchText }}>
       <BrowserRouter>
         <Layout> {/* ✅ Layout을 감싸서 자동으로 Header, Footer 적용 */}
-        <PageTransition /> {/* 페이지 이동 시 스크롤 맨 위로 이동 */}
+          <PageTransition /> {/* 페이지 이동 시 스크롤 맨 위로 이동 */}
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/course" element={<PlannerPage />} />
             {/* Google OAuth 콜백 경로 추가 */}
-            <Route path="/google/callback" element={<GoogleAuthCallback />} /> 
+            <Route path="/google/callback" element={<GoogleAuthCallback />} />
             {/* Naver OAuth 콜백 경로 추가 */}
-            <Route path="/naver/callback" element={<NaverAuthCallback/>} />
+            <Route path="/naver/callback" element={<NaverAuthCallback />} />
             <Route path="/board" element={<TravelPage />} />
             <Route path="/board/:tb_no" element={<TripReview />} />
             <Route path="/boardedit/:tb_no" element={<TravelReviewEditForm />} />
@@ -52,7 +52,7 @@ const App = () => {
             <Route path="/find-id" element={<FindId />} />
             <Route path="/mypage-check" element={<MypageCheck />} />
             <Route path="/mypage" element={<MyPage />} />
-            <Route path="/pl" element={<TravelPlanner />} />
+            <Route path="/pl" element={<PlannerPageBack_UP />} />
           </Routes>
         </Layout>
       </BrowserRouter>

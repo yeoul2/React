@@ -269,7 +269,7 @@ const HomePage = () => {
                             className="inline-flex items-center px-3 py-1 rounded-full text-sm text-white bg-orange-500 cursor-pointer"
                             onClick={() => handleCitySelect(search, "")}
                           >
-                            {search}
+                            {typeof search === "object" ? JSON.stringify(search, null, 2) : search}
                             <FaTimes
                               className="ml-2 text-gray-500 hover:text-white cursor-pointer"
                               onClick={(e) => {

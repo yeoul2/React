@@ -482,9 +482,9 @@ const PlannerPage = () => {
                         <span
                           key={index}
                           className="inline-flex items-center px-3 py-1 rounded-full text-sm text-white bg-orange-300 cursor-pointer"
-                          onClick={() => handleCitySelect(search?.search_term || "", "")}
+                          onClick={() => handleCitySelect(search?.search_term ?? "", "")}
                         >
-                          {search?.search_term || "알 수 없음"}
+                          {typeof search?.search_term === "string" ? search.search_term : "알 수 없음"}
                           <FaTimes
                             className="ml-2 text-gray-500 hover:text-white cursor-pointer"
                             onClick={(e) => {
@@ -653,16 +653,17 @@ const PlannerPage = () => {
       </div>
 
       {/* 📌 AI 추천 일정 */}
-      <div div className="bg-white shadow sm:rounded-lg p-6 rounded-lg shadow" >
-        <div className="flex gap-6 justify-between md:flex-nowrap">
+      {/* 전체 컨테이너 */}
+      <div className="bg-white shadow sm:rounded-lg p-6 rounded-lg h-screen flex flex-col">
 
-          {/* AI 추천 일정 */}
-          <div className="flex-grow p-4 bg-white max-h-[600px] overflow-y-auto">
+        {/* 🔹 AI 추천 여행 일정 제목 + 버튼 컨테이너 */}
+        <div className=" flex justify-between items-start mb-4">
+
+          {/* 🔸 AI 추천 여행 일정 제목 + 총 일정 목록 */}
+          <div className="w-2/3">
             <h2 className="text-2xl font-bold mb-4">AI 추천 여행 일정</h2>
-
-            {/* 📌 일정 목록 버튼 UI (일정 1, 일정 2...) */}
-            <div className="flex flex-row gap-2 mb-4 items-start w-full whitespace-nowrap">{/* 글씨 부분 가로로 있다가 세로로 변경되는부분 */}
-              {Array.isArray(plans) && Array.isArray(plans) && plans.length > 0 ? (
+            <div className="flex flex-wrap gap-2 mb-4 max-w-full overflow-x-auto">
+              {Array.isArray(plans) && plans.length > 0 ? (
                 plans.map((plan, index) => (
                   <button
                     key={plan.id}
@@ -685,113 +686,127 @@ const PlannerPage = () => {
             </div>
           </div>
 
-          {/* 📌 선택된 일정 표시 */}
-          {plans?.length > 0 && selectedPlanIndex !== null && plans[selectedPlanIndex] && (
-            <div className="border-l-4 border-orange-500 pl-4">
-              <h3 className="text-lg font-medium mb-2">{plans[selectedPlanIndex]?.name}</h3>
-
-              {/* 🔹 선택된 일정의 5일 치 표시 */}
-              <div className="space-y-3">
-                {plans[selectedPlanIndex]?.days?.map((day, idx) => (
-                  <div key={idx} className="mb-4">
-                    {/* 🔸 DAY 표시 */}
-                    <h4 className="font-bold text-md text-orange-600">{day?.day}</h4>
-
-                    {/* 🔹 해당 DAY의 activity 리스트를 순회 */}
-                    {day?.activities?.map((activity, actIdx) => (
-                      <div key={actIdx} className="flex items-start gap-4">
-                        <div className="w-20 text-sm text-gray-500">{activity?.time}</div>
-                        <div>
-                          <p className="font-medium">{activity?.title}</p>
-                          <p className="text-sm text-gray-600">{activity?.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 지도 및 저장 버튼을 포함한 컨테이너 */}
-          <div className="w-1/2 p-4 bg-white">
-            {/* 비교, 삭제, 저장 버튼 */}
-            <div className="flex gap-2 items-center w-full md:w-auto justify-end">
-              <button onClick={openModal} className={`flex flex-col items-center justify-center gap-1 w-24 h-15 py-2 text-sm rounded-md ${selectedComparisons.length >= 2 ? "bg-orange-500 text-white hover:bg-orange-600" : "bg-gray-400 text-gray-200 cursor-not-allowed"
+          {/* 🔹 버튼 컨테이너 (오른쪽) */}
+          <div className="flex gap-2">
+            <button
+              onClick={openModal}
+              className={`flex flex-col items-center justify-center gap-1 w-24 h-15 py-2 text-sm rounded-md ${selectedComparisons.length >= 2 ? "bg-orange-500 text-white hover:bg-orange-600" : "bg-gray-400 text-gray-200 cursor-not-allowed"
                 }`}
-                disabled={selectedComparisons.length < 2}
-              >
-                <FaBalanceScale className="text-lg" /> 비교하기
-              </button>
+              disabled={selectedComparisons.length < 2}
+            >
+              <FaBalanceScale className="text-lg" />
+              비교하기
+            </button>
 
-              {/* 삭제하기 */}
-              <button onClick={handleDeletePlan} className="flex flex-col items-center justify-center gap-1 w-24 h-15 py-2 text-sm rounded-md bg-red-500 text-white">
-                <FaTrashAlt className="text-lg" /> 삭제
-              </button>
+            <button
+              onClick={handleDeletePlan}
+              className="flex flex-col items-center justify-center gap-1 w-24 h-15 py-2 text-sm rounded-md bg-red-500 text-white"
+            >
+              <FaTrashAlt className="text-lg" />
+              삭제
+            </button>
 
-              {/* 저장하기 */}
-              <button onClick={() => handleSave(plans[selectedPlanIndex])} className="flex flex-col items-center justify-center gap-1 w-24 h-15 py-2 text-sm rounded-md bg-blue-500 text-white">
-                <FaSave className="text-lg" /> 저장하기
-              </button>
-            </div>
-            <h2 className="text-2xl font-bold mb-4">지도 보기</h2>
-            <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_KEY || ""}>
-              <GoogleMap mapContainerStyle={containerStyle} center={mapCenter} zoom={defaultCenter.zoom} />
-            </LoadScript>
+            <button
+              onClick={() => handleSave(plans[selectedPlanIndex])}
+              className="flex flex-col items-center justify-center gap-1 w-24 h-15 py-2 text-sm rounded-md bg-blue-500 text-white"
+            >
+              <FaSave className="text-lg" />
+              저장하기
+            </button>
           </div>
         </div>
 
-        {/* 비교 모달 */}
-        <Modal isOpen={isModalOpen} onRequestClose={closeModal} style={modalStyles}>
-          <h2 className="text-2xl font-bold mb-4">일정 비교</h2>
+        {/* 🔹 본문: 왼쪽 (일정) | 오른쪽 (지도) */}
+        <div className="flex flex-grow gap-6">
 
-          {/* 비교할 일정이 있는지 확인 */}
-          {selectedComparisons.length > 0 ? (
-            <div className="grid grid-cols-3 gap-4">
-              {selectedComparisons.map((id) => {
-                // ✅ 선택된 일정 ID를 기반으로 `plans`에서 해당 일정 찾기
-                const plan = plans.find((p) => p.id === id);
-
-                return plan ? (
-                  <div key={id} className="border p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold">{plan.name}</h3> {/* ✅ 일정명이 올바르게 표시되는지 확인 */}
-                    <ul>
-                      {Array.isArray(plan.days) && plan.days.length > 0 ? (
-                        plan.days.map((day, idx) => (
-                          <li key={idx} className="mb-2">
-                            <h4 className="text-md font-bold text-orange-600">{day.day}</h4>
-                            {Array.isArray(day.activities) && day.activities.length > 0 ? (
-                              day.activities.map((activity, actIdx) => (
-                                <p key={actIdx}>
-                                  {activity.time} - {activity.title}
-                                </p>
-                              ))
-                            ) : (
-                              <p className="text-gray-500">활동 정보 없음</p>
-                            )}
-                          </li>
-                        ))
-                      ) : (
-                        <p className="text-gray-500">세부 일정이 없습니다.</p>
-                      )}
-                    </ul>
+          {/* 🔹 왼쪽 일정 컨테이너 */}
+          <div className="w-1/2 flex flex-col h-full">
+            {/* 일정 목록 전체 컨테이너 (스크롤 추가) */}
+            <div className="flex-1 overflow-y-auto border-t pt-4 max-h-[500px]">
+              {plans?.length > 0 && selectedPlanIndex !== null && plans[selectedPlanIndex] && (
+                <div className="border-l-4 border-orange-500 pl-4">
+                  <h3 className="text-lg font-medium mb-2">{plans[selectedPlanIndex]?.name}</h3>
+                  <div className="space-y-3">
+                    {plans[selectedPlanIndex]?.days?.map((day, idx) => (
+                      <div key={idx} className="mb-4">
+                        <h4 className="font-bold text-md text-orange-600">{day?.day}</h4>
+                        {day?.activities?.map((activity, actIdx) => (
+                          <div key={actIdx} className="flex items-start gap-4">
+                            <div className="w-20 text-sm text-gray-500">{activity?.time}</div>
+                            <div>
+                              <p className="font-medium">{activity?.title}</p>
+                              <p className="text-sm text-gray-600">{activity?.desc}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <p key={id} className="text-gray-500">일정을 찾을 수 없습니다.</p>
-                );
-              })}
+                </div>
+              )}
             </div>
-          ) : (
-            <p className="text-gray-500">비교할 일정이 없습니다.</p>
-          )}
-
-          <div className="flex justify-end mt-4">
-            <button onClick={closeModal} className="mt-4 px-6 py-2 bg-orange-600 text-white rounded-lg">
-              확인
-            </button>
           </div>
-        </Modal>
+
+          {/* 🔹 오른쪽 지도 (고정) */}
+          <div className="w-1/2 sticky top-20 right-0">
+            <h2 className="text-2xl font-bold mb-4">지도 보기</h2>
+            <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_KEY || ""}>
+              <GoogleMap mapContainerStyle={{ width: "100%", height: "500px" }} center={mapCenter} zoom={defaultCenter.zoom} />
+            </LoadScript>
+          </div>
+        </div>
       </div>
+
+      {/* 비교 모달 */}
+      <Modal isOpen={isModalOpen} onRequestClose={closeModal} style={modalStyles}>
+        <h2 className="text-2xl font-bold mb-4">일정 비교</h2>
+
+        {/* 비교할 일정이 있는지 확인 */}
+        {selectedComparisons.length > 0 ? (
+          <div className="grid grid-cols-3 gap-4">
+            {selectedComparisons.map((id) => {
+              // ✅ 선택된 일정 ID를 기반으로 `plans`에서 해당 일정 찾기
+              const plan = plans.find((p) => p.id === id);
+
+              return plan ? (
+                <div key={id} className="border p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold">{plan.name}</h3> {/* ✅ 일정명이 올바르게 표시되는지 확인 */}
+                  <ul>
+                    {Array.isArray(plan.days) && plan.days.length > 0 ? (
+                      plan.days.map((day, idx) => (
+                        <li key={idx} className="mb-2">
+                          <h4 className="text-md font-bold text-orange-600">{day.day}</h4>
+                          {Array.isArray(day.activities) && day.activities.length > 0 ? (
+                            day.activities.map((activity, actIdx) => (
+                              <p key={actIdx}>
+                                {activity.time} - {activity.title}
+                              </p>
+                            ))
+                          ) : (
+                            <p className="text-gray-500">활동 정보 없음</p>
+                          )}
+                        </li>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">세부 일정이 없습니다.</p>
+                    )}
+                  </ul>
+                </div>
+              ) : (
+                <p key={id} className="text-gray-500">일정을 찾을 수 없습니다.</p>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-gray-500">비교할 일정이 없습니다.</p>
+        )}
+
+        <div className="flex justify-end mt-4">
+          <button onClick={closeModal} className="mt-4 px-6 py-2 bg-orange-600 text-white rounded-lg">
+            확인
+          </button>
+        </div>
+      </Modal>
     </main >
   );
 };
