@@ -7,9 +7,6 @@ const Header = ({ resetSearch }) => {
   // ✅ resetSearch props 추가
   const navigate = useNavigate(); // 페이지 이동을 위한 네비게이션 훅 사용
 
-
-  
-
   // ✅ 로그인 상태 및 사용자 아이디를 관리하는 state
   const [isLoggedIn, setIsLoggedIn] = useState(false); // 로그인 여부
   const [user_id, setUser_id] = useState(""); // 로그인한 사용자 ID
@@ -45,14 +42,7 @@ const Header = ({ resetSearch }) => {
         }
 
         //axiosInstance 사용 (Authorization 헤더 자동 추가됨)
-        const response = await axiosInstance.get("/api/check"); /* , { */
-
-        /* headers: {
-                    'Authorization': `Bearer ${tokenToUse}`,
-                    'Content-Type': 'application/json',
-                }, */
-        //withCredentials: true,
-        /* }); */
+        const response = await axiosInstance.get("/api/check"); 
 
         console.log("로그인 확인 응답:", response.data);
         console.log("tokenToUse :" +tokenToUse)

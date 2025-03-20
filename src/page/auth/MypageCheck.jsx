@@ -108,16 +108,6 @@ const MypageCheck = () => {
               </button>
             </div>
           </form>
-
-          {/* 🔥 추가: 마이페이지 이동 버튼 */}
-          <div className="mt-4">
-            <button
-              onClick={() => navigate("/mypage")}
-              className="w-full py-2 px-4 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600"
-            >
-              마이페이지로 이동
-            </button>
-          </div>
         </div>
       </main>
     </div>

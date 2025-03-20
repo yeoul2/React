@@ -33,14 +33,15 @@ const LoginPage = () => {
       );
 
       console.log("✅ 로그인 성공, 응답 데이터:", response.data); // 응답 확인
-      console.log("📌 check 값 확인:", response.data.check);  // 🔥 check 값이 실제로 있는지 확인
+
+      console.log("📌 check 값 확인:", response.data.check); // 🔥 check 값이 실제로 있는지 확인
       // 로그인 성공: JWT 토큰을 localStorage에 저장
       localStorage.setItem("accessToken", response.data.accessToken); //jwt 토큰 저장
       localStorage.setItem("user_id", response.data.user_id); // 사용자 ID 저장
-      localStorage.setItem("refreshToken", response.data.refreshToken); 
-      localStorage.setItem("role", response.data.role);  
-      localStorage.setItem("check", "Y");  
-      localStorage.setItem("user_email", response.data.user_email)
+      localStorage.setItem("refreshToken", response.data.refreshToken);
+      localStorage.setItem("role", response.data.role);
+      localStorage.setItem("check", "Y");
+      localStorage.setItem("user_email", response.data.user_email);
 
       // ✅ 새로고침해도 로그인 유지하도록 전역 상태 업데이트 (이 코드가 없으면 헤더에서 로그인 인식을 못 함)
       window.dispatchEvent(new Event("storage"));
@@ -52,20 +53,30 @@ const LoginPage = () => {
       console.log("서버응답 :", response.data);
     } catch (error) {
       console.error("로그인 오류:", error);
-      alert("아이디 또는 비밀번호가 올바르지 않습니다.");
+      if (error.response && error.response.status === 403) {
+        alert(
+          error.response.data.message ||
+            "⚠️ 임시 비밀번호로는 로그인할 수 없습니다. 비밀번호를 변경해주세요."
+        );
+
+        // 🚀 403일 경우에도 setTimeout으로 navigate 보장
+        setTimeout(() => {
+          navigate("/change-pw");
+        }, 100);
+      } else {
+        alert("아이디 또는 비밀번호가 올바르지 않습니다.");
+      }
     }
   };
 
   // 구글 로그인 API 호출 함수
   const handleGoogleLogin = () => {
-    googleLogin()
-
+    googleLogin();
   };
 
   // 네이버 로그인 API 호출 함수
   const handleNaverLogin = () => {
-    naverLogin()
-    
+    naverLogin();
   };
 
   // ✅ 카카오 로그인 API 호출 함수
@@ -102,8 +113,9 @@ const LoginPage = () => {
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                   <i
-                    className={`fas fa-user ${isIdFocused ? "text-orange-500" : "text-gray-400"
-                      }`}
+                    className={`fas fa-user ${
+                      isIdFocused ? "text-orange-500" : "text-gray-400"
+                    }`}
                   ></i>
                 </div>
                 <input
@@ -128,8 +140,9 @@ const LoginPage = () => {
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                   <i
-                    className={`fas fa-lock ${isPasswordFocused ? "text-orange-500" : "text-gray-400"
-                      }`}
+                    className={`fas fa-lock ${
+                      isPasswordFocused ? "text-orange-500" : "text-gray-400"
+                    }`}
                   ></i>
                 </div>
                 <input
