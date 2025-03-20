@@ -155,7 +155,7 @@ const TravelPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-
+      <div className="bg-white shadow sm:rounded-lg p-6">
       {/* 검색 & 정렬 & 글쓰기 버튼 */}
       <div className="flex flex-wrap items-center justify-between py-6 ">
 
@@ -309,6 +309,7 @@ const TravelPage = () => {
             맨뒤
           </button>
         </nav>
+      </div>
       </div>
     </div>
   );
