@@ -3,8 +3,10 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/themes/light.css";
 import "flatpickr/dist/l10n/ko.js";
+import { arrayMove } from "@dnd-kit/sortable";
 import useStyle from "../../components/hooks/useStyle";
 import { insertBoard, updateBoard, uploadImages } from "../../services/boardApi";
+import { Files } from "lucide-react";
 
 const useBoard = (isEditMode = false) => {
    const navigate = useNavigate();
@@ -49,12 +51,17 @@ const useBoard = (isEditMode = false) => {
          setSatisfaction(tripData?.tb_star || 0);
          setDepartureDate(tripData?.tb_departure_date || "");
          setReturnDate(tripData?.tb_return_date || "");
+         setDateRange([tripData?.tb_departure_date, tripData?.tb_return_date ]);
          const photoList = tripData && typeof tripData === "object" ? [
             tripData.tb_photo1 || null,
             tripData.tb_photo2 || null,
             tripData.tb_photo3 || null
          ].filter(Boolean) : [];
-         setPreviewUrls(photoList);
+         const dburls = photoList.map((url, index) => ({
+            id: index,
+            url: url
+         }));
+         setPreviewUrls(dburls);
          setPhotoUrls(photoList);
          setFiles(photoList);
          setActualSchedule(tripdetailData?.map((element, index) => ({
@@ -67,12 +74,6 @@ const useBoard = (isEditMode = false) => {
       }
    }, [isEditMode, location.state]);
 
-   // 📆dateRange가 변경된 경우(Flarpickr 날짜로 바뀜)
-   useEffect(() => {
-      setDepartureDate(formatDate(dateRange[0]))
-      setReturnDate(formatDate(dateRange[1]))
-   }, [dateRange]);
-
    // 📆Flatpickr 초기화 및 관리
    useEffect(() => {
       if (datePickerRef.current) {
@@ -81,7 +82,7 @@ const useBoard = (isEditMode = false) => {
          flatpickrInstance.current = flatpickr(datePickerRef.current, {
          locale: "ko",
          mode: "range",
-         dateFormat: "Y.m.d",
+         dateFormat: "Y-m-d",
          disableMobile: true,
          onChange: (selectedDates) => {
             setDateRange(selectedDates);
@@ -200,38 +201,62 @@ const useBoard = (isEditMode = false) => {
       }
    };
 
-   // 📷파일 업로드 핸들러
-   const handleFileUpload = async (event) => {
-      console.log("handleFileUpload 실행 완료");
-      const selectedFiles = Array.from(event.target.files)
-
-      // 현재 업로드된 파일 개수와 새로운 파일 개수 합산하여 3장을 초과하는지 확인
-      if (files.length + selectedFiles.length > 3) {
+   // 📷 파일 업로드 처리 (react-dropzone)
+   const handleDrop = async(acceptedFiles) => {
+      const newFiles = acceptedFiles.map((file, index) => ({
+         id: `${previewUrls.length + index}`,
+         url: URL.createObjectURL(file), // 미리보기 URL 생성
+         file
+      }));
+            // 현재 업로드된 파일 개수와 새로운 파일 개수 합산하여 3장을 초과하는지 확인
+   if (files.length + newFiles.length > 3) {
          alert("사진은 최대 3장만 넣을 수 있습니다.");
          return; // 🚫 추가하지 않고 함수 종료
       }
-
-      // 기존 파일 + 새로 추가한 파일을 합쳐서 상태 업데이트
-      const updatedFiles = [...files, ...selectedFiles];
-      setFiles(updatedFiles);
-
+      
       // 클라우디너리에 업로드 후 URL 저장
-      const uploadedUrls = await uploadImages(selectedFiles);
+      const uploadedUrls = await uploadImages(newFiles.map(item => item.file));
+      setFiles(prev => [...prev, ...newFiles.map(item => item.file)]);
+      setPreviewUrls(prev => [...prev, ...newFiles]);
+      setPhotoUrls(prev => [...prev, ...uploadedUrls]);
+   };
 
-      // 기존 미리보기 URL + 새로 추가된 URL을 합쳐서 상태 업데이트
-      const updatedPreviewUrls = [...previewUrls, ...uploadedUrls];
-      setPreviewUrls(updatedPreviewUrls);
-      setPhotoUrls(updatedPreviewUrls); // DB 저장용 URL 리스트
+   // 📷파일 드래그 삭제 (drop)
+   const handleDropToDelete = ({ active, over }) => {
+      if (over?.id === "trash-bin") {
+         console.log("🗑 삭제할 이미지 index:", active.id);
+         handleRemoveFile(active.id);
+      }
    };
    
    // 📷파일 삭제 핸들러
-   const handleRemoveFile = (index) => {
-      const newFiles = files.filter((_, i) => i !== index);
-      const newPreviewUrls = previewUrls.filter((_, i) => i !== index);
+   const handleRemoveFile = (id) => {
+      console.log(`✅ handleRemoveFile 실행 완료, 삭제할 id: ${id}`);
+      console.log(`📷 현재 파일 상태:`, files);
+      console.log(`🖼 현재 미리보기 상태:`, previewUrls);
+      console.log(`🔗 현재 사진 URL 상태:`, photoUrls);
 
-      setFiles(newFiles);
-      setPreviewUrls(newPreviewUrls);
-      setPhotoUrls(newPreviewUrls); // DB 저장용 URL 업데이트
+      const filteredFiles = files.filter((item, index)=> item.id !== id && index !== id);
+      console.log(filteredFiles);
+      const updatedFiles = filteredFiles.map((url, index) => ({
+         id: index,
+         url: url // ✅ 문자열을 객체의 url 속성으로 변환
+      }));
+      console.log(updatedFiles);
+      setFiles(updatedFiles);
+
+      const filteredPreviewUrls = previewUrls.filter(item => item.id !== id);
+      console.log(filteredPreviewUrls);
+      const updatedPreviewUrls = filteredPreviewUrls.map((item, index) => ({
+         ...item,
+         id: index
+      }))
+      console.log(updatedPreviewUrls);
+      setPreviewUrls(updatedPreviewUrls);
+   
+      const updatedPhotoUrls = photoUrls.filter((item, index) => index !== Number(id));
+      console.log(updatedPhotoUrls);
+      setPhotoUrls(updatedPhotoUrls);
    };
    
    // 📷이미지 업로드 핸들러
@@ -240,10 +265,34 @@ const useBoard = (isEditMode = false) => {
       setFiles(uploadedFiles);
       const urls = uploadedFiles.map(file => URL.createObjectURL(file));
       setPreviewUrls(urls);
+      setPhotoUrls(urls);
    };
-   
+
+   // 📷 드래그 완료 시 이미지 순서 변경
+   const handleSortEnd = (activeId, overId) => {
+      if (activeId !== overId) {
+         const oldIndex = previewUrls.findIndex(item => item.id === activeId);
+         const newIndex = previewUrls.findIndex(item => item.id === overId);
+         //setPreviewUrls(arrayMove(previewUrls, oldIndex, newIndex));
+                 // 정렬된 리스트를 새로운 ID와 함께 업데이트
+         const updatedPreviewUrls = arrayMove(previewUrls, oldIndex, newIndex).map((item, index) => ({
+            ...item,
+            id: `image-${index}` // 🎯 정렬 후 새로운 ID 부여
+      }));
+
+      setPreviewUrls(updatedPreviewUrls);
+      setFiles(arrayMove(files, oldIndex, newIndex));
+      setPhotoUrls(arrayMove(photoUrls, oldIndex, newIndex));
+      }
+   };
    const handleSubmit = async () => {
+      console.log("handleSubmit 실행 완료");
+      if(!title || !country || !departureDate || !returnDate || !satisfaction ) {
+         alert("필수 항목을 모두 입력해주세요.");
+         return;
+      }
       try {
+         console.log(photoUrls)
          const coursedata = actualSchedule.map(element => ({
             "tbd_day": element.day,
             "tbd_time": element.time,
@@ -259,8 +308,8 @@ const useBoard = (isEditMode = false) => {
                "tb_title": title,
                "tb_country": country,
                "tb_city": city,
-               "tb_departure_date": formatDate(dateRange[0]),
-               "tb_return_date": formatDate(dateRange[1]),
+               "tb_departure_date": (departureDate == dateRange[0] ? departureDate: formatDate(dateRange[0])),
+               "tb_return_date": (returnDate == dateRange[1] ? returnDate: formatDate(dateRange[1])),
                "tb_star": satisfaction,
                "tb_review": review,
                "tb_public": visibility,
@@ -327,7 +376,6 @@ const useBoard = (isEditMode = false) => {
       options,
       aiSchedule,
       setAiSchedule,
-      handleFileUpload,
       addPlace,
       addSchedule,
       removeSchedule,
@@ -336,7 +384,10 @@ const useBoard = (isEditMode = false) => {
       setDepartureDate,
       returnDate,
       setReturnDate,
-      formatDate
+      formatDate,
+      handleSortEnd,
+      handleDrop,
+      handleDropToDelete
    };
 };
 

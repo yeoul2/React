@@ -206,10 +206,5 @@ export const uploadImages = async (files) => {
       }
    }
 
-   // 3개 미만의 이미지 업로드 시 빈 값 채우기
-   while (uploadedUrls.length < 3) {
-      uploadedUrls.push(null);
-   }
-
    return uploadedUrls;
 };
