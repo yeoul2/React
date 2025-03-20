@@ -53,6 +53,30 @@ const useTravelSearch = () => {
     }
   };
 
+  useEffect(() => {
+    const fetchRecentSearches = async () => {
+      try {
+        const searches = await getRecentSearches();
+        console.log("🔍 가져온 recentSearches 데이터:", searches); // ✅ 디버깅용 로그
+
+        if (!Array.isArray(searches)) {
+          console.error(
+            "🚨 recentSearches 데이터가 배열이 아닙니다!",
+            searches
+          );
+          setRecentSearches([]); // ✅ 배열이 아닐 경우 빈 배열 설정
+        } else {
+          setRecentSearches(searches);
+        }
+      } catch (error) {
+        console.error("❌ 최근 검색어 불러오기 실패:", error);
+        setRecentSearches([]); // ✅ 오류 발생 시 안전한 기본값 설정
+      }
+    };
+
+    fetchRecentSearches();
+  }, []);
+
   // 📌 로그인 상태 감지 및 최근 검색어 불러오기 (DB에서)
   useEffect(() => {
     const checkLoginStatus = async () => {

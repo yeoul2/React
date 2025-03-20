@@ -5,20 +5,24 @@ export const getRecentSearches = async (accessToken) => {
   try {
     if (!accessToken) {
       console.error("❌ accessToken이 없습니다. 로그인 여부를 확인하세요.");
-      return;
+      return []; // ✅ 빈 배열 반환
     }
     const response = await axios.get(
       `${process.env.REACT_APP_SPRING_IP}api/search/recent_list`,
       {
-        headers: { Authorization: `Bearer ${accessToken}` ,
-        "Content-Type": "application/json",
-      },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
       }
     );
 
-    return response.data;
+    console.log("✅ API 응답 - recentSearches:", response.data); // 🔹 디버깅 로그 추가
+
+    return Array.isArray(response.data) ? response.data : []; // ✅ 응답이 배열이 아닐 경우 대비
   } catch (error) {
     console.error("❌ 최근 검색어 불러오기 실패: ", error);
+    return []; // ✅ 오류 발생 시 안전한 기본값 반환
   }
 };
 
