@@ -1,11 +1,51 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import flatpickr from "flatpickr";
+import React, { useEffect } from "react";
 import "flatpickr/dist/themes/light.css";
 import "flatpickr/dist/l10n/ko.js";
 import Select from 'react-select';
-import useStyle from "../../components/hooks/useStyle";
+import { DndContext, closestCorners, pointerWithin, useDroppable } from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useDropzone } from "react-dropzone";
 import useBoard from "../../components/hooks/useBoard";
+
+// 개별 이미지 드래그 가능하도록 설정
+const DraggableImage = ({ item }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} data-id={item.id}  // ID를 HTML 속성으로 추가 
+      {...attributes} {...listeners} className="relative cursor-move">
+      <img src={item.url} alt="업로드된 이미지" className="w-full h-32 object-cover rounded-lg shadow-md" />
+    </div>
+  );
+};
+
+// 🗑 휴지통 컴포넌트
+const TrashBin = () => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: "trash-bin",
+  });
+
+  useEffect(() => {
+    console.log("🗑 isOver 값:", isOver); // 콘솔로 값 확인
+  }, [isOver]);
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`w-full h-20 flex justify-center items-center gap-2 border-2 rounded-lg mt-4 
+  ${isOver ? "bg-rose-500 text-white border-red-700" : "bg-gray-100 text-gray-600 border-gray-300"}`}
+    >
+      <i className="fa-solid fa-trash text-2xl"></i>
+      <span className="fa-solid text-lg font-medium">휴지통</span>
+    </div>
+  );
+};
 
 const TravelReviewForm = () => {
   const {
@@ -52,17 +92,52 @@ const TravelReviewForm = () => {
     setDepartureDate,
     returnDate,
     setReturnDate,
-    maskUserId
-  } = useBoard(false); // false = 작성 모드
+    maskUserId,
+    handleSortEnd,
+    handleDrop,
+    handleDropToDelete
+  } = useBoard(false); // false = 작성 모드(수정모드X)
+
+
+  const { getRootProps, getInputProps } = useDropzone({
+    accept: "image/*",
+    multiple: true,
+    onDrop: handleDrop
+  });
+
+  useEffect(() => {
+    if (photoUrls.length > 0) {
+      const updatedPreviewUrls = photoUrls.map((url, index) => ({
+        id: index,
+        url: url,
+      }));
+      setPreviewUrls(updatedPreviewUrls);
+    }
+  }, [photoUrls]);
+
+  useEffect(() => {
+    console.log("🖼 업데이트된 files 상태:", files);
+    console.log("🖼 업데이트된 previewUrls 상태:", previewUrls);
+    console.log("🖼 업데이트된 photoUrls 상태:", photoUrls);
+  }, [files, previewUrls, photoUrls]);
+
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
       <div className="bg-white shadow sm:rounded-lg p-6">
-        <h1 className="text-lg font-medium leading-6 text-gray-900 mb-4 select-none">여행 후기 작성</h1>
+        <h1 className="text-lg font-medium leading-6 text-gray-900 select-none">여행 후기 작성</h1>
+        <div className="flex items-center mb-3">
+          <span className="text-red-500 text-[10px] ml-2 fa-solid fa-star-of-life"></span>
+          <label className="text-[11px] text-red-500 ml-1" >표기 항목은 반드시 작성해주세요.</label>
+        </div>
 
         <div className="space-y-6 select-none">
           <div>
-            <label className="block text-sm font-medium text-gray-700 select-none ">제목</label>
+            <div className="flex items-center ">
+              <label className="block text-sm font-medium text-gray-700 select-none ">제목</label>
+              <label className="block text-[10px] font-medium text-gray-700 select-none ">(20자 이내)</label>
+              <span className="text-red-500 text-[10px] ml-2 fa-solid fa-star-of-life"></span>
+            </div>
             <input
               type="text"
               className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
@@ -74,7 +149,10 @@ const TravelReviewForm = () => {
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 select-none">여행지</label>
+              <div className="flex items-center">
+                <label className="block text-sm font-medium text-gray-700 select-none">여행지</label>
+                <span className="text-red-500 text-[10px] ml-2 fa-solid fa-star-of-life"></span>
+              </div>
               <div className="flex grid-cols-1 sm:grid-cols-2 select-none">
                 <input
                   type="text"
@@ -93,7 +171,10 @@ const TravelReviewForm = () => {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 select-none">여행 기간</label>
+              <div className="flex items-center">
+                <label className="block text-sm font-medium text-gray-700 select-none">여행 기간</label>
+                <span className="text-red-500 text-[10px] ml-2 fa-solid fa-star-of-life"></span>
+              </div>
               <input
                 ref={datePickerRef}
                 className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none cursor-pointer"
@@ -212,7 +293,10 @@ const TravelReviewForm = () => {
 
         {/* 만족도 선택 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 select-none">만족도</label>
+          <div className="flex items-center">
+            <label className="block text-sm font-medium text-gray-700 select-none">만족도</label>
+            <span className="text-red-500 text-[10px] ml-2 fa-solid fa-star-of-life"></span>
+          </div>
           <div className="mt-2 flex items-center space-x-2">
             {[1, 2, 3, 4, 5].map((num) => (
               <span
@@ -238,38 +322,43 @@ const TravelReviewForm = () => {
           ></textarea>
         </div>
 
-        {/* 파일 업로드 */}
+        {/* 📂 파일 업로드 영역 */}
         <div className="mt-4 select-none">
           <label className="block text-sm font-medium text-gray-700 select-none">사진 첨부</label>
-          <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg relative">
-            <input
-              type="file"
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-              multiple
-              accept="image/*"
-              onChange={handleFileUpload}
-            />
+          <div {...getRootProps()} className="border-dashed border-2 border-gray-300 rounded-lg p-4 text-center cursor-pointer">
+            <input {...getInputProps()} />
 
-            {/* 업로드된 이미지 미리보기 */}
             {previewUrls.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2 w-full">
-                {previewUrls.map((url, index) => (
-                  <div key={index} className="relative">
-                    <img src={url} alt={`업로드된 이미지 ${index + 1}`} className="w-full h-32 object-cover rounded-lg shadow-md" />
-                    <button
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
-                      onClick={() => handleRemoveFile(index)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <DndContext
+                collisionDetection={pointerWithin}
+                onDragEnd={({ active, over }) => {
+                  if (over?.id === "trash-bin") {
+                    console.log("🗑 휴지통으로 드래그됨", active.id);
+                    handleDropToDelete({ active, over });
+                  } else if (over?.id) {
+                    handleSortEnd(active.id, over.id);
+                  }
+                }}
+              >
+                <div className="flex flex-col items-center">
+                  {/* 정렬 가능한 이미지 리스트 */}
+                  <SortableContext items={previewUrls.map((item) => item.id)} strategy={rectSortingStrategy}>
+                    <div className="grid grid-cols-3 gap-2 w-full h-32">
+                      {previewUrls.map((item) => (
+                        <DraggableImage key={item.id} item={item} />
+                      ))}
+                    </div>
+                  </SortableContext>
+
+                  {/* 🗑 휴지통을 업로드 영역 아래 배치 */}
+                  <TrashBin />
+                </div>
+              </DndContext>
             ) : (
-              <div className="space-y-1 text-center">
+              <div className="space-y-2">
                 <i className="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3"></i>
-                <p className="text-sm text-gray-600">파일을 업로드하려면 클릭하세요</p>
-                <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                <p className="text-sm text-gray-600">사진을 업로드하려면 클릭하세요</p>
+                <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
               </div>
             )}
           </div>
@@ -298,14 +387,14 @@ const TravelReviewForm = () => {
           </button>
           <button
             type="submit"
-            className="bg-custom text-white rounded-lg px-4 py-2 text-sm font-medium"
+            className="bg-custom bg-sky-500 text-white rounded-lg px-4 py-2 text-sm font-medium"
             onClick={handleSubmit}
           >
             등록하기
           </button>
         </div>
       </div>
-    </main>
+    </main >
   );
 };
 
