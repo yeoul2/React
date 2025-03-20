@@ -157,7 +157,7 @@ const TravelPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
 
       {/* 검색 & 정렬 & 글쓰기 버튼 */}
-      <div className="flex flex-wrap items-center justify-between py-6">
+      <div className="flex flex-wrap items-center justify-between py-6 ">
 
         {/* 검색 필터 (왼쪽 배치) */}
         <div className="flex items-center space-x-2 p-2 rounded-md w-full md:w-auto">
