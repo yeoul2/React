@@ -17,7 +17,6 @@ const TripReview = () => {
 
   // 삭제 모달창 관리
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
   // 댓글 및 대댓글 상태 관리
   const [comments, setComments] = useState([]); // DB에서 불러올 댓글 정보 담기
@@ -71,29 +70,20 @@ const TripReview = () => {
   }
 
   // 삭제 버튼 클릭 시 모달 열기
-  const handleOpenDeleteModal = (tb_no) => {
-    setDeleteTarget(tb_no);
+  const handleOpenDeleteModal = () => {
     setShowDeleteModal(true);
   };
 
   // 게시글 삭제 메소드
   const handleDeleteBoard = async (tb_no) => {
     try {
-      // 삭제 확인 메시지 띄우기
-      const isConfirmed = window.confirm("게시글을 삭제하시겠습니까?");
-
-      if (!isConfirmed) {
-        return; // 사용자가 "아니오"를 누르면 함수 종료
-      }
-
       const response = await deleteBoard(tb_no)
       console.log("게시글 삭제 결과: " + response)
 
       // 게시글 삭제 후, 페이지 이동
       if (response === 1) {
-        alert("게시글이 삭제되었습니다.")
         navigate("/board")
-      }
+      } 
     } catch (error) {
       console.error("게시글 삭제 실패: " + error)
     }
@@ -252,7 +242,7 @@ const TripReview = () => {
                       {/* 삭제 버튼 */}
                       <button
                         className="text-sm text-gray-500 px-3 py-1 rounded-md hover:bg-red-100"
-                        onClick={() => handleOpenDeleteModal(tb_no)}
+                        onClick={() => handleOpenDeleteModal()}
                       >
                         삭제
                       </button>
@@ -271,7 +261,7 @@ const TripReview = () => {
                               </button>
                               <button
                                 className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                                onClick={handleDeleteBoard}
+                                onClick={()=>handleDeleteBoard(tb_no)}
                               >
                                 삭제
                               </button>
