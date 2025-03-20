@@ -1,146 +1,181 @@
-import React, { useState, useEffect } from "react";
-import api from "../../services/axiosInstance"; // 백엔드 API 연결을 위한 axios 설정
-import { getCourseList } from "../../services/courseLogic";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import Select from 'react-select';
+import useStyle from "../../components/hooks/useStyle";
 
-const CourseBoard = () => {
-const [courses, setCourses] = useState([]); // 게시글 목록
-const [filter, setFilter] = useState({
-   country: "전체",
-   duration: "전체",
-   search: "",
-});
+export default function CourseBoard() {
+   const {maskUserId,customStyles} = useStyle();
+   const [courses, setCourses] = useState([]);
+   const [searchFilter, setSearchFilter] = useState("코스이름"); // 기본 필터: 코스이름
+   const [searchQuery, setSearchQuery] = useState(""); // 검색어 입력값
+   const [searchTerm, setSearchTerm] = useState(""); // 실제 검색 실행 값
+   const [sortOrder, setSortOrder] = useState("최신순"); // 정렬 기준
+   const [page, setPage] = useState(1);
+   const [totalPages, setTotalPages] = useState(1); // 🔹 총 페이지 수 추가
+   const pageSize = 6;
+   const sortOptions = [
+      { value: "최신순", label: "최신순" },
+      { value: "인기순", label: "인기순" }
+   ];
+   
+   const themes = [
+      { value: "도시 관광", label: "도시 관광", icon: "🏙️" },
+      { value: "문화지 관광", label: "문화지 관광", icon: "🏛️" },
+      { value: "랜드마크 투어", label: "랜드마크 투어", icon: "🗺️" },
+      { value: "체험 중심 투어", label: "체험 중심 투어", icon: "🤝" },
+      { value: "맛집 투어", label: "맛집 투어", icon: "🍽️" },
+      { value: "쇼핑 투어", label: "쇼핑 투어", icon: "🛍️" },
+      { value: "액티비티", label: "액티비티", icon: "🏃‍♂️" },
+      { value: "효도 관광", label: "효도 관광", icon: "👴" },
+      { value: "힐링", label: "힐링", icon: "🌿" },
+      { value: "호캉스", label: "호캉스", icon: "🏨" },
+      { value: "휴양", label: "휴양", icon: "🏖️" },
+      { value: "반려동물과 함께", label: "반려동물과 함께", icon: "🐾" },
+      { value: "명소 투어", label: "명소 투어", icon: "🔭" },
+      { value: "축제 문화 투어", label: "축제 문화 투어", icon: "🎵" }
+   ];
+   
+   useEffect(() => {
+      axios.get(`/api/course/list`, {
+         params: {
+            order: sortOrder,
+            search: searchFilter,
+            keyword: searchTerm,
+            page: page,
+            pageSize: pageSize
+         }
+      })
+      .then(response => {
+         console.log("📌 API 응답:", response.data);
+         if (response.data) {
+            setCourses(response.data.courses || []);
+            setTotalPages(response.data.totalPages || 1);
+         }
+      })
+      .catch(error => {
+         console.error("❌ 데이터 불러오기 실패:", error);
+         setCourses([]);
+         setTotalPages(1);
+      });
+   }, [sortOrder, searchTerm, page]);
+   
+   const handleThemeClick = (theme) => {
+      setSearchTerm(theme);  // 검색어를 테마로 설정
+   };
+   
 
-useEffect(() => {
-   fetchCourses();
-}, []);
-
-//DB에서 코스정보 가져오기
-const fetchCourses = async () => {
-   try {
-   const courseData = await getCourseList(); // 백엔드 API 호출
-   console.log(courseData);
-   setCourses(courseData)
-   } catch (error) {
-   console.error("데이터 불러오기 오류:", error);
-   }
-};
-
-const handleFilterChange = (e) => {
-   setFilter({ ...filter, [e.target.name]: e.target.value });
-};
-
-const filteredCourses = courses.filter((course) => {
    return (
-   (filter.country === "전체" || course.country === filter.country) &&
-   (filter.duration === "전체" || course.duration === filter.duration) &&
-   (filter.search === "" || course.title.includes(filter.search))
-   );
-});
-
-return (
-   <div className="min-h-screen bg-gray-50 font-sans">
-   {/* 네비게이션 바 */}
-   <nav className="bg-white shadow">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-         <div className="flex justify-between h-16">
-         <div className="flex-shrink-0 flex items-center">
-            <img className="h-8 w-auto" src="/logo.png" alt="Logo" />
-         </div>
-         <div className="flex items-center">
-            <button className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm font-medium hover:bg-indigo-700">
-               로그인
-            </button>
-         </div>
-         </div>
-      </div>
-   </nav>
-
-   {/* 메인 컨텐츠 */}
-   <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8 flex justify-between items-center">
-         <h1 className="text-3xl font-bold text-gray-900">여행 코스 공유 게시판</h1>
-         <button className="rounded-md bg-indigo-600 text-white px-6 py-2.5 font-medium hover:bg-indigo-700">
-         <i className="fas fa-pen mr-2"></i>글쓰기
-         </button>
-      </div>
-
-      {/* 필터 박스 */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-         <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">나라</label>
-            <select name="country" onChange={handleFilterChange} className="rounded-md w-full border-gray-300 focus:ring-indigo-500">
-               <option>전체</option>
-               <option>일본</option>
-               <option>베트남</option>
-               <option>태국</option>
-            </select>
-         </div>
-
-         <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">여행 기간</label>
-            <select name="duration" onChange={handleFilterChange} className="rounded-md w-full border-gray-300 focus:ring-indigo-500">
-               <option>전체</option>
-               <option>당일</option>
-               <option>1박 2일</option>
-               <option>2박 3일</option>
-               <option>3박 이상</option>
-            </select>
-         </div>
-
-         <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">검색</label>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+         {/* 검색 필터 */}
+         <div className="flex gap-4 mb-6 justify-between">
+            <Select
+               value={{ value: searchFilter, label: searchFilter }}
+               styles={{
+                  ...customStyles,
+                  control: (provided, state) => ({
+                     ...customStyles.control?.(provided, state),
+                     minWidth: "130px",
+                     height: "42px",
+                  })
+                  }}
+               onChange={(e) => setSearchFilter(e.value)}
+               options={[
+                  { value: "코스이름", label: "코스이름" },
+                  { value: "나라", label: "나라" }
+               ]}
+               isSearchable={false}
+            />
             <input
                type="text"
-               name="search"
-               onChange={handleFilterChange}
-               className="rounded-md w-full border-gray-300 focus:ring-indigo-500 pl-3"
-               placeholder="검색어를 입력하세요"
+               className="h-[42px] border-[1px] border-orange-300 px-4 py-2 rounded-md focus:border-orange-500 focus:ring-orange-500"
+               placeholder="검색어 입력"
+               value={searchQuery}
+
+               onChange={(e) => setSearchQuery(e.target.value)}
+               onKeyDown={(e) => e.key === "Enter" && setSearchTerm(searchQuery)
+                  
+               }
+            />
+            <button className="bg-orange-500 text-white px-4 py-2 rounded-md"
+               onClick={() => setSearchTerm(searchQuery)}>
+               검색
+            </button>
+            <Select
+               className="ml-auto"
+               value={sortOptions.find((option) => option.value === sortOrder)}
+               onChange={(selectedOption) => setSortOrder(selectedOption.value)}
+               styles={{
+                  ...customStyles,
+                  control: (provided, state) => ({
+                     ...customStyles.control?.(provided, state),
+                     minWidth: "130px",
+                     height: "42px",
+                  })
+                  }}
+               options={sortOptions}
+               isSearchable={false}
             />
          </div>
+
+{/* 🔹 테마 버튼 목록 */}
+<div className="flex flex-wrap justify-center gap-3 mb-4">
+   {themes.map((theme) => (
+      <button
+         key={theme.value}
+         className={`flex flex-col items-center justify-center  border-2 rounded-lg shadow-md w-28 h-10 transition-colors duration-200
+         border-gray-200 hover:bg-orange-500 hover:text-white`}
+         onClick={() => handleThemeClick(theme.value)}
+      >
+         {/*<span className="text-xs">{theme.icon}</span>  */}
+         <span className="text-xs font-semibold text-center mt-1 whitespace-nowrap">{theme.label}</span> 
+         {/* ✅ `text-xs` → 텍스트 크기 줄여 가로 정렬 유지 */}
+         {/* ✅ `whitespace-nowrap` → 자동 줄바꿈 방지 */}
+      </button>
+   ))}
+</div>
+
+
+         {/* 코스 목록 */}
+         <div className="grid grid-cols-1 gap-6 mb-8">
+            {courses.map(course => (
+               <div key={course.cs_no} className="bg-white shadow p-4">
+                  <h2 className="text-lg font-bold">{course.cs_name}</h2>
+                  <p className="text-sm text-gray-600">{course.cs_country}</p>
+               </div>
+            ))}
+         </div>
+
+         {/* 페이지네이션 */}
+         <div className="flex justify-center items-center space-x-2 mt-4">
+            {/* 이전 버튼 */}
+            <button 
+               className="border px-4 py-2 disabled:opacity-50" 
+               onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+               disabled={page === 1}
+            >
+               이전
+            </button>
+
+            {/* 동적으로 페이지 번호 생성 */}
+            {[...Array(totalPages)].map((_, index) => (
+               <button 
+                  key={index} 
+                  className={`px-3 py-2 border ${page === index + 1 ? "bg-gray-900 text-white" : ""}`} 
+                  onClick={() => setPage(index + 1)}
+               >
+                  {index + 1}
+               </button>
+            ))}
+
+            {/* 다음 버튼 */}
+            <button 
+               className="border px-4 py-2 disabled:opacity-50" 
+               onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
+               disabled={page === totalPages}
+            >
+               다음
+            </button>
          </div>
       </div>
-
-      {/* 게시글 목록 */}
-      <div className="grid grid-cols-1 gap-6 mb-8">
-         {filteredCourses.map((course) => (
-         <article key={course.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="md:flex">
-               <div className="md:flex-shrink-0">
-               <img className="h-48 w-full md:w-48 object-cover" src={course.image} alt={course.title} />
-               </div>
-               <div className="p-6">
-               <div className="flex items-center mb-2">
-                  <span className="bg-indigo-100 text-indigo-700 text-xs font-medium px-2.5 py-0.5 rounded-full">추천</span>
-                  <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full ml-2">{course.country}</span>
-                  <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full ml-2">{course.duration}</span>
-               </div>
-               <h2 className="text-xl font-bold text-gray-900 mb-2">{course.title}</h2>
-               <p className="text-gray-600 mb-4">{course.description}</p>
-               <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{course.author}</span>
-                  <div className="flex items-center">
-                     <i className="fas fa-heart text-red-400 mr-1"></i>
-                     <span className="text-sm text-gray-600">{course.likes}</span>
-                  </div>
-               </div>
-               </div>
-            </div>
-         </article>
-         ))}
-      </div>
-   </main>
-
-   {/* 푸터 */}
-   <footer className="bg-white mt-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-         <div className="text-center text-gray-500 text-sm">
-         © 2024 AI 여행 추천 서비스. All rights reserved.
-         </div>
-      </div>
-   </footer>
-   </div>
-);
-};
-
-export default CourseBoard;
+   );
+}
