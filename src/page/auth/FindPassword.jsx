@@ -39,19 +39,6 @@ const FindPassword = () => {
       if (data.success) {
         setMessage(data.message || "임시 비밀번호가 이메일로 전송되었습니다.");
 
-        // ✅ `temporaryPassword`가 백엔드에서 반환되는지 확인
-        console.log("✅ 백엔드에서 받은 temporaryPassword:", data.temporaryPassword);
-
-        if (!data.temporaryPassword) {
-          console.error("❌ 서버에서 temporaryPassword를 반환하지 않음!");
-          return;
-      }
-
-        // ✅ user_id를 localStorage에 저장
-        console.log("✅ 저장된 user_id:", user_id);
-        localStorage.setItem("user_id", user_id);
-        localStorage.setItem("temporaryPassword", data.temporaryPassword); // ✅ 저장
-
         // ✅ 성공 시 /change-pw 페이지로 이동
       setTimeout(() => {
         navigate("/change-pw");
