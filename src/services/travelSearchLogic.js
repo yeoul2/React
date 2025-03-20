@@ -42,7 +42,9 @@ export const saveSearch = async (searchTerm, searchType, accessToken) => {
       null,
       {
         params: { searchTerm, searchType },
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${accessToken}`,
+                    "Content-Type" : "application/json" 
+      },
       }
     );
 
@@ -50,7 +52,9 @@ export const saveSearch = async (searchTerm, searchType, accessToken) => {
     const response = await axios.get(
       `${process.env.REACT_APP_SPRING_IP}api/search/recent_list`,
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${accessToken}`,
+                    "Content-Type" : "application/json"            
+      },
       }
     );
     return response.data;
