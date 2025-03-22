@@ -55,22 +55,20 @@ const useTravelSearch = () => {
 
   useEffect(() => {
     const fetchRecentSearches = async () => {
-      try {
-        const searches = await getRecentSearches();
-        console.log("🔍 가져온 recentSearches 데이터:", searches); // ✅ 디버깅용 로그
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        console.warn("❌ accessToken이 없습니다. 로그인 여부를 확인하세요.");
+        return; // 🚨 accessToken이 없으면 API 요청하지 않음
+      }
 
-        if (!Array.isArray(searches)) {
-          console.error(
-            "🚨 recentSearches 데이터가 배열이 아닙니다!",
-            searches
-          );
-          setRecentSearches([]); // ✅ 배열이 아닐 경우 빈 배열 설정
-        } else {
-          setRecentSearches(searches);
-        }
+      try {
+        const searches = await getRecentSearches(accessToken);
+        console.log("🔍 가져온 recentSearches 데이터:", searches);
+
+        setRecentSearches(Array.isArray(searches) ? searches : []);
       } catch (error) {
         console.error("❌ 최근 검색어 불러오기 실패:", error);
-        setRecentSearches([]); // ✅ 오류 발생 시 안전한 기본값 설정
+        setRecentSearches([]); // 🚨 오류 발생 시 안전한 기본값 설정
       }
     };
 
@@ -163,15 +161,22 @@ const useTravelSearch = () => {
 
   // 📌 검색어 입력 시 자동완성 처리
   const handleCountryChange = (query) => {
-    if (!query?.trim()) return; // ✅ query가 유효한 문자열인지 확인
+    if (typeof query !== "string") return; // ✅ 문자열이 아닐 경우 무시
 
-    setSearchTerm(query); // ✅ 입력 즉시 반영
-    debounceFetchPlaces(query); // ✅ API 요청 실행 (Debounce 적용)
+    setSearchTerm(query); // ✅ 입력값을 즉시 반영
+
+    if (query.trim().length === 0) {
+      debounceFetchPlaces.cancel?.(); // ✅ lodash debounce 사용 시 안전하게 실행
+      return; // ✅ 검색어가 비워지면 API 호출 안 함
+    }
+
+    debounceFetchPlaces(query); // ✅ 검색어가 있을 때만 API 요청 실행
   };
 
   // 📌 Google Places API 연동 (Debounce 적용)
   const debounceFetchPlaces = useCallback(
     debounce(async (query) => {
+      if (!query.trim()) return; // ✅ 빈 문자열이면 API 호출 안 함
       setShowResults(true);
 
       try {

@@ -71,7 +71,7 @@ const PlannerPage = () => {
     showResults,
     selectedCity,
     recentSearches = [],
-    popularDestinations,
+    popularDestinations = [],
     suggestedCities,
     searchResultsRef,
     setShowResults,
@@ -482,14 +482,26 @@ const PlannerPage = () => {
                         <span
                           key={index}
                           className="inline-flex items-center px-3 py-1 rounded-full text-sm text-white bg-orange-300 cursor-pointer"
-                          onClick={() => handleCitySelect(search?.search_term ?? "", "")}
+                          onClick={() => {
+                            console.log("handleCitySelect 호출됨, search 값:", search);
+                            handleCitySelect(
+                              search && typeof search === "object" && "search_term" in search
+                                ? search.search_term
+                                : search,
+                              ""
+                            );
+                          }}
                         >
-                          {typeof search?.search_term === "string" ? search.search_term : "알 수 없음"}
+                          {search && typeof search === "object" && "search_term" in search
+                            ? search.search_term
+                            : search || "알 수 없음"}
                           <FaTimes
                             className="ml-2 text-gray-500 hover:text-white cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleRemoveRecentSearch(search?.search_term || "");
+                              handleRemoveRecentSearch(search && typeof search === "object" && "search_term" in search
+                                ? search.search_term
+                                : search);
                             }}
                           />
                         </span>
@@ -524,7 +536,7 @@ const PlannerPage = () => {
                     {/* 📌 인기 여행지 */}
                     <h3 className="text-sm font-medium text-gray-500 mt-4 mb-3">인기 여행지</h3>
                     <div className="flex flex-wrap gap-4">
-                      {popularDestinations.map((destination, index) => (
+                      {Array.isArray(popularDestinations) && popularDestinations.map((destination, index) => (
                         <div
                           key={index}
                           className="px-4 py-2 text-center font-medium text-gray-900 hover:text-white hover:bg-orange-300 rounded-lg cursor-pointer"
@@ -721,17 +733,26 @@ const PlannerPage = () => {
 
           {/* 🔹 왼쪽 일정 컨테이너 */}
           <div className="w-1/2 flex flex-col h-full">
-            {/* 일정 목록 전체 컨테이너 (스크롤 추가) */}
-            <div className="flex-1 overflow-y-auto border-t pt-4 max-h-[500px]">
+            {/* 일정 목록 전체 컨테이너 (스크롤 유지) */}
+            <div className="flex-1 overflow-y-auto border-t pt-4 max-h-[600px] pr-2">
               {plans?.length > 0 && selectedPlanIndex !== null && plans[selectedPlanIndex] && (
-                <div className="border-l-4 border-orange-500 pl-4">
-                  <h3 className="text-lg font-medium mb-2">{plans[selectedPlanIndex]?.name}</h3>
-                  <div className="space-y-3">
+                <>
+                  {/* 일정 제목 */}
+                  <h3 className="text-lg font-medium mb-4">{plans[selectedPlanIndex]?.name}</h3>
+
+                  {/* DAY별 일정 출력 */}
+                  <div className="space-y-6">
                     {plans[selectedPlanIndex]?.days?.map((day, idx) => (
-                      <div key={idx} className="mb-4">
-                        <h4 className="font-bold text-md text-orange-600">{day?.day}</h4>
+                      <div
+                        key={idx}
+                        className="pl-4 border-l-4 border-orange-500 mb-8 pb-6"
+                      >
+                        {/* DAY 제목 */}
+                        <h4 className="font-bold text-lg text-orange-600 mb-3">{day?.day}</h4>
+
+                        {/* 일정 내용 */}
                         {day?.activities?.map((activity, actIdx) => (
-                          <div key={actIdx} className="flex items-start gap-4">
+                          <div key={actIdx} className="flex items-start gap-4 mb-2">
                             <div className="w-20 text-sm text-gray-500">{activity?.time}</div>
                             <div>
                               <p className="font-medium">{activity?.title}</p>
@@ -742,7 +763,7 @@ const PlannerPage = () => {
                       </div>
                     ))}
                   </div>
-                </div>
+                </>
               )}
             </div>
           </div>
@@ -751,7 +772,7 @@ const PlannerPage = () => {
           <div className="w-1/2 sticky top-20 right-0">
             <h2 className="text-2xl font-bold mb-4">지도 보기</h2>
             <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_KEY || ""}>
-              <GoogleMap mapContainerStyle={{ width: "100%", height: "500px" }} center={mapCenter} zoom={defaultCenter.zoom} />
+              <GoogleMap mapContainerStyle={{ width: "100%", height: "600px" }} center={mapCenter} zoom={defaultCenter.zoom} />
             </LoadScript>
           </div>
         </div>
@@ -779,7 +800,7 @@ const PlannerPage = () => {
                           {Array.isArray(day.activities) && day.activities.length > 0 ? (
                             day.activities.map((activity, actIdx) => (
                               <p key={actIdx}>
-                                {activity.time} - {activity.title}
+                                {typeof activity.time === "string" ? activity.time : ""} - {typeof activity.title === "string" ? activity.title : ""}
                               </p>
                             ))
                           ) : (

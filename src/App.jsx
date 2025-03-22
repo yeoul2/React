@@ -19,7 +19,6 @@ import CourseBoard from "./page/course/CoursePage";
 import PageTransition from "./components/layout/PageTransition";
 import MyPage from "./page/auth/MyPage";
 import PasswordChange from "./page/auth/PasswordChange";
-import PlannerPageBack_UP from "./page/planner/PlannerPageBack_UP";
 
 
 // ✅ 검색 상태를 전역 관리하는 Context 생성
@@ -52,7 +51,6 @@ const App = () => {
             <Route path="/find-id" element={<FindId />} />
             <Route path="/mypage-check" element={<MypageCheck />} />
             <Route path="/mypage" element={<MyPage />} />
-            <Route path="/pl" element={<PlannerPageBack_UP />} />
           </Routes>
         </Layout>
       </BrowserRouter>

@@ -31,7 +31,7 @@ export const saveSearch = async (searchTerm, searchType, accessToken) => {
   try {
     await axios.post(
       `${process.env.REACT_APP_SPRING_IP}api/search/recent_save`,
-      null,
+      { searchTerm, searchType },
       {
         params: { searchTerm, searchType },
         headers: { Authorization: `Bearer ${accessToken}` },

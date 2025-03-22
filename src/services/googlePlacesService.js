@@ -57,10 +57,10 @@ export const fetchNearbyPlaces = async (location, type, radius = 5000) => {
 /**
  * 🔹 3. 장소 상세 정보 조회 (Place Details)
  */
-export const fetchPlaceDetails = async (placeId) => {
+export const fetchPlaceDetails = async (place_id) => {
   try {
     const response = await axios.get("/api/places/place_details", {
-      params: { placeId },
+      params: { place_id },
     });
 
     return response.data.result || {};
@@ -73,12 +73,12 @@ export const fetchPlaceDetails = async (placeId) => {
 /**
  * 🔹 4. 장소 사진 조회
  */
-export const fetchPlacePhoto = async (placeId, maxWidth = 400) => {
-  if (!placeId) return ""; // ✅ `photoReference` 대신 `placeId` 사용
+export const fetchPlacePhoto = async (place_id, maxWidth = 400) => {
+  if (!place_id) return ""; // ✅ `photoReference` 대신 `placeId` 사용
 
   try {
     const response = await axios.get("/api/places/place_photo", {
-      params: { placeId, maxWidth },
+      params: { place_id, maxWidth },
       responseType: "arraybuffer",
     });
     const mimeType = "image/jpeg";
