@@ -392,8 +392,8 @@ const useBoard = (isEditMode = false) => {
       console.log(country);
       console.log(dateRange);
       console.log(satisfaction);
-      console.log(courseno);
-      if (!title || !country || !dateRange || !satisfaction || courseno == 0) {
+      console.log(courseno); /* || courseno == 0 */
+      if (!title || !country || !dateRange || !satisfaction ) {
          alert("필수 항목을 모두 입력해주세요.");
          return;
       }
