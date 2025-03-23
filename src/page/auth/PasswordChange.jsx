@@ -1,32 +1,19 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const PasswordChange = () => {
-  const [user_id, setUser_id] = useState("");
   const [form, setForm] = useState({
-    temporaryPassword: "",
+    tempPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
   const [showPassword, setShowPassword] = useState({
-    temporaryPassword: false,
+    tempPassword: false,
     newPassword: false,
     confirmPassword: false,
   });
 
   const [loading, setLoading] = useState(false); // 로딩 상태 추가
-
-  // 페이지 로드 시 userId 가져오기
-  useEffect(() => {
-    const storedUserId = localStorage.getItem("user_id");
-
-    if (storedUserId) {
-      setUser_id(storedUserId);
-    } else {
-      alert("유효하지 않은 접근입니다. 다시 비밀번호 찾기를 진행해주세요.");
-      window.location.href = "/change-pw"; // 비밀번호 찾기 페이지로 이동
-    }
-  }, []);
 
   // 입력 필드 변경 핸들러
   const handleChange = (e) =>
@@ -39,17 +26,10 @@ const PasswordChange = () => {
   // 폼 제출 핸들러
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (form.newPassword !== form.confirmPassword) {
       alert("새 비밀번호가 일치하지 않습니다.");
       return;
     }
-
-    console.log("🚀 전송 데이터:", {
-      user_id,
-      temporaryPassword: form.temporaryPassword,
-      newPassword: form.newPassword,
-    }); // ✅ 확인용 로그
 
     setLoading(true);
 
@@ -59,21 +39,14 @@ const PasswordChange = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          user_id,
-          temporaryPassword: form.temporaryPassword,
-          newPassword: form.newPassword,
-          confirmPassword: form.confirmPassword
-        }),
+        body: JSON.stringify({ tempPassword: form.tempPassword, newPassword: form.newPassword }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         alert("비밀번호가 성공적으로 변경되었습니다.");
-        localStorage.removeItem("user_id"); // ✅ userId 삭제
-        localStorage.removeItem("temporaryPassword"); // ✅ 임시 비밀번호 삭제
-        window.location.href = "/login"; // ✅ 로그인 페이지로 이동
+        // TODO: 비밀번호 변경 후 로그인 페이지로 리디렉션 (예: window.location.href = "/login")
       } else {
         alert(data.message || "비밀번호 변경에 실패했습니다.");
       }
@@ -98,9 +71,9 @@ const PasswordChange = () => {
             <label className="block text-sm font-medium text-gray-700">임시 비밀번호</label>
             <div className="mt-1 relative">
               <input
-                type={showPassword.temporaryPassword ? "text" : "password"}
-                name="temporaryPassword"
-                value={form.temporaryPassword}
+                type={showPassword.tempPassword ? "text" : "password"}
+                name="tempPassword"
+                value={form.tempPassword}
                 onChange={handleChange}
                 required
                 placeholder="임시 비밀번호 입력"
@@ -109,9 +82,9 @@ const PasswordChange = () => {
               <button
                 type="button"
                 className="absolute inset-y-0 right-0 px-3 flex items-center"
-                onClick={() => togglePassword("temporaryPassword")}
+                onClick={() => togglePassword("tempPassword")}
               >
-                <i className={`far ${showPassword.temporaryPassword ? "fa-eye-slash" : "fa-eye"} text-gray-400`}></i>
+                <i className={`far ${showPassword.tempPassword ? "fa-eye-slash" : "fa-eye"} text-gray-400`}></i>
               </button>
             </div>
           </div>
