@@ -25,9 +25,8 @@ export const fetchAutocomplete = async (query = "geocode") => {
 
     console.log("✅ 자동완성 응답:", response.data);
 
-    return Array.isArray(response.data.predictions)
-      ? response.data.predictions.map((place) => place.description)
-      : [];
+    return Array.isArray(response.data)
+      ? response.data : [];
   } catch (error) {
     if (axios.isCancel(error)) {
       console.warn("🚨 자동완성 요청이 취소됨:", error.message);
@@ -57,10 +56,10 @@ export const fetchNearbyPlaces = async (location, type, radius = 5000) => {
 /**
  * 🔹 3. 장소 상세 정보 조회 (Place Details)
  */
-export const fetchPlaceDetails = async (placeId) => {
+export const fetchPlaceDetails = async (place_id) => {
   try {
     const response = await axios.get("/api/places/place_details", {
-      params: { placeId },
+      params: { place_id },
     });
 
     return response.data.result || {};

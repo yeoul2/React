@@ -3,9 +3,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Select from 'react-select';
 import { getBoardCount, getBoardList } from "../../services/boardApi";
 import useStyle from "../../components/hooks/useStyle";
+import { FaSearch } from "react-icons/fa";
 
 const TravelPage = () => {
-  const {maskUserId,customStyles} = useStyle();
+  const { maskUserId, customStyles } = useStyle();
   const ImgPath = "/images/ui_image/"
   const navigate = useNavigate();
   const location = useLocation();
@@ -156,160 +157,163 @@ const TravelPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
       <div className="bg-white shadow sm:rounded-lg p-6">
-      {/* 검색 & 정렬 & 글쓰기 버튼 */}
-      <div className="flex flex-wrap items-center justify-between py-6 ">
+        {/* 검색 & 정렬 & 글쓰기 버튼 */}
+        <div className="flex flex-wrap items-center justify-between py-6 ">
 
-        {/* 검색 필터 (왼쪽 배치) */}
-        <div className="flex items-center space-x-2 p-2 rounded-md w-full md:w-auto">
-          <Select
-            className=""
-            value={{ value: searchFilter, label: searchFilter }}
-            onChange={(e) => setSearchFilter(e.value)}
-            styles={{
-              ...customStyles,
-              control: (provided, state) => ({
-                ...customStyles.control?.(provided, state),
-                minWidth: "130px",
-                height: "42px",
-              })
-            }}
-            options={["제목만", "내용만", "나라", "제목+내용"].map((option) => ({
-              value: option,
-              label: option
-            }))}
-            isSearchable={false}
-          />
+          {/* 검색 필터 (왼쪽 배치) */}
+          <div className="flex items-center space-x-2 p-2 rounded-md w-full md:w-auto">
+            <Select
+              className=""
+              value={{ value: searchFilter, label: searchFilter }}
+              onChange={(e) => setSearchFilter(e.value)}
+              styles={{
+                ...customStyles,
+                control: (provided, state) => ({
+                  ...customStyles.control?.(provided, state),
+                  minWidth: "130px",
+                  height: "42px",
+                })
+              }}
+              options={["제목만", "내용만", "나라", "제목+내용"].map((option) => ({
+                value: option,
+                label: option
+              }))}
+              isSearchable={false}
+            />
 
-          <input
-            type="text"
-            placeholder="검색어를 입력하세요."
-            className="h-[42px] border-[1px] border-orange-300 px-4 py-2 rounded-md focus:border-orange-500 focus:ring-orange-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && setSearchTerm(searchQuery)} //  엔터 키 입력 시 검색 실행
-          />
-
-          <button className="h-[42px] px-4 py-2 bg-orange-500 text-white text-2xl rounded-md hover:bg-orange-600 fa-solid fa-magnifying-glass"
-            onClick={(e) => setSearchTerm(searchQuery)}>
-          </button>
-        </div>
-
-        {/*✅ 정렬 (드롭다운) & 글쓰기 (오른쪽 배치) */}
-        <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
-
-          <Select
-            value={sortOptions.find((option) => option.value === sortOrder)} // 선택된 값 유지
-            onChange={(selectedOption) => setSortOrder(selectedOption.value)} // 값 변경 시 상태 업데이트
-            options={sortOptions} // 정렬 옵션 전달
-            styles={{
-              ...customStyles,
-              control: (provided, state) => ({
-                ...customStyles.control?.(provided, state),
-                height: "42px",
-              })
-            }}
-            getOptionLabel={(e) => (
-              <div className="flex items-center">
-                {e.image && <img src={e.image} alt={e.label} className="w-10 h-10 mr-2" />}
-                {e.label}
-              </div>
-            )}
-            isSearchable={false} // 검색 기능 비활성화
-          />
-
-
-          {/* ✅ 글쓰기 버튼 - 로그인 체크 */}
-
-          <button
-            className="h-[42px] bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
-            onClick={() => navigateWithAuth("/write")}
-          >
-            글쓰기
-          </button>
-        </div>
-      </div>
-
-      {/* ✅ 여행지 목록 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6"
-        style={{ gridTemplateRows: "repeat(2, auto)" }} // ✅ 세로(row) 2줄로 제한
-      >
-        {(places?.slice(0, 8) || []).map((place) => ( // ✅ 최대 8개만 표시 (4x2)
-          <div key={place.tb_no} className="border p-4 rounded-md shadow-md">
-            <img src={place.tb_photo1} className="w-full h-48 object-cover" alt={place.tb_title} />
-            <div className="flex items-center">
-              <h3 className="text-lg font-semibold">{place.tb_title}</h3>
-              <p className="text-sm text-gray-500 ml-auto">{maskUserId(place.user_id)}</p>
-            </div>
-
-            <p className="text-sm text-gray-600">여행지: {place.tb_country}</p>
-            <p className="text-sm text-gray-500">리뷰 날짜: {place.tb_up_date}</p>
-            {/* 만족도 및 좋아요 표시 (한 줄에 배치하고 오른쪽 정렬) */}
-            <div className="flex justify-end items-center mt-2 space-x-6">
-              {/* 만족도 표시 */}
-              <div className="flex items-center">
-                <img src={ratingImages(place.tb_star)} alt={`Rating: ${place.tb_title}`} className="w-[65px] h-[65px]" />
-                <span className="text-orange-500 ml-2 fa-solid"> {place.tb_star}</span>
-              </div>
-
-              {/* 좋아요 표시 */}
-              <div className="flex items-center">
-                <img src={`${ImgPath}clicklike.png`} alt="" className="w-[60px] h-[60px]" />
-                <span className="text-orange-500 ml-2 fa-solid"> {place.tb_like_count}</span>
-              </div>
-            </div>
+            <input
+              type="text"
+              placeholder="검색어를 입력하세요."
+              className="h-[42px] border-[1px] border-orange-300 px-4 py-2 rounded-md focus:border-orange-500 focus:ring-orange-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && setSearchTerm(searchQuery)} //  엔터 키 입력 시 검색 실행
+            />
 
             <button
-              className="w-full bg-orange-500 text-white py-2 mt-2 rounded-md hover:bg-orange-600"
-              onClick={() => navigateWithAuth(`/board/${place.tb_no}?page=${currentPage}`)} // ✅ 클릭한 게시글 tb_no 반영
+              className="h-[42px] px-4 py-2 bg-orange-500 text-white text-2xl rounded-md hover:bg-orange-600"
+              onClick={(e) => setSearchTerm(searchQuery)}
             >
-              상세보기
+              <FaSearch />
             </button>
           </div>
-        ))}
-      </div>
 
-      {/* 페이지네이션 */}
-      <div className="mt-8 flex justify-center">
-        <nav className="relative z-0 inline-flex shadow-sm border border-gray-300" aria-label="Pagination">
-          <button
-            onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
-            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
-          >
-            맨앞
-          </button>
-          <button
-            onClick={handlePreviousPage}
-            disabled={currentPage === 1}
-            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
-          >
-            ‹ 이전
-          </button>
-          {pageNumbers.map((page) => (
+          {/*✅ 정렬 (드롭다운) & 글쓰기 (오른쪽 배치) */}
+          <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
+
+            <Select
+              value={sortOptions.find((option) => option.value === sortOrder)} // 선택된 값 유지
+              onChange={(selectedOption) => setSortOrder(selectedOption.value)} // 값 변경 시 상태 업데이트
+              options={sortOptions} // 정렬 옵션 전달
+              styles={{
+                ...customStyles,
+                control: (provided, state) => ({
+                  ...customStyles.control?.(provided, state),
+                  height: "42px",
+                })
+              }}
+              getOptionLabel={(e) => (
+                <div className="flex items-center">
+                  {e.image && <img src={e.image} alt={e.label} className="w-10 h-10 mr-2" />}
+                  {e.label}
+                </div>
+              )}
+              isSearchable={false} // 검색 기능 비활성화
+            />
+
+
+            {/* ✅ 글쓰기 버튼 - 로그인 체크 */}
+
             <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              className={`relative inline-flex items-center px-4 py-2 text-sm font-medium border-r border-gray-300 cursor-pointer ${currentPage === page ? "text-white bg-orange-500" : "text-gray-700 bg-white-100 hover:bg-orange-500 hover:text-white"}`}
+              className="h-[42px] bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
+              onClick={() => navigateWithAuth("/write/0")}
             >
-              {page}
+              글쓰기
             </button>
+          </div>
+        </div>
+
+        {/* ✅ 여행지 목록 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6"
+          style={{ gridTemplateRows: "repeat(2, auto)" }} // ✅ 세로(row) 2줄로 제한
+        >
+          {(places?.slice(0, 8) || []).map((place) => ( // ✅ 최대 8개만 표시 (4x2)
+            <div key={place.tb_no} className="border p-4 rounded-md shadow-md">
+              <img src={place.tb_photo1} className="w-full h-48 object-cover" alt={place.tb_title} />
+              <div className="flex items-center">
+                <h3 className="text-lg font-semibold">{place.tb_title}</h3>
+                <p className="text-sm text-gray-500 ml-auto">{maskUserId(place.user_id)}</p>
+              </div>
+
+              <p className="text-sm text-gray-600">여행지: {place.tb_country}</p>
+              <p className="text-sm text-gray-500">리뷰 날짜: {place.tb_up_date}</p>
+              {/* 만족도 및 좋아요 표시 (한 줄에 배치하고 오른쪽 정렬) */}
+              <div className="flex justify-end items-center mt-2 space-x-6">
+                {/* 만족도 표시 */}
+                <div className="flex items-center">
+                  <img src={ratingImages(place.tb_star)} alt={`Rating: ${place.tb_title}`} className="w-[65px] h-[65px]" />
+                  <span className="text-orange-500 ml-2 fa-solid"> {place.tb_star}</span>
+                </div>
+
+                {/* 좋아요 표시 */}
+                <div className="flex items-center">
+                  <img src={`${ImgPath}clicklike.png`} alt="" className="w-[60px] h-[60px]" />
+                  <span className="text-orange-500 ml-2 fa-solid"> {place.tb_like_count}</span>
+                </div>
+              </div>
+
+              <button
+                className="w-full bg-orange-500 text-white py-2 mt-2 rounded-md hover:bg-orange-600"
+                onClick={() => navigateWithAuth(`/board/${place.tb_no}?page=${currentPage}`)} // ✅ 클릭한 게시글 tb_no 반영
+              >
+                상세보기
+              </button>
+            </div>
           ))}
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
-          >
-            다음 ›
-          </button>
-          <button
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
-            className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium hover:bg-orange-500 hover:text-white cursor-pointer"
-          >
-            맨뒤
-          </button>
-        </nav>
-      </div>
+        </div>
+
+        {/* 페이지네이션 */}
+        <div className="mt-8 flex justify-center">
+          <nav className="relative z-0 inline-flex shadow-sm border border-gray-300" aria-label="Pagination">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
+            >
+              맨앞
+            </button>
+            <button
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
+            >
+              ‹ 이전
+            </button>
+            {pageNumbers.map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`relative inline-flex items-center px-4 py-2 text-sm font-medium border-r border-gray-300 cursor-pointer ${currentPage === page ? "text-white bg-orange-500" : "text-gray-700 bg-white-100 hover:bg-orange-500 hover:text-white"}`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium border-r border-gray-300 hover:bg-orange-500 hover:text-white cursor-pointer"
+            >
+              다음 ›
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center px-3 py-2 text-gray-500 bg-white-100 text-sm font-medium hover:bg-orange-500 hover:text-white cursor-pointer"
+            >
+              맨뒤
+            </button>
+          </nav>
+        </div>
       </div>
     </div>
   );
