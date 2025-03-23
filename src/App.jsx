@@ -19,7 +19,6 @@ import CoursePage from "./page/course/CoursePage";
 import PageTransition from "./components/layout/PageTransition";
 import MyPage from "./page/auth/MyPage";
 import PasswordChange from "./page/auth/PasswordChange";
-import TravelPlanner from "./page/planner/TravelPlanner";
 import CourseDetailPage from "./page/course/CourseDetailPage";
 
 
