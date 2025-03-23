@@ -72,12 +72,12 @@ export const fetchPlaceDetails = async (place_id) => {
 /**
  * 🔹 4. 장소 사진 조회
  */
-export const fetchPlacePhoto = async (placeId, maxWidth = 400) => {
-  if (!placeId) return ""; // ✅ `photoReference` 대신 `placeId` 사용
+export const fetchPlacePhoto = async (place_id, maxWidth = 400) => {
+  if (!place_id) return ""; // ✅ `photoReference` 대신 `placeId` 사용
 
   try {
     const response = await axios.get("/api/places/place_photo", {
-      params: { placeId, maxWidth },
+      params: { place_id, maxWidth },
       responseType: "arraybuffer",
     });
     const mimeType = "image/jpeg";
