@@ -18,7 +18,7 @@ export const getRecentSearches = async (accessToken) => {
     }
 
     const response = await axios.get(
-      `${process.env.REACT_APP_SPRING_IP}api/search/recent_list`,
+      `${process.env.REACT_APP_SPRING_IP}api/search/list`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
@@ -38,7 +38,7 @@ export const getRecentSearches = async (accessToken) => {
 export const saveSearch = async (searchTerm, searchType, accessToken) => {
   try {
     await axios.post(
-      `${process.env.REACT_APP_SPRING_IP}api/search/recent_save`,
+      `${process.env.REACT_APP_SPRING_IP}api/search/save`,
       null,
       {
         params: { searchTerm, searchType },
