@@ -2,18 +2,24 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { deleteBoard, deleteComment, getBoardDetail, hasLiked, insertComment, toggleLike, updateComment } from "../../services/boardApi";
 import useStyle from "../../components/hooks/useStyle";
+import { getCourseDetail } from "../../services/courseLogic";
 
 const TripReview = () => {
-  const {maskUserId} = useStyle();
+  const { maskUserId } = useStyle();
   const navigate = useNavigate();
   const location = useLocation();
   //params에서 tb_no 가져오기
   const { tb_no } = useParams();
-  let prevDay = null; // 이전 tbd_day 값을 추적
 
   // 여행 데이터 상태 관리
   const [tripData, setTripData] = useState({}); // DB에서 불러올 게시글 정보 담기
   const [tripdetailData, setTripdetailData] = useState({});
+  // AI 코스 상태 관리 
+  const [aiSchedule, setAiSchedule] = useState([
+    { day: 1, place: "AI 추천 장소", time: "AI 추천 시간", details: "AI 추천 상세 내용" },
+  ]);
+  // 실제 일정 상태 관리
+  const [actualSchedule, setActualSchedule] = useState([]);
 
   // 삭제 모달창 관리
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -33,6 +39,7 @@ const TripReview = () => {
   // 좋아요 상태 관리
   const [liked, setLiked] = useState(false); // 유저가 좋아요 눌렀는지 정보
 
+
   // ai코스 목업데이터(이후에 코스 불러오기 구현해야됨)
   const timeline = {
     ai: [
@@ -46,7 +53,41 @@ const TripReview = () => {
     const Data = async () => {
       try {
         const boardData = await getBoardDetail(tb_no);
+        console.log(boardData);
         setTripData(boardData[0]);
+        if (boardData[1].course) {
+          setTripdetailData(boardData[1].course);
+          setActualSchedule(
+            Array.isArray(boardData[1].course)
+              ? boardData[1].course.map(({ tbd_day, tbd_place, tbd_time, tbd_content }) => ({
+                day: tbd_day,
+                place: tbd_place,
+                time: tbd_time,
+                details: tbd_content,
+              }))
+              : []
+          );
+        }
+        if (boardData[0].cs_no) {
+          try {
+            const courseData = await getCourseDetail(boardData[0].cs_no);
+            if (courseData[1].details) {
+              const courseDetailData = courseData[1].details;
+              console.log(courseDetailData);
+              setAiSchedule(courseDetailData?.map((element, index) => ({
+                day: element.cdt_day,
+                place: element.cdt_place,
+                time: element.cdt_time,
+                //details: element.tbd_content > cs_detail테이블에 내용 부분 없음
+              }))
+              )
+            }
+
+          } catch (error) {
+            console.error("코스 데이터 불러오기 실패: " + error);
+
+          }
+        }
         if (boardData[1].course) {
           setTripdetailData(boardData[1].course)
           console.log(tripdetailData);
@@ -83,7 +124,7 @@ const TripReview = () => {
       // 게시글 삭제 후, 페이지 이동
       if (response === 1) {
         navigate("/board")
-      } 
+      }
     } catch (error) {
       console.error("게시글 삭제 실패: " + error)
     }
@@ -205,9 +246,7 @@ const TripReview = () => {
     } catch (error) {
       console.error("댓글 삭제 실패:" + error)
     }
-
   }
-
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -261,7 +300,7 @@ const TripReview = () => {
                               </button>
                               <button
                                 className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                                onClick={()=>handleDeleteBoard(tb_no)}
+                                onClick={() => handleDeleteBoard(tb_no)}
                               >
                                 삭제
                               </button>
@@ -305,11 +344,17 @@ const TripReview = () => {
             {/* AI 추천 일정 (왼쪽) */}
             <div className="space-y-8">
               <h3 className="text-xl font-semibold text-gray-900 mb-4">AI 추천 일정</h3>
-              {timeline.ai.map((item, index) => (
+              {aiSchedule.map((schedule, index) => (
                 <div key={index} className="relative pl-8 border-l-2 border-orange-300">
-                  <div className="absolute w-4 h-4 bg-orange-300 rounded-full -left-[9px] top-0"></div>
-                  <h3 className="font-medium text-lg text-gray-900 mb-2">{item.day}</h3>
-                  <p className="text-gray-600">{item.details}</p>
+                  {index === 0 || aiSchedule[index].day !== aiSchedule[index - 1].day ? (
+                    <>
+                      <div className="absolute w-4 h-4 bg-orange-300 rounded-full -left-[9px] top-0"></div>
+                      <h3 className="font-medium text-lg text-gray-900 mb-2">{`DAY ${schedule.day}`}</h3>
+                    </>)
+                    : <span className="px-2 py-1 mt-3 rounded text-sm"></span>}
+                  <p className="text-gray-600">{schedule.time}</p>
+                  <p className="text-gray-600">{schedule.place}</p>
+                  <p className="text-gray-600">{schedule.details}</p>
                 </div>
               ))}
             </div>
@@ -317,27 +362,20 @@ const TripReview = () => {
             {/* 실제 여행 일정 (오른쪽) */}
             <div className="space-y-8">
               <h3 className="text-xl font-semibold text-gray-900 mb-4">실제 여행 일정</h3>
-              {Array.isArray(tripdetailData) &&
-                tripdetailData.map((item, index) => {
-                  // tbd_day가 이전 값과 같지 않으면 표시
-                  const shouldDisplayDay = item.tbd_day !== prevDay;
-                  if (shouldDisplayDay) {
-                    prevDay = item.tbd_day;
-                  }
-                  return (
-                    <div key={index} className="relative pl-8 border-l-2 border-orange-300">
-                      {shouldDisplayDay && (
-                        <div className="absolute w-4 h-4 bg-orange-300 rounded-full -left-[9px] top-0"></div>
-                      )}
-                      {shouldDisplayDay && (
-                        <h3 className="font-medium text-lg text-gray-900 mb-2">{`DAY ${item.tbd_day}`}</h3>
-                      )}
-                      <p className="text-gray-800">{item.tbd_time} {item.tbd_place}</p>
-                      <p className="text-gray-600">{item.tbd_content}</p>
-                      <p className="text-gray-600">🚘{item.tbd_time_car}🚌{item.tbd_time_public}</p>
-                    </div>
-                  );
-                })}
+              {actualSchedule.map((schedule, index) => (
+                <div key={index} className="relative pl-8 border-l-2 border-orange-300">
+                  {index === 0 || actualSchedule[index].day !== actualSchedule[index - 1].day ? (
+                    <>
+                      <div className="absolute w-4 h-4 bg-orange-300 rounded-full -left-[9px] top-0"></div>
+                      <h3 className="font-medium text-lg text-gray-900 mb-2">{`DAY ${schedule.day}`}</h3>
+                    </>)
+                    : <span className="px-2 py-1 mt-3 rounded text-sm"></span>}
+                  <p className="text-gray-600">{schedule.time}</p>
+                  <p className="text-gray-600">{schedule.place}</p>
+                  <p className="text-gray-600">{schedule.details}</p>
+                </div>
+
+              ))}
             </div>
           </section>
 
