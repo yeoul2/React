@@ -8,7 +8,7 @@ export const getRecentSearches = async (accessToken) => {
       return []; // ✅ 빈 배열 반환
     }
     const response = await axios.get(
-      `${process.env.REACT_APP_SPRING_IP}api/search/recent_list`,
+      `${process.env.REACT_APP_SPRING_IP}api/search/list`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -30,8 +30,8 @@ export const getRecentSearches = async (accessToken) => {
 export const saveSearch = async (searchTerm, searchType, accessToken) => {
   try {
     await axios.post(
-      `${process.env.REACT_APP_SPRING_IP}api/search/recent_save`,
-      { searchTerm, searchType },
+      `${process.env.REACT_APP_SPRING_IP}api/search/save`,
+      null,
       {
         params: { searchTerm, searchType },
         headers: { Authorization: `Bearer ${accessToken}` },
