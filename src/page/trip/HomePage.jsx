@@ -14,15 +14,40 @@ import italian from "../../assets/여행지 이미지/이탈리아/베로나 오
 import thailand from "../../assets/여행지 이미지/태국/코팡안 풀문 파티.JPG";
 import maldives from "../../assets/여행지 이미지/몰디브/몰디브 전통 보트.JPG";
 import usa from "../../assets/여행지 이미지/미국/뉴욕 타임스퀘어 새해맞이.JPG";
+import { saveSearch } from "../../services/travelSearchLogic";
 
 // 나라 리스트 데이터
 const continents = [
-  { name: "대한민국", image: korea, description: "한국의 멋진 여행지를 만나보세요." },
-  { name: "일본", image: japan, description: "일본의 전통과 현대가 공존하는 여행지." },
-  { name: "이탈리아", image: italian, description: "이탈리아의 아름다운 건축과 문화를 경험하세요." },
-  { name: "태국", image: thailand, description: "태국의 이국적인 휴양지를 즐겨보세요." },
-  { name: "몰디브", image: maldives, description: "몰디브의 환상적인 해변을 만나보세요." },
-  { name: "미국", image: usa, description: "미국의 다양한 여행 명소를 탐방하세요." },
+  {
+    name: "대한민국",
+    image: korea,
+    description: "한국의 멋진 여행지를 만나보세요.",
+  },
+  {
+    name: "일본",
+    image: japan,
+    description: "일본의 전통과 현대가 공존하는 여행지.",
+  },
+  {
+    name: "이탈리아",
+    image: italian,
+    description: "이탈리아의 아름다운 건축과 문화를 경험하세요.",
+  },
+  {
+    name: "태국",
+    image: thailand,
+    description: "태국의 이국적인 휴양지를 즐겨보세요.",
+  },
+  {
+    name: "몰디브",
+    image: maldives,
+    description: "몰디브의 환상적인 해변을 만나보세요.",
+  },
+  {
+    name: "미국",
+    image: usa,
+    description: "미국의 다양한 여행 명소를 탐방하세요.",
+  },
 ];
 
 const HomePage = () => {
@@ -47,14 +72,16 @@ const HomePage = () => {
     searchTerm = "", // 🔹 검색어 상태
     showResults, // 🔹 검색 결과 표시 여부
     selectedCity, // 🔹 선택된 도시
+    setSearchTerm, // ✅ 추가
+    setSelectedCity, // ✅ 추가
     recentSearches, // 🔹 최근 검색어 목록
     suggestedCities, // 🔹 추천 도시 목록
     popularDestinations = [], // 🔹 인기 여행지 목록
     searchResultsRef, // 🔹 검색 결과 DOM 참조
     setShowResults, // 🔹 검색 결과 표시 여부 설정
     handleCountryChange, // 🔹 나라 입력 시 자동완성 처리
-    handleClearSearch, // 🔹 검색어 초기화
-    handleCitySelect, // 🔹 도시 선택 처리
+    //handleClearSearch, // 🔹 검색어 초기화
+    //handleCitySelect, // 🔹 도시 선택 처리
     handleCountrySelect, // 🔹 나라 선택 처리
     handlePopularDestinationSelect, // 🔹 인기 여행지 선택 처리
     handleClickOutside, // 🔹 검색창 외부 클릭 시 닫기
@@ -80,7 +107,9 @@ const HomePage = () => {
             const formatDate = (date) => {
               const month = String(date.getMonth() + 1).padStart(2, "0");
               const day = String(date.getDate()).padStart(2, "0");
-              const weekday = date.toLocaleDateString("ko-KR", { weekday: "short" }).replace("요일", ""); // 🔹 요일을 한 글자로 변환
+              const weekday = date
+                .toLocaleDateString("ko-KR", { weekday: "short" })
+                .replace("요일", ""); // 🔹 요일을 한 글자로 변환
               return `${month}월 ${day}일 (${weekday})`;
             };
 
@@ -89,10 +118,14 @@ const HomePage = () => {
             const endDate = selectedDates[1];
 
             // ✅ 숙박 일수 계산
-            const nights = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+            const nights = Math.round(
+              (endDate - startDate) / (1000 * 60 * 60 * 24)
+            );
 
             // ✅ "MM월 DD일 (요일) ~ MM월 DD일 (요일) (X박)" 형식으로 변환
-            setTripDuration(`${formatDate(startDate)} ~ ${formatDate(endDate)} (${nights}박)`); // 📌 여행 기간 표시
+            setTripDuration(
+              `${formatDate(startDate)} ~ ${formatDate(endDate)} (${nights}박)`
+            ); // 📌 여행 기간 표시
           }
           setIsDatePickerOpen(false); // 📌 날짜 선택 시 달력 닫기
         },
@@ -110,12 +143,41 @@ const HomePage = () => {
       alert("도시와 여행 기간을 입력하세요.");
       return;
     }
-    navigate(`/course?city=${selectedCity}&start=${dateRange[0]}&end=${dateRange[1]}&adults=${adults}`);
+    navigate(
+      `/course?city=${selectedCity}&start=${dateRange[0]}&end=${dateRange[1]}&adults=${adults}`
+    );
+  };
+
+  const handleCitySelect = async (city, country) => {
+    setSelectedCity(city);
+    setSearchTerm(city);
+    setShowResults(false);
+
+    // ✅ 선택한 도시를 최근 검색어로 저장
+    const accessToken = localStorage.getItem("accessToken");
+    try {
+      await saveSearch(city, "city", accessToken);
+    } catch (error) {
+      console.error("❌ 자동완성 선택 후 검색어 저장 실패:", error);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setSelectedCity("");
+    setShowResults(false);
   };
 
   /** ✅ 메인 배너 검색 (여행 코스 검색) */
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (searchTerm.trim()) {
+      const accessToken = localStorage.getItem("accessToken");
+
+      try {
+        await saveSearch(searchTerm, "city", accessToken);
+      } catch (error) {
+        console.error("❌ 검색어 저장 실패:", error);
+      }
       navigate(`/course?search=${encodeURIComponent(searchTerm)}`);
     }
 
@@ -159,7 +221,9 @@ const HomePage = () => {
   const handleClick = async (continent) => {
     setSelectedCountry(continent); // 카드의 기본 정보 (이름, 이미지 등)
     try {
-      const response = await axios.get(`https://restcountries.com/v3.1/name/${continent.name}`);
+      const response = await axios.get(
+        `https://restcountries.com/v3.1/name/${continent.name}`
+      );
       if (Array.isArray(response.data) && response.data.length > 0) {
         setCountryInfo(response.data[0]); // API 정보 저장
       } else {
@@ -176,7 +240,6 @@ const HomePage = () => {
     setContinentSearchText(""); // 🔹 검색어 초기화
     setFilteredContinents(continents); // 🔹 나라 목록 초기화
   };
-
 
   /** ✅ 엔터 키 입력 시 검색 실행 */
   const handleKeyDown = (e, type) => {
@@ -211,6 +274,9 @@ const HomePage = () => {
     };
   }, []);
 
+  //console.log("🧪 현재 자동완성 suggestedCities:", suggestedCities);
+
+
   return (
     <main className="pt-10">
       {/* ✅ 메인 배너 검색 */}
@@ -224,13 +290,16 @@ const HomePage = () => {
 
         {/* 배너 타이틀 */}
         <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-full max-w-6xl z-50 bg-transparent p-6">
-          <h1 className="text-6x1 font-bold text-center text-white mt-20 mb-20">여울아~ 여행 코스 쒼나게 말아보자!!</h1>
+          <h1 className="text-6x1 font-bold text-center text-white mt-20 mb-20">
+            여울아~ 여행 코스 쒼나게 말아보자!!
+          </h1>
 
           <div className="grid grid-flow-col auto-cols-[4.3fr_4fr_1fr_1fr] gap-4 flex items-end">
-
             {/* 여행 국가 입력 */}
             <div className="relative max-w-lg w-full" ref={searchResultsRef}>
-              <label className="block text-sm font-medium text-white">여행 국가</label>
+              <label className="block text-sm font-medium text-white">
+                여행 국가
+              </label>
 
               <div className="relative w-full border border-gray-300 rounded-md shadow-sm cursor-pointer flex justify-between items-center">
                 {/* 🔍 검색 아이콘 */}
@@ -259,14 +328,14 @@ const HomePage = () => {
               </div>
 
               {/* 자동완성 UI (최근 검색어 + 추천 도시 + 인기 여행지 포함) */}
-              {showResults && suggestedCities && (
-                <div
-                  className="absolute top-full left-0 mt-1 border border-white rounded-lg shadow-lg p-3 z-50 w-[700px] max-h-[220px] overflow-y-auto scrollbar-hide"
-                >
+              {showResults && (
+                <div className="absolute top-full left-0 mt-1 border border-white rounded-lg shadow-lg p-3 z-50 w-[700px] max-h-[220px] overflow-y-auto scrollbar-hide bg-transparent">
                   {/* 📌 최근 검색어 */}
                   {recentSearches.length > 0 && (
                     <>
-                      <h3 className="text-sm font-medium text-white mb-2">최근 검색어</h3>
+                      <h3 className="text-sm font-medium text-white mb-2">
+                        최근 검색어
+                      </h3>
                       <div className="flex flex-wrap gap-2 mb-2">
                         {recentSearches.map((search, index) => (
                           <span
@@ -289,20 +358,21 @@ const HomePage = () => {
                   )}
 
                   {/* 📌 자동완성 추천 도시 */}
-                  {searchTerm.length > 0 ? (
-                    Array.isArray(suggestedCities) && suggestedCities.length > 0 ? (
-                      suggestedCities.map(({ city, country }, index) => (
+                  {searchTerm.trim().length > 0 ? (
+                    suggestedCities && suggestedCities.length > 0 ? (
+                      suggestedCities.map((item, index) => (
                         <div
                           key={index}
                           className="p-2 hover:bg-orange-500 rounded-lg cursor-pointer"
                           onClick={() => {
-                            handleCitySelect(city, country);
-                            setShowResults(false); // 🔹 선택 후 목록 닫기
-                            console.log("🔍 suggestedCities 데이터 확인:", suggestedCities);
+                            handleCitySelect(item.description, "");
+                            setShowResults(false);
+                            console.log("🔍 선택된 도시:", item.description);
                           }}
                         >
-                          <div className="font-medium text-white">{city}</div>
-                          <div className="text-sm text-white">{country}</div>
+                          <div className="font-medium text-white">
+                            {item.description}
+                          </div>
                         </div>
                       ))
                     ) : (
@@ -311,20 +381,26 @@ const HomePage = () => {
                   ) : (
                     <>
                       {/* 📌 인기 여행지 */}
-                      <h3 className="text-sm font-medium text-white">인기 여행지</h3>
+                      <h3 className="text-sm font-medium text-white">
+                        인기 여행지
+                      </h3>
                       <div className="grid grid-cols-5 grid-rows-2 gap-2">
-                        {(popularDestinations || []).map((destination, index) => (
-                          <div
-                            key={index}
-                            className="px-2 py-1 text-left font-medium text-white hover:text-white hover:bg-orange-500 rounded-lg cursor-pointer"
-                            onClick={() => {
-                              handlePopularDestinationSelect(destination);
-                              setShowResults(false);
-                            }}
-                          >
-                            {destination?.city || destination?.name || "Unknown"}
-                          </div>
-                        ))}
+                        {(popularDestinations || []).map(
+                          (destination, index) => (
+                            <div
+                              key={index}
+                              className="px-2 py-1 text-left font-medium text-white hover:text-white hover:bg-orange-500 rounded-lg cursor-pointer"
+                              onClick={() => {
+                                handlePopularDestinationSelect(destination);
+                                setShowResults(false);
+                              }}
+                            >
+                              {destination?.city ||
+                                destination?.name ||
+                                "Unknown"}
+                            </div>
+                          )
+                        )}
                       </div>
                     </>
                   )}
@@ -334,7 +410,9 @@ const HomePage = () => {
 
             {/* 여행 기간 선택 */}
             <div>
-              <label className="block text-sm font-medium text-white">여행 기간</label>
+              <label className="block text-sm font-medium text-white">
+                여행 기간
+              </label>
               <div className="relative">
                 <i
                   className="far fa-calendar-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer"
@@ -354,7 +432,9 @@ const HomePage = () => {
 
             {/* 인원 선택 */}
             <div className="relative">
-              <label className="block text-sm font-medium text-white">인원수</label>
+              <label className="block text-sm font-medium text-white">
+                인원수
+              </label>
 
               {/* 인원 선택 버튼 */}
               <div
@@ -363,7 +443,11 @@ const HomePage = () => {
               >
                 <i className="fas fa-user text-white"></i>
                 <span className="text-white">{adults}명</span>
-                <i className={`fas ${isPeopleOpen ? "fa-chevron-up" : "fa-chevron-down"} text-white ml-auto`}></i>
+                <i
+                  className={`fas ${
+                    isPeopleOpen ? "fa-chevron-up" : "fa-chevron-down"
+                  } text-white ml-auto`}
+                ></i>
               </div>
 
               {/* 인원 선택 드롭다운 (absolute 적용) */}
@@ -387,7 +471,10 @@ const HomePage = () => {
                   </div>
 
                   {/* 확인 버튼 */}
-                  <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg" onClick={() => setIsPeopleOpen(false)}>
+                  <button
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg"
+                    onClick={() => setIsPeopleOpen(false)}
+                  >
                     확인
                   </button>
                 </div>
@@ -399,7 +486,10 @@ const HomePage = () => {
               <div className="relative">
                 <label className="block text-sm font-medium text-white" />
                 <div className="w-full border-orange-500 border-orange-500 rounded-md shadow-sm focus:ring-custom focus:border-custom cursor-pointer flex justify-between items-center mt-3">
-                  <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg" onClick={handlePlanTrip}>
+                  <button
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg"
+                    onClick={handlePlanTrip}
+                  >
                     확인
                   </button>
                 </div>
@@ -424,7 +514,12 @@ const HomePage = () => {
               onKeyDown={(e) => handleKeyDown(e, "continent")}
               className="p-2 w-64 border-none outline-none"
             />
-            <button className="bg-orange-500 text-white hover:bg-orange-600 px-4 py-2" onClick={handleContinentSearch}>검색</button>
+            <button
+              className="bg-orange-500 text-white hover:bg-orange-600 px-4 py-2"
+              onClick={handleContinentSearch}
+            >
+              검색
+            </button>
           </div>
         </div>
 
@@ -437,15 +532,25 @@ const HomePage = () => {
                 className="relative rounded-lg overflow-hidden group cursor-pointer transition-transform duration-200 transform hover:scale-105 shadow-md"
                 onClick={() => handleClick(continent)}
               >
-                <img src={continent.image} className="w-full h-56 object-cover rounded-t-lg" alt={continent.name} />
+                <img
+                  src={continent.image}
+                  className="w-full h-56 object-cover rounded-t-lg"
+                  alt={continent.name}
+                />
                 <div className="bg-white p-4 flex flex-col items-center rounded-b-lg">
-                  <h3 className="text-lg font-bold text-gray-900">{continent.name}</h3>
-                  <p className="text-sm text-gray-600 text-center">{continent.description}</p>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {continent.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 text-center">
+                    {continent.description}
+                  </p>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-center text-gray-600">검색한 결과를 찾지 못했습니다.</p>
+            <p className="text-center text-gray-600">
+              검색한 결과를 찾지 못했습니다.
+            </p>
           )}
         </div>
 
@@ -453,7 +558,6 @@ const HomePage = () => {
         {selectedCountry && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white w-[500px] p-6 rounded-lg shadow-xl relative">
-
               {/* 닫기 버튼 */}
               <button
                 className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
@@ -462,20 +566,52 @@ const HomePage = () => {
                 <FaTimes size={20} />
               </button>
 
-              <h2 className="text-2xl font-bold text-gray-900">{selectedCountry.name}</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {selectedCountry.name}
+              </h2>
               <p className="text-gray-600">{selectedCountry.description}</p>
 
               {/* 나라 이미지 추가 */}
-              <img src={selectedCountry.image} className="w-full h-40 object-cover rounded-md mt-3" alt={selectedCountry.name} />
+              <img
+                src={selectedCountry.image}
+                className="w-full h-40 object-cover rounded-md mt-3"
+                alt={selectedCountry.name}
+              />
 
               {/* 추가 정보 */}
               <div className="mt-4 space-y-2">
                 {countryInfo ? (
                   <>
-                    <p>🌎 수도: <strong>{countryInfo.capital?.[0] || "정보 없음"}</strong></p>
-                    <p>📍 지역: <strong>{countryInfo.region || "정보 없음"}</strong></p>
-                    <p>🗣️ 언어: <strong> {countryInfo.languages && Object.keys(countryInfo.languages).length > 0 ? Object.values(countryInfo.languages).join(", ") : "정보 없음"}</strong></p>
-                    <p>💰 화폐: <strong> {countryInfo.currencies && Object.keys(countryInfo.currencies).length > 0 ? Object.values(countryInfo.currencies).map((c) => c.name).join(", ") : "정보 없음"} </strong></p>
+                    <p>
+                      🌎 수도:{" "}
+                      <strong>{countryInfo.capital?.[0] || "정보 없음"}</strong>
+                    </p>
+                    <p>
+                      📍 지역:{" "}
+                      <strong>{countryInfo.region || "정보 없음"}</strong>
+                    </p>
+                    <p>
+                      🗣️ 언어:{" "}
+                      <strong>
+                        {" "}
+                        {countryInfo.languages &&
+                        Object.keys(countryInfo.languages).length > 0
+                          ? Object.values(countryInfo.languages).join(", ")
+                          : "정보 없음"}
+                      </strong>
+                    </p>
+                    <p>
+                      💰 화폐:{" "}
+                      <strong>
+                        {" "}
+                        {countryInfo.currencies &&
+                        Object.keys(countryInfo.currencies).length > 0
+                          ? Object.values(countryInfo.currencies)
+                              .map((c) => c.name)
+                              .join(", ")
+                          : "정보 없음"}{" "}
+                      </strong>
+                    </p>
                   </>
                 ) : (
                   <p className="text-red-500 text-center font-semibold">
@@ -485,7 +621,10 @@ const HomePage = () => {
               </div>
 
               <div className="flex justify-end mt-4">
-                <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md" onClick={handleCloseModal}>
+                <button
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md"
+                  onClick={handleCloseModal}
+                >
                   닫기
                 </button>
               </div>
@@ -493,7 +632,7 @@ const HomePage = () => {
           </div>
         )}
       </section>
-    </main >
+    </main>
   );
 };
 

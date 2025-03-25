@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaCheckCircle, FaEye, FaEyeSlash, FaPencilAlt, FaRocket, FaShareAlt, FaShareSquare, FaTrashAlt } from "react-icons/fa";
 import { deleteCourse, getCourseByUserId, shareCourse } from "../../services/courseLogic";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHandsClapping } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEyeSlash, faHandsClapping } from "@fortawesome/free-solid-svg-icons";
 
 // 코스 공유 성공시 나타나는 모달 컴포넌트
 const ShareSuccessModal = ({ onClose }) => {
@@ -309,6 +309,8 @@ const MyPage = () => {
         const user_id = localStorage.getItem("user_id");
         const courseData = await getCourseByUserId(user_id); // API 호출
         setCourses(courseData); // 상태 업데이트
+        //setCourses(courseData || []); // 상태 업데이트
+        console.log(courseData + "에러나는 구간")
       } catch (error) {
         console.error("코스 데이터를 불러오는 중 오류 발생:", error);
       }
@@ -432,13 +434,24 @@ const MyPage = () => {
           {label}
         </label>
         <input
-          type="password"
+          //type="password"
+          type={showPassword[name] ? "text" : "password"} // 👀 눈 상태에 따라 변경
           name={name}
           value={userPw[name]} // 상태 연결
           onChange={name === "new_pw" ? handlevalidateChange : handlePwChange} // ✅ 새 비밀번호만 유효성 검사 실행
           maxLength={16} // ✅ 비밀번호 최대 길이 제한
           className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 py-2 px-3"
         />
+         {/* 👁 눈 아이콘 (현재 비밀번호 제외하고 표시) */}
+    {name !== "current_pw" && (
+      <button
+        type="button"
+        onClick={() => togglePassword(name)}
+        className="absolute right-3 top-8 text-gray-500"
+      >
+        <FontAwesomeIcon icon={showPassword[name] ? faEye : faEyeSlash} />
+      </button>
+    )}
         {/* 유효성 검사 메시지 (새 비밀번호 입력 시) */}
         {name === "new_pw" && passwordError && (
           <p className="text-red-500 text-sm">{passwordError}</p>
