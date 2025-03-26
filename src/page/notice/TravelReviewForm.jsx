@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import "flatpickr/dist/themes/light.css";
 import "flatpickr/dist/l10n/ko.js";
 import Select from 'react-select';
@@ -100,26 +100,39 @@ const TravelReviewForm = () => {
     setCourseModal,
     courses,
     setCourses,
-    handleOpenCsModal
+    handleOpenCsModal,
+    calculateTravelDurations
   } = useBoard(false); // false = 작성 모드(수정모드X)
 
   const { cs_no } = useParams();
+  const hasInitRef = useRef(false); // 최초 실행 여부
   useEffect(() => {
-    if (cs_no) {// 마이페이지에서 코스 번호 받아와 글쓰기로 넘어간 경우 데이터 불러오기 위해서 코스번호 상태 저장
+    if (cs_no && !hasInitRef.current) {// 마이페이지에서 코스 번호 받아와 글쓰기로 넘어간 경우 데이터 불러오기 위해서 코스번호 상태 저장
       console.log("🔍 파라미터에서 받아온 코스번호:", cs_no);
       setCourseno(cs_no);
+      hasInitRef.current = true;
     }
-  }, [cs_no]); // cs_no가 변경될 때만 실행
+  }, [cs_no]); // cs_no가 변경될 때 한 번만 실행
 
   // 테스트 코드
   useEffect(() => {
     console.log("📅 업데이트된 actualSchedule 상태:", actualSchedule);
   }, [actualSchedule]);
+
   const { getRootProps, getInputProps } = useDropzone({
-    accept: "image/*",
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/webp': ['.webp']
+    },
     multiple: true,
-    onDrop: handleDrop
+    onDrop: handleDrop,
+    onDropRejected: (fileRejections) => {
+      console.warn("❌ 잘못된 파일 형식:", fileRejections);
+      alert("🚫 JPG, PNG, WEBP 형식의 이미지 파일만 업로드할 수 있어요!");
+    }
   });
+
 
   useEffect(() => {
     if (photoUrls.length > 0) {
@@ -130,12 +143,6 @@ const TravelReviewForm = () => {
       setPreviewUrls(updatedPreviewUrls);
     }
   }, [photoUrls]);
-
-  useEffect(() => {
-    console.log("🖼 업데이트된 files 상태:", files);
-    console.log("🖼 업데이트된 previewUrls 상태:", previewUrls);
-    console.log("🖼 업데이트된 photoUrls 상태:", photoUrls);
-  }, [files, previewUrls, photoUrls]);
 
 
   return (
@@ -158,7 +165,7 @@ const TravelReviewForm = () => {
               type="text"
               className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
               placeholder="제목을 입력하세요"
-              value={title}
+              value={title || ""}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
@@ -174,14 +181,14 @@ const TravelReviewForm = () => {
                   type="text"
                   className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
                   placeholder="나라"
-                  value={country}
+                  value={country || ""}
                   onChange={(e) => setCountry(e.target.value)}
                 />
                 <input
                   type="text"
                   className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
                   placeholder="도시"
-                  value={city}
+                  value={city || ""}
                   onChange={(e) => setCity(e.target.value)}
                 />
               </div>
@@ -330,10 +337,21 @@ const TravelReviewForm = () => {
                       </div>
                       {/* 일정 내용 */}
                       <div className="mt-2 space-y-2">
+                        {/* 🚗 차 / 🚌 대중교통 시간 표시 */}
+                        {(schedule.drivingDuration || schedule.transitDuration) && (
+                          <div className="text-sm text-gray-500 mb-1">
+                            {schedule.drivingDuration && (
+                              <span className="mr-4">🚗 {schedule.drivingDuration}</span>
+                            )}
+                            {schedule.transitDuration && (
+                              <span>🚌 {schedule.transitDuration}</span>
+                            )}
+                          </div>
+                        )}
                         {/* 장소 */}
                         <PlaceSearchWithMap
                           defaultValue={schedule.place}
-                          onPlaceSelected={(placeData, isConfirmed) => {
+                          onPlaceSelected={async (placeData, isConfirmed) => {
                             console.log("🏞 선택된 장소:", placeData);
                             if (!isConfirmed) return;
                             const newSchedule = [...actualSchedule];
@@ -344,13 +362,18 @@ const TravelReviewForm = () => {
                               types: placeData.types,
                             }
                             setActualSchedule(newSchedule);
+                            // 👇 상태 업데이트 직후 바로 사용하면 최신값이 아닐 수 있으므로
+                            // 업데이트 완료 후 최신값 기준으로 다시 계산
+                            setTimeout(() => {
+                              calculateTravelDurations(index, newSchedule);
+                            }, 0);
                           }}
                         />
                         <input
                           type="text"
                           className="w-full border-gray-300 rounded-lg"
                           placeholder="장소유형"
-                          value={schedule.types}
+                          value={schedule.types || ""}
                           onChange={(e) => {
                             const newSchedule = [...actualSchedule];
                             newSchedule[index].types = e.target.value;
@@ -360,8 +383,8 @@ const TravelReviewForm = () => {
                         <input
                           type="text"
                           className="w-full border-gray-300 rounded-lg"
-                          placeholder="시간(HH:MM:SS) "
-                          value={schedule.time}
+                          placeholder="시간(HH:MM:SS 형태로 입력해주세요) "
+                          value={schedule.time || ""}
                           onChange={(e) => {
                             const newSchedule = [...actualSchedule];
                             newSchedule[index].time = e.target.value;
@@ -372,7 +395,7 @@ const TravelReviewForm = () => {
                           className="w-full border-gray-300 rounded-lg"
                           rows="2"
                           placeholder="상세 내용"
-                          value={schedule.details}
+                          value={schedule.details  || ""}
                           onChange={(e) => {
                             const newSchedule = [...actualSchedule];
                             newSchedule[index].details = e.target.value;
@@ -423,7 +446,7 @@ const TravelReviewForm = () => {
             className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
             rows="4"
             placeholder="전반적인 여행 후기를 작성해주세요"
-            value={review}
+            value={review || ""}
             onChange={(e) => setReview(e.target.value)}
           ></textarea>
         </div>

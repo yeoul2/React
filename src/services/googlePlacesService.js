@@ -145,12 +145,14 @@ export const fetchReverseGeocode = async (latlng) => {
  * @param {string} origin - 출발지 (예: "서울")
  * @param {string} destination - 도착지 (예: "부산")
  * @param {string} waypoints - 경유지 (선택 사항, 예: "대전|대구")
+ * @param {string} mode - 이동 수단 (선택 사항(driving,transit), 기본값: "transit")
  * @returns {Promise<Object>} - 이동 거리, 예상 소요 시간, 이동 수단 정보 반환
  */
 export const fetchRecommendRoute = async (
   origin,
   destination,
-  waypoints = ""
+  waypoints = "",
+  mode
 ) => {
   if (!origin || !destination) {
     console.error("❌ 출발지와 도착지를 입력해야 합니다.");
@@ -159,7 +161,7 @@ export const fetchRecommendRoute = async (
 
   try {
     const response = await axios.get("/api/places/recommend_route", {
-      params: { origin, destination, waypoints },
+      params: { origin, destination, waypoints, mode },
     });
 
     console.log("✅ 추천 경로 응답:", response.data);

@@ -11,7 +11,7 @@ import {
    uploadImages,
 } from "../../services/boardApi";
 import { getCourseByUserId, getCourseDetail } from "../../services/courseLogic";
-import { set } from "react-hook-form";
+import { fetchRecommendRoute } from "../../services/googlePlacesService";
 
 const useBoard = (isEditMode = false) => {
    const navigate = useNavigate();
@@ -38,7 +38,7 @@ const useBoard = (isEditMode = false) => {
    const [photoUrls, setPhotoUrls] = useState([]);
    // 실제 일정 상태
    const [actualSchedule, setActualSchedule] = useState([
-      { day: 1, place: "", types:"", time: "", details: "" },
+      { day: 1, place: "", types: "", time: "", details: "" },
    ]);
    // 공개설정 옵션값 설정
    const options = [
@@ -50,14 +50,17 @@ const useBoard = (isEditMode = false) => {
       // 수정일 경우 state에서 데이터 가져와서 변수에 담기
       if (isEditMode && location.state) {
          const { tripData, tripdetailData } = location.state;
-         console.log(tripData);
-         console.log(tripdetailData);
+         console.log("✍️수정할 보드 데이터", tripData);
+         console.log("✍️수정할 보드 디테일 데이터",tripdetailData);
          setTitle(tripData?.tb_title || "");
          setCountry(tripData?.tb_country || "");
          setCity(tripData?.tb_city || "");
          setReview(tripData?.tb_review || "");
          setSatisfaction(tripData?.tb_star || 0);
-         setDateRange([tripData?.tb_departure_date, tripData?.tb_return_date]);
+         setDateRange([
+            formatDate(new Date(tripData?.tb_departure_date)),
+            formatDate(new Date(tripData?.tb_return_date)),
+         ]);
          const photoList =
             tripData && typeof tripData === "object"
                ? [
@@ -76,13 +79,16 @@ const useBoard = (isEditMode = false) => {
          setActualSchedule(
             Array.isArray(tripdetailData)
                ? tripdetailData.map(
-                  ({ tbd_day, tbd_place, tbd_time, tbd_content }) => ({
-                     day: tbd_day,
-                     place: tbd_place,
-                     time: tbd_time,
-                     details: tbd_content,
-                  })
-               )
+                     ({ tbd_day, tbd_place,tbd_place_id, tbd_time, tbd_content,tbd_time_car, tbd_time_public }) => ({
+                        day: tbd_day,
+                        place: tbd_place,
+                        place_id: tbd_place_id,
+                        time: tbd_time,
+                        details: tbd_content,
+                        drivingDuration: tbd_time_car,
+                        transitDuration: tbd_time_public,
+                     })
+                  )
                : []
          );
          setVisibility(tripData?.tb_public || "Y");
@@ -101,7 +107,14 @@ const useBoard = (isEditMode = false) => {
             dateFormat: "Y-m-d",
             disableMobile: true,
             onChange: (selectedDates) => {
-               setDateRange([formatDate(selectedDates[0]),formatDate(selectedDates[1])]);
+               setDateRange([
+                  formatDate(selectedDates[0]),
+                  formatDate(selectedDates[1]),
+               ]);
+               console.log("📅 선택된 날짜1:", selectedDates[0]);
+               console.log("📅 선택된 날짜2:", selectedDates[1]);
+               console.log("📅 포맷된 날짜1:", formatDate(selectedDates[0]));
+               console.log("📅 포맷된 날짜2:", formatDate(selectedDates[1]));
                if (selectedDates.length === 2) {
                }
                setIsDatePickerOpen(false); // 📌 날짜 선택 시 달력 닫기
@@ -151,7 +164,7 @@ const useBoard = (isEditMode = false) => {
    // ⏰📝 `오전/오후`가 포함된 시간을 변환하는 함수
    const convertTo24HourFormat = (timeString) => {
       if (!timeString) return "00:00:00";
-      const [period, time] = timeString.split(" "); // "오전 03:00:00" -> ["오전전","03:00:00"]
+      const [period, time] = timeString.split(" "); // "오전 03:00:00" -> ["오전","03:00:00"]
       let [hours, minutes, seconds] = time.split(":").map(Number);
 
       if (period === "오전" && hours !== 12) {
@@ -192,16 +205,17 @@ const useBoard = (isEditMode = false) => {
    // 코스num 바뀌면 실행(코스 불러와서 적용)
    useEffect(() => {
       console.log("🔍 코스번호:", courseno);
-      if (courseno !== 0) {
+      if (courseno != 0) {
          const fetchCourseDetail = async () => {
             try {
                const courseDetailData = await getCourseDetail(courseno); // API 호출
                const course = courseDetailData[0];
                console.log("🔍 코스 데이터:", course);
-               setTitle(course.cs_name);
-               setCountry(course.cs_country);
-               setCity(course.cs_city);
-               setDateRange([course.cs_departure_date, course.cs_return_date]);
+               if (!isEditMode) {
+                  setTitle(course.cs_name);
+                  setCountry(course.cs_country);
+                  setCity(course.cs_city);
+               }
                const coursedetails = courseDetailData[1].details;
                console.log("🔍 코스 상세 데이터:", coursedetails);
                setAiSchedule(
@@ -227,6 +241,38 @@ const useBoard = (isEditMode = false) => {
       }
    }, [courseno]);
 
+   // ✅ 일정 간 이동시간 계산 함수
+const calculateTravelDurations = async (index, scheduleList) => {
+   if (index === 0) return;
+
+   const origin = scheduleList[index - 1]?.place_id
+      ? `place_id:${scheduleList[index - 1].place_id}`
+      : null;
+
+   const destination = scheduleList[index]?.place_id
+      ? `place_id:${scheduleList[index].place_id}`
+      : null;
+
+   if (!origin || !destination) return;
+
+   try {
+      const drivingRes = await fetchRecommendRoute(origin, destination, "", "driving");
+      const transitRes = await fetchRecommendRoute(origin, destination, "", "transit");
+
+      const drivingDuration = drivingRes?.routes?.[0]?.legs?.[0]?.duration?.text || "";
+      const transitDuration = transitRes?.routes?.[0]?.legs?.[0]?.duration?.text || "";
+
+      const updated = [...scheduleList];
+      updated[index].drivingDuration = drivingDuration;
+      updated[index].transitDuration = transitDuration;
+
+      setActualSchedule(updated);
+   } catch (error) {
+      console.error("⛔ 이동시간 계산 오류:", error);
+   }
+};
+
+
    // 📝장소 추가 (같은 Day에 장소,내용만 추가)
    const addPlace = (index) => {
       // 해당 인덱스의 Day에만 장소 추가
@@ -235,7 +281,7 @@ const useBoard = (isEditMode = false) => {
       const newPlace = {
          day: actualSchedule[index].day, // 기존 index의 day 값을 유지
          place: "",
-         types:"",
+         types: "",
          time: "",
          details: "",
       };
@@ -249,7 +295,7 @@ const useBoard = (isEditMode = false) => {
       const newDay = actualSchedule[actualSchedule.length - 1].day + 1;
       setActualSchedule([
          ...actualSchedule,
-         { day: newDay, place: "", types:"", time: "", details: "" },
+         { day: newDay, place: "", types: "", time: "", details: "" },
       ]);
    };
 
@@ -385,18 +431,18 @@ const useBoard = (isEditMode = false) => {
    };
    const handleSubmit = async () => {
       console.log("handleSubmit 실행 완료");
-      console.log(title);
-      console.log(country);
-      console.log(dateRange);
-      console.log(satisfaction);
-      console.log(courseno); /* || courseno == 0 */
-      if (!title || !country || !dateRange || !satisfaction ) {
+      console.log("📌 제목:" + title);
+      console.log("📍 나라:" + country);
+      console.log("📅 날짜:" + dateRange);
+      console.log("🌟 만족도:" + satisfaction);
+      console.log("📌 코스번호:" + courseno); /* || courseno == 0 */
+      if (!title || !country || !dateRange || !satisfaction) {
          alert("필수 항목을 모두 입력해주세요.");
          return;
       }
       try {
          console.log(photoUrls);
-         console.log(actualSchedule[0].types);
+         console.log(actualSchedule)
          const coursedata = actualSchedule.map((element) => ({
             tbd_day: element.day,
             tbd_time:
@@ -404,10 +450,15 @@ const useBoard = (isEditMode = false) => {
                   ? convertTo24HourFormat(element.time)
                   : element.time,
             tbd_place: element.place,
-            tbd_place_type: element.types?(Array.isArray(element.types)?element.types.join(","):element.types):null,
-            tbd_content: element.details?element.details:null,
-            //tbd_time_car: 10, // 임시로 10분으로 삽입
-            //tbd_time_public: 15, // 임시로 15분으로 삽입
+            tbd_place_id: element.place_id? element.place_id : null,
+            tbd_place_type: element.types? Array.isArray(element.types)
+                  ? element.types.join(",") : element.types
+               : null,
+            tbd_content: element.details ? element.details : null,
+            tbd_time_car: element.drivingDuration
+               ? element.drivingDuration: null,
+            tbd_time_public: element.transitDuration
+               ? element.transitDuration: null,
          }));
          const boardData = [
             {
@@ -500,6 +551,7 @@ const useBoard = (isEditMode = false) => {
       courses,
       setCourses,
       handleOpenCsModal,
+      calculateTravelDurations,
    };
 };
 

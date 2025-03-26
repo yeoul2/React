@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // 게시판 갯수 가져오기
-export const getBoardCount = async (search,keyword) => {
+export const getBoardCount = async (search,keyword,user_id) => {
    console.log(search,keyword);
    try {
       const response = await axios({
@@ -9,7 +9,8 @@ export const getBoardCount = async (search,keyword) => {
          url:`${process.env.REACT_APP_SPRING_IP}api/board/tripboardCount`,
          params: {
             search,
-            keyword
+            keyword,
+            user_id
          }
       })
       console.log("게시글 갯수: "+response.data);
@@ -20,8 +21,9 @@ export const getBoardCount = async (search,keyword) => {
    }
 }
 // 게시판 리스트 가져오기
-export const getBoardList = async (order,search,keyword,page) => {
-   console.log(order,search,keyword,page);
+export const getBoardList = async (order,search,keyword,page,user_id) => {
+   console.log("🚩정렬기준:",order,"🔎검색기준:",search,"🔎검색어:",keyword);
+   console.log("👀페이지:",page,"👤사용자:",user_id);
    try {
       const response = await axios({
          method:"get", 
@@ -30,7 +32,8 @@ export const getBoardList = async (order,search,keyword,page) => {
             order,
             search,
             keyword,
-            page
+            page,
+            user_id
          }
       })
       return response.data;
