@@ -2,15 +2,16 @@ import React, { useEffect } from "react";
 import "flatpickr/dist/themes/light.css";
 import "flatpickr/dist/l10n/ko.js";
 import Select from 'react-select';
-import { DndContext,pointerWithin, useDroppable } from "@dnd-kit/core";
+import { DndContext, pointerWithin, useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDropzone } from "react-dropzone";
 import useBoard from "../../components/hooks/useBoard";
 import { FaCalendarMinus, FaCalendarPlus, FaCloudUploadAlt, FaEdit, FaList, FaPencilAlt, FaStarOfLife, FaTrashAlt, FaUserAlt } from "react-icons/fa";
+import PlaceSearchWithMap from "../../services/PlaceSearchWithMap";
 
 // 개별 이미지 드래그 가능하도록 설정
-const DraggableImage = ({ item}) => {
+const DraggableImage = ({ item }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
 
   const style = {
@@ -20,7 +21,7 @@ const DraggableImage = ({ item}) => {
 
   return (
     <div ref={setNodeRef} style={style} data-id={item.id}  // ID를 HTML 속성으로 추가 
-    {...attributes} {...listeners} className="relative cursor-move">
+      {...attributes} {...listeners} className="relative cursor-move">
       <img src={item.url} alt="업로드된 이미지" className="w-full h-32 object-cover rounded-lg shadow-md" />
     </div>
   );
@@ -99,14 +100,24 @@ const TravelReviewForm = () => {
     setCourseModal,
     courses,
     setCourses,
-    handleOpenCsModal
+    handleOpenCsModal,
+    calculateTravelDurations
   } = useBoard(true); // true = 수정 모드
 
   const { getRootProps, getInputProps } = useDropzone({
-    accept: "image/*",
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/webp': ['.webp']
+    },
     multiple: true,
-    onDrop: handleDrop
+    onDrop: handleDrop,
+    onDropRejected: (fileRejections) => {
+      console.warn("❌ 잘못된 파일 형식:", fileRejections);
+      alert("🚫 JPG, PNG, WEBP 형식의 이미지 파일만 업로드할 수 있어요!");
+    }
   });
+
 
   useEffect(() => {
     if (photoUrls.length > 0) {
@@ -118,11 +129,6 @@ const TravelReviewForm = () => {
     }
   }, [photoUrls]);
 
-  useEffect(() => {
-    console.log("🖼 업데이트된 files 상태:", files);
-    console.log("🖼 업데이트된 previewUrls 상태:", previewUrls);
-    console.log("🖼 업데이트된 photoUrls 상태:", photoUrls);
-  }, [files, previewUrls, photoUrls]);
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
@@ -144,7 +150,7 @@ const TravelReviewForm = () => {
               type="text"
               className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
               placeholder="제목을 입력하세요"
-              value={title}
+              value={title || ""}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
@@ -160,27 +166,27 @@ const TravelReviewForm = () => {
                   type="text"
                   className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
                   placeholder="나라"
-                  value={country}
+                  value={country || ""}
                   onChange={(e) => setCountry(e.target.value)}
                 />
                 <input
                   type="text"
                   className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
                   placeholder="도시"
-                  value={city}
+                  value={city || ""}
                   onChange={(e) => setCity(e.target.value)}
                 />
               </div>
             </div>
             <div>
-            <div className="flex items-center">
+              <div className="flex items-center">
                 <label className="block text-sm font-medium text-gray-700 select-none">여행 기간</label>
                 <FaStarOfLife className="text-red-500 text-[10px] ml-2" />
               </div>
               <input
                 ref={datePickerRef}
                 className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none cursor-pointer"
-                placeholder={`${dateRange[0]} ~ ${dateRange[1]}`}
+                placeholder={(dateRange[0] && dateRange[1]) ? dateRange[0] + " ~ " + dateRange[1] : "여행 날짜를 선택하세요"}
                 onClick={toggleDatePicker} // 📌 클릭 시 달력 토글
                 readOnly // 📌 키보드 입력 방지 (달력으로만 선택)
               />
@@ -265,13 +271,13 @@ const TravelReviewForm = () => {
                 </div>
 
                 <div className="space-y-4">
-                {aiSchedule.map((schedule, index) => (
+                  {aiSchedule.map((schedule, index) => (
                     <div key={index} className="border-l-2 border-blue-200 pl-4 ml-2 relative">
                       {/* Day가 변경되지 않으면 한번만 표시 */}
                       {index === 0 || aiSchedule[index].day !== aiSchedule[index - 1].day ? (
-                          <span className="bg-blue-50 text-blue-700 px-2 py-[2px]  rounded-full text-sm inline-flex items-center whitespace-nowrap w-fit">
-                            {`DAY ${schedule.day}`}</span>
-                        ) : <span className="px-2 py-1 mt-3 rounded text-sm"></span>}
+                        <span className="bg-blue-50 text-blue-700 px-2 py-[2px]  rounded-full text-sm inline-flex items-center whitespace-nowrap w-fit">
+                          {`DAY ${schedule.day}`}</span>
+                      ) : <span className="px-2 py-1 mt-3 rounded text-sm"></span>}
                       <div className="mt-2 space-y-2">
                         <input type="text" className="w-full border-gray-300 rounded-lg" placeholder="장소" value={schedule.place} disabled />
                         <input type="text" className="w-full border-gray-300 rounded-lg" placeholder="시간" value={schedule.time} disabled />
@@ -315,22 +321,54 @@ const TravelReviewForm = () => {
                       </div>
                       {/* 일정 내용 */}
                       <div className="mt-2 space-y-2">
+                        {/* 🚗 차 / 🚌 대중교통 시간 표시 */}
+                        {(schedule.drivingDuration || schedule.transitDuration) && (
+                          <div className="text-sm text-gray-500 mb-1">
+                            {schedule.drivingDuration && (
+                              <span className="mr-4">🚗 {schedule.drivingDuration}</span>
+                            )}
+                            {schedule.transitDuration && (
+                              <span>🚌 {schedule.transitDuration}</span>
+                            )}
+                          </div>
+                        )}
+                        {/* 장소 */}
+                        <PlaceSearchWithMap
+                          defaultValue={schedule.place}
+                          onPlaceSelected={async (placeData, isConfirmed) => {
+                            console.log("🏞 선택된 장소:", placeData);
+                            if (!isConfirmed) return;
+                            const newSchedule = [...actualSchedule];
+                            newSchedule[index] = {
+                              ...newSchedule[index],
+                              place: placeData.name,
+                              place_id: placeData.place_id,
+                              types: placeData.types,
+                            }
+                            setActualSchedule(newSchedule);
+                            // 👇 상태 업데이트 직후 바로 사용하면 최신값이 아닐 수 있으므로
+                            // 업데이트 완료 후 최신값 기준으로 다시 계산
+                            setTimeout(() => {
+                              calculateTravelDurations(index, newSchedule);
+                            }, 0);
+                          }}
+                        />
                         <input
                           type="text"
                           className="w-full border-gray-300 rounded-lg"
-                          placeholder="장소"
-                          value={schedule.place}
+                          placeholder="장소유형"
+                          value={schedule.types||""}
                           onChange={(e) => {
                             const newSchedule = [...actualSchedule];
-                            newSchedule[index].place = e.target.value;
+                            newSchedule[index].types = e.target.value;
                             setActualSchedule(newSchedule);
                           }}
                         />
                         <input
                           type="text"
                           className="w-full border-gray-300 rounded-lg"
-                          placeholder="시간(HH:MM:SS) "
-                          value={schedule.time}
+                          placeholder="시간(HH:MM:SS 형태로 입력해주세요) "
+                          value={schedule.time || ""}
                           onChange={(e) => {
                             const newSchedule = [...actualSchedule];
                             newSchedule[index].time = e.target.value;
@@ -341,7 +379,7 @@ const TravelReviewForm = () => {
                           className="w-full border-gray-300 rounded-lg"
                           rows="2"
                           placeholder="상세 내용"
-                          value={schedule.details}
+                          value={schedule.details || ""}
                           onChange={(e) => {
                             const newSchedule = [...actualSchedule];
                             newSchedule[index].details = e.target.value;
@@ -392,7 +430,7 @@ const TravelReviewForm = () => {
             className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none"
             rows="4"
             placeholder="전반적인 여행 후기를 작성해주세요"
-            value={review}
+            value={review || ""}
             onChange={(e) => setReview(e.target.value)}
           ></textarea>
         </div>
