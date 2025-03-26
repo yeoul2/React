@@ -42,11 +42,16 @@ export const getCourseDetail = async (cs_no) => {
 // 코스 삭제하기
 export const deleteCourse = async (cs_no) => {
    try {
+      const accessToken = localStorage.getItem("accessToken") // 토큰가져오기
+
       const response = await axios({
          method: "delete",
          url: `${process.env.REACT_APP_SPRING_IP}api/course/delete`,
          params: {
             cs_no
+         },
+         headers: {
+            Authorization: `Bearer ${accessToken}`, // ✅ 토큰 붙이기
          }
       });
       console.log(response.data);
@@ -76,17 +81,57 @@ export const getCourseByUserId = async (user_id) => {
 // 코스 공유하기
 export const shareCourse = async (cs_no) => {
    try {
+      const accessToken = localStorage.getItem("accessToken")
       const response = await axios({
          method: "put",
          url: `${process.env.REACT_APP_SPRING_IP}api/course/shareCourse`,
          params: {
             cs_no
+         },
+         headers: {
+            Authorization: `Bearer ${accessToken}`
          }
       });
       console.log(response.data);
       return response.data;
    } catch (error) {
       console.error("코스 공유 실패: ", error);
+   }
+}
+
+// 좋아요 정보 가져오기 (유저가 좋아요를 눌렀는지)
+export const csHasLiked = async (cs_no,user_id) => {
+   console.log("cs_no: "+cs_no+", user_id: "+user_id);
+   try {
+      const response = await axios({
+         method:"post",
+         url:`${process.env.REACT_APP_SPRING_IP}api/course/csHasLiked`,
+         data: {
+            cs_no,
+            user_id
+         }
+      })
+      return response.data;
+   } catch (error) {
+      console.error("유저 좋아요 정보 가져오기 실패: "+error)
+   }
+}
+// 좋아요 토글하기
+export const csToggleLike = async (cs_no,user_id) => {
+   console.log("cs_no: "+cs_no+", user_id: "+user_id);
+   console.log(typeof cs_no);
+   try {
+      const response = await axios({
+         method:"post",
+         url:`${process.env.REACT_APP_SPRING_IP}api/course/csToggleLike`,
+         data: {
+            cs_no,
+            user_id
+         }
+      })
+      return response.data;
+   } catch (error) {
+      console.error("유저 좋아요 토글 실패: "+error)
    }
 }
 

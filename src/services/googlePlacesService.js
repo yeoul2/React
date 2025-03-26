@@ -26,7 +26,22 @@ export const fetchAutocomplete = async (query = "geocode") => {
     console.log("✅ 자동완성 응답:", response.data);
 
     return Array.isArray(response.data)
-      ? response.data : [];
+  ? response.data.filter((item) => {
+      const desc = item.description?.toLowerCase();
+      const queryLower = query.toLowerCase();
+
+      // 1. description이 undefined면 제외
+      if (!desc) return false;
+
+      // 2. '중국', '일본'처럼 정확히 포함된 국가명만 필터링
+      const exactMatch = desc === queryLower;
+      const startsWith = desc.startsWith(queryLower + " ");
+      const containsAsWord = desc.includes(" " + queryLower + " ");
+
+      return exactMatch || startsWith || containsAsWord;
+    })
+  : [];
+      
   } catch (error) {
     if (axios.isCancel(error)) {
       console.warn("🚨 자동완성 요청이 취소됨:", error.message);

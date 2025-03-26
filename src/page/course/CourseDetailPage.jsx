@@ -2,7 +2,7 @@
    import { useLocation, useNavigate, useParams } from "react-router-dom";
    import { deleteBoard, deleteComment, getBoardDetail, hasLiked, insertComment, toggleLike, updateComment } from "../../services/boardApi";
    import useStyle from "../../components/hooks/useStyle";
-   import { getCourseDetail } from "../../services/courseLogic";
+   import { csHasLiked, csToggleLike, getCourseDetail } from "../../services/courseLogic";
 
    const CourseDetailPage = () => {
    const { maskUserId } = useStyle();
@@ -24,21 +24,9 @@
    // 삭제 모달창 관리
    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-   // 댓글 및 대댓글 상태 관리
-   const [comments, setComments] = useState([]); // DB에서 불러올 댓글 정보 담기
-   const [newComment, setNewComment] = useState(""); // 새로 입력하는 댓글
-   const [parentc, setParentc] = useState(null); // 대댓글인 경우 부모댓글 번호 담기
-   const [replyingTo, setReplyingTo] = useState(null); // 대댓글창 입력 여부 담기
-   const [newReply, setNewReply] = useState(""); // 새로 입력하는 대댓글
-
-   //댓글 수정 상태 관리
-   const [editingComment, setEditingComment] = useState(null); // 수정 중인 댓글 상태
-   const [editedComment, setEditedComment] = useState(""); // 수정된 댓글 내용
-
-
    // 좋아요 상태 관리
    const [liked, setLiked] = useState(false); // 유저가 좋아요 눌렀는지 정보
-
+   const [likeCount, setLikeCount] = useState(0); // ✅ 추가: 좋아요 수 상태
 
    // ai코스 목업데이터(이후에 코스 불러오기 구현해야됨)
    const timeline = {
@@ -55,15 +43,17 @@
          const boardData = await getCourseDetail(cs_no);
          console.log(boardData);
          setCourses(boardData[0]);
+         setLikeCount(boardData[0].cs_like_count); // ✅ 추가: 좋아요 수 초기화
+         console.log(boardData[0].cs_like_count);
          if (boardData[1].course) {
             setCourseDetail(boardData[1].course);
             setActualSchedule(
             Array.isArray(courseDetail)
-               ? courseDetail.map(({ tbd_day, tbd_place, tbd_time, tbd_content }) => ({
-                  day: tbd_day,
-                  place: tbd_place,
-                  time: tbd_time,
-                  details: tbd_content,
+               ? courseDetail.map(({ cdt_day, cdt_place, cdt_time, cdt_content }) => ({
+                  day: cdt_day,
+                  place: cdt_place,
+                  time: cdt_time,
+                  details: cdt_content,
                }))
                : []
             );
@@ -92,23 +82,13 @@
             setCourseDetail(boardData[1].course)
             console.log(courseDetail);
          }
-         if (boardData[2]) {
-            setComments(boardData[2].comments);
-            console.log(comments);
-         }
       } catch (error) {
          console.error("상세 게시글 데이터 불러오기 실패: " + error);
       }
       }
       Data()
       userLike()
-   }, [liked])
-   // 게시글 수정 메소드
-   const handleEditBoard = (courses, courseDetail) => {
-      console.log(courses);
-      console.log(courseDetail);
-      navigate(`/boardedit/${cs_no}`, { state: { courses, courseDetail } })
-   }
+   }, []) // ✅ liked 제거: handleLike 내부에서 처리
 
    // 삭제 버튼 클릭 시 모달 열기
    const handleOpenDeleteModal = () => {
@@ -132,121 +112,31 @@
    // 유저가 좋아요 눌렀는지 확인하는 메소드
    const userLike = async () => {
       try {
-      const LikeData = await hasLiked(cs_no, localStorage.user_id);
-      console.log(localStorage.user_id + "좋아요 눌렀니?" + LikeData);
-      setLiked(LikeData)
-      return LikeData
+         const LikeData = await csHasLiked(cs_no, localStorage.user_id);
+         setLiked(LikeData); // ✅ 상태만 반영
+         return LikeData;
       } catch (error) {
-      console.error("좋아요 메소드 실패:" + error)
+         console.error("좋아요 메소드 실패:", error);
       }
-   }
+   };
 
    // 좋아요 기능 (토글 기능 추가)
    const handleLike = async () => {
       try {
-      const response = await toggleLike(cs_no, localStorage.user_id);
-      console.log("좋아요 토글 결과" + response);
-      userLike()
+         const response = await csToggleLike(cs_no, localStorage.user_id);
+         console.log("좋아요 토글 결과", response);
+   
+         const newLiked = !liked;
+         setLiked(newLiked); // 상태 토글
+   
+         // ✅ 수치 반영은 여기서만 직접! userLike에선 하지 말기
+         setLikeCount((prev) => newLiked ? prev + 1 : Math.max(prev - 1, 0));
+   
       } catch (error) {
-      console.error("좋아요 토글 실패: " + error)
+         console.error("좋아요 토글 실패:", error);
       }
    };
 
-   // 댓글 작성 핸들러
-   const handleCommentSubmit = async () => {
-      try {
-      const commentdata = {
-         "user_id": localStorage.user_id,
-         "cs_no": cs_no,
-         "tbc_comment": newComment
-      };
-      if (parentc) {
-         commentdata.parent_tbc_no = parentc;
-      }
-      const commentinsert = await insertComment(commentdata)
-      setNewComment(""); // 댓글 입력 필드 초기화
-      // 댓글 목록 다시 가져오기 (새로고침 효과)
-      const boardData = await getBoardDetail(cs_no);
-      setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
-      return commentinsert
-      } catch (error) {
-      console.error("댓글 등록 실패:" + error)
-      }
-   };
-
-   // 대댓글 창 열때마다 대댓글 입력 필드 초기화
-   useEffect(() => {
-      setNewReply(""); // 대댓글 입력 필드 초기화
-   }, [replyingTo]); // replyingTo가 변경될 때마다 실행
-
-   // 대댓글 작성 핸들러
-   const handleReplySubmit = async (tbc_no) => {
-      setParentc(tbc_no); // 부모 댓글 번호 설정
-      try {
-      const commentdata = {
-         "user_id": localStorage.user_id,
-         "cs_no": cs_no,
-         "tbc_comment": newReply,
-         "parent_tbc_no": tbc_no
-      };
-      const commentinsert = await insertComment(commentdata)
-      setParentc(null); // 대댓글 확인용 부모댓글 번호 초기화
-      setNewReply(""); // 대댓글 입력 필드 초기화
-      setReplyingTo(null); // 대댓글창 닫기
-      // 댓글 목록 다시 가져오기 (새로고침 효과)
-      const boardData = await getBoardDetail(cs_no);
-      setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
-      return commentinsert
-      } catch (error) {
-      console.error("댓글 등록 실패:" + error)
-      }
-   };
-
-   //댓글 수정
-   const handleEditComment = (comment) => {
-      console.log("handleEditComment: " + comment);
-      setEditingComment(comment); // 수정할 댓글 설정
-      setEditedComment(comment.tbc_comment); // 수정할 댓글 내용 설정
-   };
-
-   const handleSaveEdit = async () => {
-      try {
-      const updatedCommentData = {
-         tbc_comment: editedComment,
-         tbc_no: editingComment.tbc_no // 대댓글도 수정되도록 설정
-      };
-
-      // 대댓글일 경우, 부모 댓글 번호도 포함하여 보내기
-      if (editingComment.parent_tbc_no) {
-         updatedCommentData.parent_tbc_no = editingComment.parent_tbc_no;
-      }
-
-      // 댓글 수정 API 호출
-      const response = await updateComment(updatedCommentData);
-      setEditingComment(null); // 수정 완료 후 수정 상태 초기화
-      setEditedComment(""); // 수정된 댓글 내용 초기화
-
-      // 댓글 목록 다시 가져오기
-      const boardData = await getBoardDetail(cs_no);
-      setComments(boardData[2].comments); // 댓글 목록 업데이트
-      } catch (error) {
-      console.error("댓글 수정 실패:", error);
-      }
-   };
-
-
-   // 댓글 삭제
-   const handlecommentdelete = async (tbc_no) => {
-      try {
-      const c_delete_response = await deleteComment(tbc_no);
-      // 댓글 목록 다시 가져오기 (새로고침 효과)
-      const boardData = await getBoardDetail(cs_no);
-      setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
-      return c_delete_response
-      } catch (error) {
-      console.error("댓글 삭제 실패:" + error)
-      }
-   }
 
    return (
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -272,13 +162,6 @@
                   {localStorage.user_id === courses.user_id && (
                   <div className="flex space-x-2">
                      <div>
-                        {/* 삭제 버튼 */}
-                        <button
-                        className="text-sm text-gray-500 px-3 py-1 rounded-md hover:bg-red-100"
-                        onClick={() => handleOpenDeleteModal()}
-                        >
-                        삭제
-                        </button>
                         {/* 삭제 확인 모달 */}
                         {showDeleteModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -369,7 +252,7 @@
                   onClick={handleLike}
                >
                   <img src={liked ? "/images/ui_image/clicklike.png" : "/images/ui_image/unclicklike.png"} alt="" className="w-[80px] h-[80px]" />
-                  {courses.tb_like_count}
+                  {likeCount} {/* ✅ 수정: courses.cs_like_count → likeCount */}
                </button>
             </div>
             </section>
