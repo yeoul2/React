@@ -53,17 +53,22 @@ const TripReview = () => {
     const Data = async () => {
       try {
         const boardData = await getBoardDetail(tb_no);
-        console.log(boardData);
+        console.log("📃게시글정보",boardData[0]);
+        console.log("📃게시글코스정보",boardData[1].course);
         setTripData(boardData[0]);
         if (boardData[1].course) {
           setTripdetailData(boardData[1].course);
           setActualSchedule(
             Array.isArray(boardData[1].course)
-              ? boardData[1].course.map(({ tbd_day, tbd_place, tbd_time, tbd_content }) => ({
+              ? boardData[1].course.map(({ tbd_day, tbd_place, tbd_place_id, tbd_time, tbd_content, tbd_time_car, tbd_time_public,tbd_place_type }) => ({
                 day: tbd_day,
                 place: tbd_place,
+                place_id: tbd_place_id,
+                types: tbd_place_type,
                 time: tbd_time,
                 details: tbd_content,
+                drivingDuration: tbd_time_car,
+                transitDuration: tbd_time_public
               }))
               : []
           );
@@ -370,8 +375,20 @@ const TripReview = () => {
                       <h3 className="font-medium text-lg text-gray-900 mb-2">{`DAY ${schedule.day}`}</h3>
                     </>)
                     : <span className="px-2 py-1 mt-3 rounded text-sm"></span>}
+                  {/* 🚗 차 / 🚌 대중교통 시간 표시 */}
+                  {(schedule.drivingDuration || schedule.transitDuration) && (
+                    <div className="text-sm text-gray-500 mb-1">
+                      {schedule.drivingDuration && (
+                        <span className="mr-4">🚗 {schedule.drivingDuration}</span>
+                      )}
+                      {schedule.transitDuration && (
+                        <span>🚌 {schedule.transitDuration}</span>
+                      )}
+                    </div>
+                  )}
                   <p className="text-gray-600">{schedule.time}</p>
                   <p className="text-gray-600">{schedule.place}</p>
+                  <p className="text-sm text-gray-600">{schedule.types}</p>
                   <p className="text-gray-600">{schedule.details}</p>
                 </div>
 

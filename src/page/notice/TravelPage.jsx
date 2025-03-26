@@ -84,7 +84,7 @@ const TravelPage = () => {
     const fetchData = async () => {
       try {
         // getBoardCount로 총 게시물 수 가져오기
-        const boardCount = await getBoardCount(searchFilter, searchTerm);
+        const boardCount = await getBoardCount(searchFilter, searchTerm,localStorage.getItem("user_id"));
         setTotalPosts(boardCount); // 총 게시물 수 상태 업데이트
 
         // 총 페이지 수 계산
@@ -92,7 +92,7 @@ const TravelPage = () => {
         setTotalPages(calculatedTotalPages);
 
         // getBoardList 호출하여 게시판 데이터 가져오기
-        const placesData = await getBoardList(sortOrder, searchFilter, searchTerm, currentPage);
+        const placesData = await getBoardList(sortOrder, searchFilter, searchTerm, currentPage,localStorage.getItem("user_id"));
         setPlaces(placesData);
 
       } catch (error) {

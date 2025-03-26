@@ -551,6 +551,7 @@ const HomePage = () => {
         {selectedCountry && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white w-[500px] p-6 rounded-lg shadow-xl relative">
+
               {/* 닫기 버튼 */}
               <button
                 className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
