@@ -31,9 +31,7 @@ const LoginPage = () => {
         },
         { withCredentials: true }
       );
-
       console.log("✅ 로그인 성공, 응답 데이터:", response.data); // 응답 확인
-
       console.log("📌 check 값 확인:", response.data.check); // 🔥 check 값이 실제로 있는지 확인
       // 로그인 성공: JWT 토큰을 localStorage에 저장
       localStorage.setItem("accessToken", response.data.accessToken); //jwt 토큰 저장
@@ -42,14 +40,11 @@ const LoginPage = () => {
       localStorage.setItem("role", response.data.role);
       localStorage.setItem("check", "Y");
       localStorage.setItem("user_email", response.data.user_email);
-
-      // ✅ 새로고침해도 로그인 유지하도록 전역 상태 업데이트 (이 코드가 없으면 헤더에서 로그인 인식을 못 함)
+      // 새로고침해도 로그인 유지하도록 전역 상태 업데이트 (이 코드가 없으면 헤더에서 로그인 인식을 못 함)
       window.dispatchEvent(new Event("storage"));
-
       alert("로그인 성공!");
       navigate("/"); // ✅ 로그인 성공 시 메인 페이지로 이동
       //window.location.reload();
-
       console.log("서버응답 :", response.data);
     } catch (error) {
       console.error("로그인 오류:", error);
