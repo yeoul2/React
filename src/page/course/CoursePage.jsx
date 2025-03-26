@@ -158,12 +158,15 @@ const fetchCourses = async () => {
                   <div className="flex items-center justify-center">
                      {/* 왼쪽 이미지 영역 */}
                      <div className="w-40 h-40 bg-gray-300 flex items-center justify-center">
-                        <span className="text-gray-500">이미지</span>
+                        <span className="text-gray-500">  
+                           <img src="/images/icon_image/Yeoul_Logo.png" alt="썸네일" className="w-24 h-24 object-cover" />
+                        </span>
                      </div>
                      {/* 왼쪽 이미지 영역 끝 */}
                      {/* 중앙 영역 */}
                      <div className="ml-4 flex-col">
                         <p>{course.cs_name}</p>
+                        <p>{course.cs_country} {course.cs_departure_date} ~ {course.cs_return_date}</p>
                         <p>내용</p>
                         <p className="text-[10px] text-black-500 mr-80 ">{maskUserId(course.user_id)}  |  {course.cs_up_date}</p>{/* 코스 업데이트 날짜 */}
                      </div>
