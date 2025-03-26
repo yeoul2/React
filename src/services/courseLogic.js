@@ -99,3 +99,39 @@ export const shareCourse = async (cs_no) => {
    }
 }
 
+// 좋아요 정보 가져오기 (유저가 좋아요를 눌렀는지)
+export const csHasLiked = async (cs_no,user_id) => {
+   console.log("cs_no: "+cs_no+", user_id: "+user_id);
+   try {
+      const response = await axios({
+         method:"post",
+         url:`${process.env.REACT_APP_SPRING_IP}api/course/csHasLiked`,
+         data: {
+            cs_no,
+            user_id
+         }
+      })
+      return response.data;
+   } catch (error) {
+      console.error("유저 좋아요 정보 가져오기 실패: "+error)
+   }
+}
+// 좋아요 토글하기
+export const csToggleLike = async (cs_no,user_id) => {
+   console.log("cs_no: "+cs_no+", user_id: "+user_id);
+   console.log(typeof cs_no);
+   try {
+      const response = await axios({
+         method:"post",
+         url:`${process.env.REACT_APP_SPRING_IP}api/course/csToggleLike`,
+         data: {
+            cs_no,
+            user_id
+         }
+      })
+      return response.data;
+   } catch (error) {
+      console.error("유저 좋아요 토글 실패: "+error)
+   }
+}
+
