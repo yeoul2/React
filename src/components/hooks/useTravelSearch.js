@@ -25,54 +25,13 @@ const useTravelSearch = () => {
 
   const searchResultsRef = useRef(null); // 🔹 검색 결과 영역 참조
 
-  /**
-   * 📌 하나의 함수로 국가, 도시, 상세 주소를 구분하여 검색하는 공통 함수
-   *
-   * @param {string} query 사용자가 입력한 검색어
-   * @param {string} type 검색 타입: 'regions' | 'cities' | 'geocode'
-   * @param {function} setSuggestions 결과값을 상태에 저장할 함수 (예: setSuggestedCountries)
-   */
-  const latestQueryRef = useRef(""); // ✅ 최신 검색어 추적 (불필요한 API 호출 방지)
-
-  const fetchPlaces = async (query, type, setSuggestions) => {
-    if (!query || typeof query !== "string" || query.trim() === "") return; // ✅ query가 유효한 문자열인지 체크
-
-    latestQueryRef.current = query; // ✅ 최신 검색어 저장
-
-    console.log("🔍 API 요청 시작 - 검색어:", query, "타입:", type);
-
-    try {
-      const results = await fetchAutocomplete(query, type); // ✅ googlePlacesApi.js에서 가져오기
-
-      // ✅ 최신 검색어가 변경되지 않은 경우에만 상태 업데이트
-      if (latestQueryRef.current === query) {
-        setSuggestions(results);
-      }
-    } catch (error) {
-      console.error("Google Places API 장소 검색 오류:", error);
-    }
-  };
-
   useEffect(() => {
-    const fetchRecentSearches = async () => {
-      const accessToken = localStorage.getItem("accessToken");
-      if (!accessToken) {
-        console.warn("❌ accessToken이 없습니다. 로그인 여부를 확인하세요.");
-        return; // 🚨 accessToken이 없으면 API 요청하지 않음
-      }
-
-      try {
-        const searches = await getRecentSearches(accessToken);
-        console.log("🔍 가져온 recentSearches 데이터:", searches);
-
-        setRecentSearches(Array.isArray(searches) ? searches : []);
-      } catch (error) {
-        console.error("❌ 최근 검색어 불러오기 실패:", error);
-        setRecentSearches([]); // 🚨 오류 발생 시 안전한 기본값 설정
-      }
+    const fetchPopular = async () => {
+      const data = await getPopularDestinations();
+      console.log("🔥 인기 여행지 응답:", data); // ✅ 확인 포인트
+      setPopularDestinations(data);
     };
-
-    fetchRecentSearches();
+    fetchPopular();
   }, []);
 
   // 📌 로그인 상태 감지 및 최근 검색어 불러오기 (DB에서)
@@ -188,7 +147,7 @@ const useTravelSearch = () => {
       } catch (error) {
         console.error("❌ Google Places API 오류:", error);
       }
-    }, 300),
+    }),
     []
   );
 
@@ -345,7 +304,6 @@ const useTravelSearch = () => {
     popularDestinations, // 🔹 인기 여행지 목록
     searchResultsRef, // 🔹 검색 결과 DOM 참조
     handleCountryChange, // 🔹 나라 입력 시 자동완성 처리
-    fetchPlaces, // 🔹 공통 검색 함수
     saveSearch, // 🔹 검색어 저장 함수 (백엔드 API 호출)
     setSearchTerm, // 🔹 검색어 변경 함수
     setShowResults, // 🔹 검색 결과 표시 여부 설정

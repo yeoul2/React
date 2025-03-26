@@ -8,8 +8,8 @@ import "flatpickr/dist/l10n/ko.js";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import axios from "axios";
 import useTravelSearch from "../../components/hooks/useTravelSearch"; // ✅ 커스텀 훅 추가
-import { Navigate } from "react-router";
 import { v4 as uuidv4 } from 'uuid';
+import { useLocation } from "react-router";
 
 // 📌 모달 스타일 설정
 const modalStyles = {
@@ -55,6 +55,20 @@ const PlannerPage = () => {
   const [expandedDays, setExpandedDays] = useState({}); // ✅ 하루 일정 펼침 상태
   const [zoomLevel, setZoomLevel] = useState(12); // 🔹 기본 줌 레벨 설정
   const [selectedDayIndex, setSelectedDayIndex] = useState(null); // ✅ 선택된 DAY
+  const [travelDays, setTravelDays] = useState(0);      // 여행 기간
+  const [numberOfPeople, setNumberOfPeople] = useState(1);  // 인원수
+  const [selectedThemes, setSelectedThemes] = useState([]); // 선택된 테마
+  const [markers, setMarkers] = useState([]);
+  const [aiPlan, setAiPlan] = useState([]);
+
+  // ✅ 사용자 정보 상태 (로그인 연동)
+  const [currentUser, setCurrentUser] = useState({
+    id: localStorage.getItem("user_id"),
+  });
+
+  // 상태 추가: AI 일정
+  const [aiSchedule, setAiSchedule] = useState(null);
+
 
   // 📌 모달 열기 및 닫기
   const openModal = () => setIsModalOpen(true);
@@ -63,23 +77,21 @@ const PlannerPage = () => {
   const datePickerRef = useRef(null);
   const flatpickrInstance = useRef(null); // 📌 Flatpickr 인스턴스 저장
 
-  // ✅ 커스텀 훅 사용하여 검색 기능 적용
   const {
     isLoggedIn, // 🔹 로그인 여부 추가
-    currentUser, // 🔹 현재 로그인한 사용자 정보 추가
-    searchTerm,
-    showResults,
-    selectedCity,
-    recentSearches = [],
-    popularDestinations = [],
-    suggestedCities,
-    searchResultsRef,
-    setShowResults,
-    handleCountryChange,
-    handleClearSearch,
-    handleCitySelect,
-    handleRemoveRecentSearch,
-    handlePopularDestinationSelect,
+    searchTerm, // 🔹 검색어 상태
+    showResults, // 🔹 검색 결과 표시 여부
+    selectedCity, // 🔹 선택된 도시
+    recentSearches, // 🔹 최근 검색어 목록
+    suggestedCities, // 🔹 추천 도시 목록
+    popularDestinations, // 🔹 인기 여행지 목록
+    searchResultsRef, // 🔹 검색 결과 DOM 참조
+    handleCountryChange, // 🔹 나라 입력 시 자동완성 처리
+    setShowResults, // 🔹 검색 결과 표시 여부 설정
+    handleClearSearch, // 🔹 검색어 초기화
+    handleCitySelect, // 🔹 도시 선택 처리
+    handlePopularDestinationSelect, // 🔹 인기 여행지 선택 처리
+    handleRemoveRecentSearch, // 🔹 최근 검색어 삭제
   } = useTravelSearch();
 
   // 📌 여행 스타일 선택 및 해제 기능 (최대 6개 선택 가능)
@@ -100,6 +112,120 @@ const PlannerPage = () => {
     { id: "축제 문화 투어", icon: "fas fa-music" },
   ];
 
+  const generateAIPlan = async ({
+    city,
+    days,
+    people,
+    style,
+    isAddMode = false,  // 일정 추가 모드 (최대 5개 제한)
+    saveSearch = false  // 검색어 저장 여부
+  }) => {
+    if (isAddMode && plans?.length >= 5) {
+      alert("최대 5개의 일정만 생성할 수 있습니다.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      if (saveSearch) {
+        await handleCountryChange(city, "city");
+      }
+
+      const response = await axios.post(`${process.env.REACT_APP_FASTAPI_URL}/generate-schedule`, {
+        city,
+        days,
+        people,
+        style: style.join(", ")
+      });
+
+      const aiData = response.data?.schedule || response.data;
+
+      if (!Array.isArray(aiData)) throw new Error("AI 일정이 유효하지 않음");
+
+      if (isAddMode) {
+        const newPlan = {
+          id: uuidv4(),
+          name: `${city} 여행`,
+          days: aiData
+        };
+        setPlans((prev) => {
+          const safePrev = Array.isArray(prev) ? prev : [];
+          const updated = [...safePrev, newPlan];
+          setSelectedPlanIndex(updated.length - 1);
+          return updated;
+        });
+      } else {
+        setPlans(aiData); // 전체 덮어쓰기
+      }
+
+      const markers = aiData
+        .flatMap((day) => day.activities || [])
+        .map((a) => ({ lat: a.latitude, lng: a.longitude }))
+        .filter((pos) => pos.lat && pos.lng);
+
+      if (markers.length > 0) {
+        setMapCenter({ lat: markers[0].lat, lng: markers[0].lng });
+      }
+
+      if (!isAddMode) setShowResults(false);
+
+    } catch (error) {
+      console.error("❌ AI 일정 처리 실패:", error);
+      if (!isAddMode) setPlans([]);
+      alert("AI 일정 생성 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const selected = plans[selectedPlanIndex];
+    if (!selected) return;
+
+    const markerList = selected.days
+      .flatMap((day) => day.activities || [])
+      .map((activity) => {
+        const lat = Number(activity.latitude);
+        const lng = Number(activity.longitude);
+        return (!isNaN(lat) && !isNaN(lng)) ? { lat, lng } : null;
+      })
+      .filter((marker) => marker !== null);
+
+    console.log("📍 변환된 마커 목록:", markerList);
+
+    setMarkers(markerList);
+
+    if (markerList.length > 0) {
+      setMapCenter(markerList[0]);
+    }
+
+    if (markerList.length === 1) {
+      setZoomLevel(15);
+    } else if (markerList.length > 1) {
+      setZoomLevel(12);
+    }
+
+  }, [selectedPlanIndex, plans]);
+
+  const handleGenerateAIPlan = () => {
+    generateAIPlan({
+      city: country,
+      days: parseInt(tripDuration, 10),
+      people: adults || 2,
+      style: travelStyle,
+      isAddMode: true
+    });
+  };
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.aiPlan) {
+      setAiPlan(location.state.aiPlan); // ✅ AI 일정 결과 반영
+    }
+  }, [location]);
+
   // 📌 Flatpickr 초기화 및 관리
   useEffect(() => {
     if (datePickerRef.current) {
@@ -116,6 +242,7 @@ const PlannerPage = () => {
           if (selectedDates.length === 2) {
             const nights = Math.round((selectedDates[1] - selectedDates[0]) / (1000 * 60 * 60 * 24));
             setTripDuration(`${nights}박 ${nights + 1}일`);
+            setTravelDays(nights + 1)
           }
           setIsDatePickerOpen(false); // 📌 날짜 선택 시 달력 닫기
         },
@@ -126,6 +253,75 @@ const PlannerPage = () => {
       if (flatpickrInstance.current) flatpickrInstance.current.destroy();
     };
   }, []);
+
+  // 📌 확인 버튼 클릭 시: 검색어 저장 + AI 일정 요청 + 지도 경로 설정
+  const handleConfirmSearch = async () => {
+    if (!isLoggedIn || !searchTerm) return;
+
+    try {
+      await handleCountryChange(searchTerm, "country");
+      setIsLoading(true);
+
+      if (Array.isArray(plans) && plans.length >= 5) {
+        alert("일정은 최대 5개까지만 생성할 수 있습니다.");
+        return;
+      }
+
+      const response = await axios.post("/api/schedule/generate", {
+        city: searchTerm,
+        days: travelDays,
+        people: adults,
+        style: travelStyle.join(", ")
+      });
+
+      // ✅ 여기에 추가! 응답 구조 확인
+      const planData = Array.isArray(response.data) ? response.data : (response.data.schedule || []);
+      console.log("📦 백엔드 응답 전체:", planData);
+
+      // ✅ 여기서 상세하게 activity 별 좌표 확인
+      planData.forEach((day, i) => {
+        console.log(`📅 DAY ${i + 1}`);
+        day.activities?.forEach((act, j) => {
+          console.log(`  ${j + 1}. ${act.title} → lat: ${act.latitude}, lng: ${act.longitude}`);
+        });
+      });
+
+      // 🔽 이후 기존 로직은 그대로 둡니다
+      const newPlan = {
+        id: uuidv4(),
+        name: `${searchTerm} 여행`,
+        days: planData
+      };
+
+      setPlans((prevPlans = []) => {
+        const updated = [...prevPlans, newPlan];
+        setSelectedPlanIndex(updated.length - 1);
+        return updated;
+      });
+
+      const extractedMarkers = planData
+        .flatMap(day => (day.activities ?? []))
+        .map(activity => {
+          const lat = Number(activity.latitude);
+          const lng = Number(activity.longitude);
+          return (!isNaN(lat) && !isNaN(lng)) ? { lat, lng } : null;
+        })
+        .filter(marker => marker !== null);
+
+      console.log("🛰️ 지도 마커 목록:", extractedMarkers); // 👉 여기도 확인
+
+      setMarkers(extractedMarkers);
+      if (extractedMarkers.length > 0) {
+        setMapCenter(extractedMarkers[0]);
+      }
+
+    } catch (e) {
+      console.error("❌ AI 일정 생성 실패:", e);
+      alert("AI 일정 생성에 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 📌 접기/펼치기 토글 함수
   const toggleDay = (dayId) => {
@@ -152,117 +348,6 @@ const PlannerPage = () => {
     }
   }, [selectedPlanIndex, plans]); // 🔹 selectedPlanIndex 변경될 때 실행
 
-  // ✅ AI 일정 생성 + 더미 데이터 방식 통합
-  const handleGenerateAIPlan = async () => {
-    if (plans?.length >= 5) return alert("최대 5개의 일정만 생성할 수 있습니다.");
-
-    setIsLoading(true);
-    console.log("🚀 AI 요청 시작...");
-
-    const requestData = { country, dateRange, tripDuration, travelStyle };
-    console.log("📡 AI 요청 데이터:", requestData);
-
-    let aiPlans = null;
-
-    /*
-    try {
-        const response = await axios.post("/api/ai/generate-plan", requestData);
-        aiPlans = response.data.map(plan => ({
-            ...plan,
-            id: plan.id || uuidv4(),
-        }));
-        if (!aiPlans?.length) throw new Error("AI 일정 응답 없음.");
-    } catch (error) {
-        console.error("❌ AI 일정 추천 실패:", error);
-        alert("AI 일정 추천 중 오류 발생. 더미 데이터를 사용합니다.");
-    }
-    */
-
-    // ✅ 일정 5개 + 각 일정에 5일 치 상세 일정 포함
-    const dummyPlans = [
-      {
-        id: uuidv4(),
-        name: "서울 여행",
-        days: Array.from({ length: 5 }, (_, dayIndex) => ({
-          day: `DAY ${dayIndex + 1}`,
-          activities: [
-            { time: "09:00", title: "🏰 명소 방문", desc: "서울 주요 관광지 방문" },
-            { time: "12:00", title: "🍜 점심", desc: "서울 대표 음식 체험" },
-            { time: "14:00", title: "🎭 문화 체험", desc: "박물관 및 랜드마크 방문" },
-            { time: "18:00", title: "🌆 야경 감상", desc: "서울 야경 명소 방문" },
-            { time: "20:00", title: "🍷 저녁", desc: "서울 맛집에서 저녁 식사" },
-          ],
-        })),
-      },
-      {
-        id: uuidv4(),
-        name: "부산 여행",
-        days: Array.from({ length: 5 }, (_, dayIndex) => ({
-          day: `DAY ${dayIndex + 1}`,
-          activities: [
-            { time: "09:00", title: "🌊 해변 산책", desc: "해운대 및 광안리 방문" },
-            { time: "12:00", title: "🍣 점심", desc: "부산 횟집 체험" },
-            { time: "14:00", title: "🎢 놀이공원", desc: "롯데월드 어드벤처 방문" },
-            { time: "18:00", title: "🌅 일몰 감상", desc: "광안대교에서 일몰 감상" },
-            { time: "20:00", title: "🍶 야시장 방문", desc: "깡통시장 및 국제시장 탐방" },
-          ],
-        })),
-      },
-      {
-        id: uuidv4(),
-        name: "제주도 여행",
-        days: Array.from({ length: 5 }, (_, dayIndex) => ({
-          day: `DAY ${dayIndex + 1}`,
-          activities: [
-            { time: "09:00", title: "⛰️ 한라산 등반", desc: "한라산 자연 탐방" },
-            { time: "12:00", title: "🍜 점심", desc: "제주 흑돼지 체험" },
-            { time: "14:00", title: "🏝️ 해변 휴식", desc: "협재해변 또는 함덕해수욕장" },
-            { time: "18:00", title: "🌅 일몰 감상", desc: "성산일출봉 근처 감상" },
-            { time: "20:00", title: "🍷 저녁", desc: "제주 오션 뷰 레스토랑" },
-          ],
-        })),
-      },
-      {
-        id: uuidv4(),
-        name: "강릉 여행",
-        days: Array.from({ length: 5 }, (_, dayIndex) => ({
-          day: `DAY ${dayIndex + 1}`,
-          activities: [
-            { time: "09:00", title: "🏄 서핑 체험", desc: "강릉 경포대 서핑" },
-            { time: "12:00", title: "🍲 점심", desc: "초당순두부 맛집 탐방" },
-            { time: "14:00", title: "🎨 박물관 방문", desc: "강릉 선교장 문화 체험" },
-            { time: "18:00", title: "🌊 해변 야경", desc: "주문진 방파제에서 산책" },
-            { time: "20:00", title: "🍷 저녁", desc: "로컬 펍 및 카페 방문" },
-          ],
-        })),
-      },
-      {
-        id: uuidv4(),
-        name: "전주 여행",
-        days: Array.from({ length: 5 }, (_, dayIndex) => ({
-          day: `DAY ${dayIndex + 1}`,
-          activities: [
-            { time: "09:00", title: "🏯 한옥마을 방문", desc: "전주 한옥마을 산책" },
-            { time: "12:00", title: "🍚 점심", desc: "전주 비빔밥 체험" },
-            { time: "14:00", title: "🖼️ 전통문화 체험", desc: "전통 공예 체험" },
-            { time: "18:00", title: "🌇 한강 야경", desc: "전주 한강 야경 감상" },
-            { time: "20:00", title: "🍶 막걸리 투어", desc: "전주 막걸리 골목 투어" },
-          ],
-        })),
-      },
-    ];
-
-    const newPlan = aiPlans?.length ? aiPlans[0] : dummyPlans[0];
-
-    setPlans((prevPlans) => {
-      const safePrevPlans = Array.isArray(prevPlans) ? prevPlans : []; // ✅ prevPlans가 배열이 아닐 경우 빈 배열로 초기화
-      const updatedPlans = [...safePrevPlans, newPlan]; // ✅ 기존 일정에 새 일정 추가
-      setSelectedPlanIndex(updatedPlans.length - 1); // ✅ 가장 마지막 일정 선택
-      return updatedPlans;
-    });
-
-    setIsLoading(false);
-  };
 
   // 📌 DAY 클릭 시 해당 일정으로 지도 이동
   const handleSelectDay = (dayIndex) => {
@@ -400,27 +485,6 @@ const PlannerPage = () => {
     setIsPeopleOpen(false);
   };
 
-  /** ✅ 메인 배너 검색 (여행 코스 검색) */
-  const handleSearch = () => {
-
-    /* try {
-      // 🔹 AI API 요청 (axios 사용)
-      const response = await axios.post("https://your-ai-api.com/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: searchTerm }),
-      });
-  
-      const result = await response.json();
-  
-      // 🔹 검색 결과가 존재하는 경우, MainContent로 이동
-      window.location.href = `/ course ? search = ${ encodeURIComponent(searchTerm) }`;
-    } catch (error) {
-      console.error("검색 중 오류 발생:", error);
-      alert("검색 중 문제가 발생했습니다.");
-    } */
-  };
-
   return (
     <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 py-8 mt-16">
       {/* 📌 타이틀 */}
@@ -451,11 +515,10 @@ const PlannerPage = () => {
               {/* 🔹 여행 국가 검색 입력창 */}
               <input
                 type="text"
+                value={searchTerm}
                 className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
                 placeholder="여행하고 싶은 나라나 도시를 입력하세요"
-                value={searchTerm}
-                onChange={(e) => handleCountryChange(e.target.value || "")} // ✅ 값이 없으면 빈 문자열("")로 설정
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                onChange={(e) => handleCountryChange(e.target.value)}
                 onFocus={() => setShowResults(true)} // 🔹 포커스 시 자동완성 UI 열림
               />
 
@@ -471,7 +534,7 @@ const PlannerPage = () => {
             </div>
 
             {/* 🔹 자동완성 UI */}
-            {showResults && suggestedCities && (
+            {showResults && (
               <div className="absolute w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-50">
                 {/* 📌 최근 검색어 */}
                 {Array.isArray(recentSearches) && recentSearches.length > 0 && (
@@ -510,21 +573,20 @@ const PlannerPage = () => {
                   </>
                 )}
 
-                {/* 📌 자동완성 추천 도시 */}
+                {/* 🔹 자동완성 추천 도시 */}
                 {searchTerm?.length > 0 ? (
                   suggestedCities?.length > 0 ? (
-                    suggestedCities.map(({ city, country }, index) => (
+                    suggestedCities.map((item, index) => (
                       <div
                         key={index}
                         className="p-2 hover:bg-orange-300 rounded-lg cursor-pointer group"
                         onClick={() => {
-                          handleCitySelect(city, country);
+                          handleCitySelect(item.description, "");
                           setShowResults(false); // 🔹 선택 후 목록 닫기
                         }}
                       >
-                        <div className="flex flex-col">
-                          <div className="font-medium group-hover:text-white">{city}</div>
-                          <div className="text-sm text-gray-500 group-hover:text-white">{country}</div>
+                        <div className="flex flex-col hover:text-white">
+                          {item.description}
                         </div>
                       </div>
                     ))
@@ -534,20 +596,25 @@ const PlannerPage = () => {
                 ) : (
                   <>
                     {/* 📌 인기 여행지 */}
-                    <h3 className="text-sm font-medium text-gray-500 mt-4 mb-3">인기 여행지</h3>
-                    <div className="flex flex-wrap gap-4">
-                      {Array.isArray(popularDestinations) && popularDestinations.map((destination, index) => (
-                        <div
-                          key={index}
-                          className="px-4 py-2 text-center font-medium text-gray-900 hover:text-white hover:bg-orange-300 rounded-lg cursor-pointer"
-                          onClick={() => {
-                            handlePopularDestinationSelect(destination);
-                            setShowResults(false); // 🔹 선택 후 목록 닫기
-                          }}
-                        >
-                          {destination}
-                        </div>
-                      ))}
+                    <h3 className="text-sm font-medium text-gray-500">
+                      인기 여행지
+                    </h3>
+                    <div className="grid grid-cols-5 grid-rows-2 gap-2">
+                      {Array.isArray(popularDestinations) &&
+                        popularDestinations
+                          .filter(destination => destination && destination.searchTerm) // ✅ null 또는 이상치 제거
+                          .map((destination, index) => (
+                            <div
+                              key={index}
+                              className="px-2 py-1 text-left font-medium text-gray-900 hover:text-white hover:bg-orange-300 rounded-lg cursor-pointer"
+                              onClick={() => {
+                                handlePopularDestinationSelect(destination.searchTerm);
+                                setShowResults(false);
+                              }}
+                            >
+                              {destination.searchTerm}
+                            </div>
+                          ))}
                     </div>
                   </>
                 )}
@@ -654,7 +721,7 @@ const PlannerPage = () => {
           <div className="mt-6 text-center flex justify-end">
             <button
               className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg text-lg font-bold shadow-md items-center justify-center gap-2"
-              onClick={handleGenerateAIPlan} // ✅ AI 일정 생성 실행
+              onClick={handleConfirmSearch} // ✅ AI 일정 생성 실행
             >
               {/* 여울 로고 이미지 */}
               <img src="images/ui_image/makebutton.png" alt="여울 로고" className="h-12 w-auto m-auto" />
@@ -772,7 +839,31 @@ const PlannerPage = () => {
           <div className="w-1/2 sticky top-20 right-0">
             <h2 className="text-2xl font-bold mb-4">지도 보기</h2>
             <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_KEY || ""}>
-              <GoogleMap mapContainerStyle={{ width: "100%", height: "600px" }} center={mapCenter} zoom={defaultCenter.zoom} />
+              <GoogleMap
+                mapContainerStyle={{ width: "100%", height: "600px" }}
+                center={mapCenter}
+                zoom={zoomLevel}
+              >
+                {/* 🔸 마커 표시 */}
+                {markers.map((marker, index) => (
+                  <Marker key={index} position={marker} />
+                ))}
+
+                {/* 🔸 이동 경로 선 표시 */}
+                {markers.length > 1 && (
+                  <Polyline
+                    path={markers}
+                    options={{
+                      strokeColor: "#FF5733",
+                      strokeOpacity: 0.8,
+                      strokeWeight: 4,
+                      clickable: false,
+                      draggable: false,
+                      editable: false
+                    }}
+                  />
+                )}
+              </GoogleMap>
             </LoadScript>
           </div>
         </div>

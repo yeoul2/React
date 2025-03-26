@@ -18,36 +18,12 @@ import { saveSearch } from "../../services/travelSearchLogic";
 
 // 나라 리스트 데이터
 const continents = [
-  {
-    name: "대한민국",
-    image: korea,
-    description: "한국의 멋진 여행지를 만나보세요.",
-  },
-  {
-    name: "일본",
-    image: japan,
-    description: "일본의 전통과 현대가 공존하는 여행지.",
-  },
-  {
-    name: "이탈리아",
-    image: italian,
-    description: "이탈리아의 아름다운 건축과 문화를 경험하세요.",
-  },
-  {
-    name: "태국",
-    image: thailand,
-    description: "태국의 이국적인 휴양지를 즐겨보세요.",
-  },
-  {
-    name: "몰디브",
-    image: maldives,
-    description: "몰디브의 환상적인 해변을 만나보세요.",
-  },
-  {
-    name: "미국",
-    image: usa,
-    description: "미국의 다양한 여행 명소를 탐방하세요.",
-  },
+  { name: "대한민국", image: korea, description: "한국의 멋진 여행지를 만나보세요." },
+  { name: "일본", image: japan, description: "일본의 전통과 현대가 공존하는 여행지." },
+  { name: "이탈리아", image: italian, description: "이탈리아의 아름다운 건축과 문화를 경험하세요." },
+  { name: "태국", image: thailand, description: "태국의 이국적인 휴양지를 즐겨보세요." },
+  { name: "몰디브", image: maldives, description: "몰디브의 환상적인 해변을 만나보세요." },
+  { name: "미국", image: usa, description: "미국의 다양한 여행 명소를 탐방하세요." },
 ];
 
 const HomePage = () => {
@@ -69,23 +45,24 @@ const HomePage = () => {
   const {
     isLoggedIn, // 🔹 로그인 여부 추가
     currentUser, // 🔹 현재 로그인한 사용자 정보 추가
-    searchTerm = "", // 🔹 검색어 상태
+    searchTerm, // 🔹 검색어 상태
     showResults, // 🔹 검색 결과 표시 여부
     selectedCity, // 🔹 선택된 도시
-    setSearchTerm, // ✅ 추가
-    setSelectedCity, // ✅ 추가
+    setSelectedCity, // ✅ 이 줄 추가!!
     recentSearches, // 🔹 최근 검색어 목록
     suggestedCities, // 🔹 추천 도시 목록
-    popularDestinations = [], // 🔹 인기 여행지 목록
+    popularDestinations, // 🔹 인기 여행지 목록
     searchResultsRef, // 🔹 검색 결과 DOM 참조
-    setShowResults, // 🔹 검색 결과 표시 여부 설정
     handleCountryChange, // 🔹 나라 입력 시 자동완성 처리
-    //handleClearSearch, // 🔹 검색어 초기화
-    //handleCitySelect, // 🔹 도시 선택 처리
+    saveSearch, // 🔹 검색어 저장 함수 (백엔드 API 호출)
+    setSearchTerm, // 🔹 검색어 변경 함수
+    setShowResults, // 🔹 검색 결과 표시 여부 설정
     handleCountrySelect, // 🔹 나라 선택 처리
     handlePopularDestinationSelect, // 🔹 인기 여행지 선택 처리
     handleClickOutside, // 🔹 검색창 외부 클릭 시 닫기
+    getSuggestedCities, // 🔹 도시 추천 기능 (더미 데이터 + API 사용)
     handleRemoveRecentSearch, // 🔹 최근 검색어 삭제
+    updateRecentSearches, // 🔹 최근 검색어 업데이트
   } = useTravelSearch();
 
   // 📌 Flatpickr 초기화 및 관리
@@ -138,7 +115,29 @@ const HomePage = () => {
   }, []);
 
   // ✅ 여행 계획하기 버튼 클릭 시 PlannerPage로 이동
-  const handlePlanTrip = () => {
+  const handlePlanTrip = async () => {
+    if (!selectedCity || dateRange.length < 2) {
+      alert("도시와 여행 기간을 입력하세요.");
+      return;
+    }
+
+    try {
+      const requestData = {
+        country: selectedCity,  // 검색한 나라 또는 도시
+        city: selectedCity,
+        days: Math.round((dateRange[1] - dateRange[0]) / (1000 * 60 * 60 * 24)),
+        people: adults
+      };
+
+      const response = await axios.post(`${process.env.REACT_APP_FASTAPI_URL}generate-schedule`, requestData);
+      const aiPlan = response.data;
+
+      navigate('/planner', { state: { aiPlan } }); // 📌 PlannerPage로 이동하며 결과 전달
+    } catch (error) {
+      console.error("❌ AI 일정 생성 실패:", error);
+      alert("AI 일정을 생성하는 데 실패했습니다.");
+    }
+
     if (!selectedCity || dateRange.length < 2) {
       alert("도시와 여행 기간을 입력하세요.");
       return;
@@ -274,9 +273,6 @@ const HomePage = () => {
     };
   }, []);
 
-  //console.log("🧪 현재 자동완성 suggestedCities:", suggestedCities);
-
-
   return (
     <main className="pt-10">
       {/* ✅ 메인 배너 검색 */}
@@ -385,22 +381,20 @@ const HomePage = () => {
                         인기 여행지
                       </h3>
                       <div className="grid grid-cols-5 grid-rows-2 gap-2">
-                        {(popularDestinations || []).map(
-                          (destination, index) => (
+                        {(popularDestinations || [])
+                          .filter(destination => destination && destination.searchTerm) // ✅ null, undefined 방지
+                          .map((destination, index) => (
                             <div
                               key={index}
                               className="px-2 py-1 text-left font-medium text-white hover:text-white hover:bg-orange-500 rounded-lg cursor-pointer"
                               onClick={() => {
-                                handlePopularDestinationSelect(destination);
+                                handlePopularDestinationSelect(destination.searchTerm); // ✅ 정확한 값 전달
                                 setShowResults(false);
                               }}
                             >
-                              {destination?.city ||
-                                destination?.name ||
-                                "Unknown"}
+                              {destination.searchTerm}
                             </div>
-                          )
-                        )}
+                          ))}
                       </div>
                     </>
                   )}
@@ -444,9 +438,8 @@ const HomePage = () => {
                 <i className="fas fa-user text-white"></i>
                 <span className="text-white">{adults}명</span>
                 <i
-                  className={`fas ${
-                    isPeopleOpen ? "fa-chevron-up" : "fa-chevron-down"
-                  } text-white ml-auto`}
+                  className={`fas ${isPeopleOpen ? "fa-chevron-up" : "fa-chevron-down"
+                    } text-white ml-auto`}
                 ></i>
               </div>
 
@@ -558,6 +551,7 @@ const HomePage = () => {
         {selectedCountry && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white w-[500px] p-6 rounded-lg shadow-xl relative">
+
               {/* 닫기 버튼 */}
               <button
                 className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
@@ -595,7 +589,7 @@ const HomePage = () => {
                       <strong>
                         {" "}
                         {countryInfo.languages &&
-                        Object.keys(countryInfo.languages).length > 0
+                          Object.keys(countryInfo.languages).length > 0
                           ? Object.values(countryInfo.languages).join(", ")
                           : "정보 없음"}
                       </strong>
@@ -605,10 +599,10 @@ const HomePage = () => {
                       <strong>
                         {" "}
                         {countryInfo.currencies &&
-                        Object.keys(countryInfo.currencies).length > 0
+                          Object.keys(countryInfo.currencies).length > 0
                           ? Object.values(countryInfo.currencies)
-                              .map((c) => c.name)
-                              .join(", ")
+                            .map((c) => c.name)
+                            .join(", ")
                           : "정보 없음"}{" "}
                       </strong>
                     </p>
