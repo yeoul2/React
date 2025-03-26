@@ -26,7 +26,21 @@ export const fetchAutocomplete = async (query = "geocode") => {
     console.log("✅ 자동완성 응답:", response.data);
 
     return Array.isArray(response.data)
-      ? response.data : [];
+      ? response.data.filter((item) => {
+          const desc = item.description?.toLowerCase();
+          const queryLower = query.toLowerCase();
+
+          // 1. description이 undefined면 제외
+          if (!desc) return false;
+
+          // 2. '중국', '일본'처럼 정확히 포함된 국가명만 필터링
+          const exactMatch = desc === queryLower;
+          const startsWith = desc.startsWith(queryLower + " ");
+          const containsAsWord = desc.includes(" " + queryLower + " ");
+
+          return exactMatch || startsWith || containsAsWord;
+        })
+      : [];
   } catch (error) {
     if (axios.isCancel(error)) {
       console.warn("🚨 자동완성 요청이 취소됨:", error.message);
@@ -130,12 +144,14 @@ export const fetchReverseGeocode = async (latlng) => {
  * @param {string} origin - 출발지 (예: "서울")
  * @param {string} destination - 도착지 (예: "부산")
  * @param {string} waypoints - 경유지 (선택 사항, 예: "대전|대구")
+ * @param {string} mode - 이동 수단 (선택 사항(driving,transit), 기본값: "transit")
  * @returns {Promise<Object>} - 이동 거리, 예상 소요 시간, 이동 수단 정보 반환
  */
 export const fetchRecommendRoute = async (
   origin,
   destination,
-  waypoints = ""
+  waypoints = "",
+  mode
 ) => {
   if (!origin || !destination) {
     console.error("❌ 출발지와 도착지를 입력해야 합니다.");
@@ -144,7 +160,7 @@ export const fetchRecommendRoute = async (
 
   try {
     const response = await axios.get("/api/places/recommend_route", {
-      params: { origin, destination, waypoints },
+      params: { origin, destination, waypoints, mode },
     });
 
     console.log("✅ 추천 경로 응답:", response.data);
