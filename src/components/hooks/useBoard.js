@@ -101,10 +101,7 @@ const useBoard = (isEditMode = false) => {
             dateFormat: "Y-m-d",
             disableMobile: true,
             onChange: (selectedDates) => {
-               setDateRange(
-                  formatDate(selectedDates[0]),
-                  formatDate(selectedDates[1])
-               );
+               setDateRange([formatDate(selectedDates[0]),formatDate(selectedDates[1])]);
                if (selectedDates.length === 2) {
                }
                setIsDatePickerOpen(false); // 📌 날짜 선택 시 달력 닫기

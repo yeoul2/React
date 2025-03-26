@@ -59,10 +59,14 @@ export const getBoardDetail = async (tb_no) => {
 export const insertBoard = async (boardData) => {
    console.log(boardData);
    try {
+      const accessToken = localStorage.getItem("accessToken")
       const response = await axios({
          method:"post",
          url:`${process.env.REACT_APP_SPRING_IP}api/board/tripboardInsert`,
-         data: boardData
+         data: boardData,
+         headers: {
+            Authorization: `Bearer ${accessToken}`
+         }
       })
       return response.data;
    } catch (error) {
@@ -73,10 +77,14 @@ export const insertBoard = async (boardData) => {
 export const updateBoard = async (tb_no,boardData) => {
    console.log(boardData);
    try {
+      const accessToken = localStorage.getItem("accessToken")
       const response = await axios({
          method:"put",
          url:`${process.env.REACT_APP_SPRING_IP}api/board/tripboardUpdate/${tb_no}`,   
-         data: boardData
+         data: boardData,
+         headers: {
+            Authorization: `Bearer ${accessToken}`
+         }
       })
       return response.data;
    } catch (error) {
@@ -87,11 +95,15 @@ export const updateBoard = async (tb_no,boardData) => {
 export const deleteBoard = async (tb_no) => {
    console.log("삭제할 게시판 번호: "+tb_no);
    try {
+      const accessToken = localStorage.getItem("accessToken")
       const response = await axios({
          method:"delete",
          url:`${process.env.REACT_APP_SPRING_IP}api/board/tripboardDelete`,
          params: {
             tb_no
+         },
+         headers: {
+            Authorization: `Bearer ${accessToken}`
          }
       })
       return response.data;
@@ -104,12 +116,16 @@ export const deleteBoard = async (tb_no) => {
 export const hasLiked = async (tb_no,user_id) => {
    console.log("tb_no: "+tb_no+", user_id: "+user_id);
    try {
+      const accessToken = localStorage.getItem("accessToken")
       const response = await axios({
          method:"post",
          url:`${process.env.REACT_APP_SPRING_IP}api/board/hasLiked`,
          data: {
             tb_no,
             user_id
+         },
+         headers: {
+            Authorization: `Bearer ${accessToken}`
          }
       })
       return response.data;
@@ -121,12 +137,16 @@ export const hasLiked = async (tb_no,user_id) => {
 export const toggleLike = async (tb_no,user_id) => {
    console.log("tb_no: "+tb_no+", user_id: "+user_id);
    try {
+      const accessToken = localStorage.getItem("accessToken")
       const response = await axios({
          method:"post",
          url:`${process.env.REACT_APP_SPRING_IP}api/board/toggleLike`,
          data: {
             tb_no,
             user_id
+         },
+         headers: {
+            Authorization: `Bearer ${accessToken}`
          }
       })
       return response.data;
@@ -139,10 +159,14 @@ export const toggleLike = async (tb_no,user_id) => {
 export const insertComment = async (comment) => {
    console.log(comment);
    try {
+      const accessToken = localStorage.getItem("accessToken")
       const response = await axios({
          method:"post",
          url:`${process.env.REACT_APP_SPRING_IP}api/board/commentInsert`,
-         data: comment
+         data: comment,
+         headers: {
+            Authorization: `Bearer ${accessToken}`
+         }
       })
       return response.data;
    } catch (error) {
@@ -153,10 +177,14 @@ export const insertComment = async (comment) => {
 export const updateComment = async (comment) => {
    console.log(comment);
    try {
+      const accessToken = localStorage.getItem("accessToken")
       const response = await axios({
          method:"put",
          url:`${process.env.REACT_APP_SPRING_IP}api/board/commentUpdate`,
-         data: comment
+         data: comment,
+         headers: {
+            Authorization: `Bearer ${accessToken}`
+         }
       })
       return response.data;
    } catch (error) {
@@ -166,11 +194,15 @@ export const updateComment = async (comment) => {
 // 댓글 삭제하기
 export const deleteComment = async (tbc_no) => {
    try {
+      const accessToken = localStorage.getItem("accessToken")
       const response = await axios({
          method:"delete",
          url:`${process.env.REACT_APP_SPRING_IP}api/board/commentDelete`,
          params: {
             tbc_no
+         },
+         headers: {
+            Authorization: `Bearer ${accessToken}`
          }
       })
       return response.data;
