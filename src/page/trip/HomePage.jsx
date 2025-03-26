@@ -115,7 +115,29 @@ const HomePage = () => {
   }, []);
 
   // ✅ 여행 계획하기 버튼 클릭 시 PlannerPage로 이동
-  const handlePlanTrip = () => {
+  const handlePlanTrip = async () => {
+    if (!selectedCity || dateRange.length < 2) {
+      alert("도시와 여행 기간을 입력하세요.");
+      return;
+    }
+
+    try {
+      const requestData = {
+        country: selectedCity,  // 검색한 나라 또는 도시
+        city: selectedCity,
+        days: Math.round((dateRange[1] - dateRange[0]) / (1000 * 60 * 60 * 24)),
+        people: adults
+      };
+
+      const response = await axios.post(`${process.env.REACT_APP_FASTAPI_URL}generate-schedule`, requestData);
+      const aiPlan = response.data;
+
+      navigate('/planner', { state: { aiPlan } }); // 📌 PlannerPage로 이동하며 결과 전달
+    } catch (error) {
+      console.error("❌ AI 일정 생성 실패:", error);
+      alert("AI 일정을 생성하는 데 실패했습니다.");
+    }
+
     if (!selectedCity || dateRange.length < 2) {
       alert("도시와 여행 기간을 입력하세요.");
       return;
