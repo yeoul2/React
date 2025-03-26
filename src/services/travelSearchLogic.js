@@ -26,28 +26,23 @@ export const getRecentSearches = async (accessToken) => {
   }
 };
 
-// 🔹 검색어 저장 (로그인한 사용자만 가능)
+// 🔹 검색어 저장 함수
 export const saveSearch = async (searchTerm, searchType, accessToken) => {
   try {
-    await axios.post(
+    const response = await axios.post(
       `${process.env.REACT_APP_SPRING_IP}api/search/save`,
-      null,
+      { searchTerm, searchType }, // ✅ JSON body로 보냄
       {
-        params: { searchTerm, searchType },
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }
-    );
-
-    // ✅ 저장 후 최신 검색어 목록 반환
-    const response = await axios.get(
-      `${process.env.REACT_APP_SPRING_IP}api/search/recent_list`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`, // ✅ 헤더에 JWT 포함
+        },
       }
     );
     return response.data;
   } catch (error) {
-    console.error("❌ 검색어 저장 실패: ", error);
+    console.error("❌ 검색어 저장 실패:", error);
+    throw error;
   }
 };
 
@@ -86,3 +81,6 @@ export const getPopularDestinations = async () => {
     console.error("❌ 인기 여행지 불러오기 실패: ", error);
   }
 };
+
+
+

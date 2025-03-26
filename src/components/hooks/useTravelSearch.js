@@ -161,6 +161,8 @@ const useTravelSearch = () => {
 
   // 📌 검색어 입력 시 자동완성 처리
   const handleCountryChange = (query) => {
+    console.log("🟡 입력값:", query); // ← 이거 추가!
+
     if (typeof query !== "string") return; // ✅ 문자열이 아닐 경우 무시
 
     setSearchTerm(query); // ✅ 입력값을 즉시 반영
@@ -181,7 +183,8 @@ const useTravelSearch = () => {
 
       try {
         const results = await fetchAutocomplete(query, "regions");
-        setSuggestedCountries(results);
+        //setSuggestedCountries(results);
+        setSuggestedCities(results); // ✅ 이걸로 고쳐야 함!
       } catch (error) {
         console.error("❌ Google Places API 오류:", error);
       }
@@ -336,6 +339,7 @@ const useTravelSearch = () => {
     searchTerm, // 🔹 검색어 상태
     showResults, // 🔹 검색 결과 표시 여부
     selectedCity, // 🔹 선택된 도시
+    setSelectedCity, // ✅ 이 줄 추가!!
     recentSearches, // 🔹 최근 검색어 목록
     suggestedCities, // 🔹 추천 도시 목록
     popularDestinations, // 🔹 인기 여행지 목록
