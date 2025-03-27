@@ -126,7 +126,7 @@ const Header = ({ resetSearch }) => {
           <div className="flex space-x-8 text-gray-700 font-medium text-lg">
             <span
               className="cursor-pointer hover:text-orange-500 transition-all flex items-center gap-2"
-              onClick={() => navigate("/course")}
+              onClick={() => navigate("/planner")}
             >
               <img
                 src="/images/icon_image/course.png"
