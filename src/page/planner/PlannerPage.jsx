@@ -67,6 +67,7 @@ const PlannerPage = () => {
   // 📌 모달 열기 및 닫기
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
+  const location = useLocation();
 
   const datePickerRef = useRef(null);
   const flatpickrInstance = useRef(null); // 📌 Flatpickr 인스턴스 저장
@@ -198,13 +199,23 @@ const PlannerPage = () => {
     }
   }, [selectedPlanIndex, selectedDayIndex, plans]);
 
-  const location = useLocation();
-
+  // ✅ 홈페이지에서 넘어온 AI 일정 결과 받기
   useEffect(() => {
-    if (location.state?.aiPlan) {
-      setAiPlan(location.state.aiPlan); // ✅ AI 일정 결과 반영
+    const incomingPlan = location.state?.aiPlan;
+    console.log("🔍 전달된 aiPlan:", incomingPlan);
+
+    if (incomingPlan) {
+      const newPlan = {
+        id: uuidv4(),
+        name: `${incomingPlan[0]?.activities?.[0]?.desc?.slice(0, 10) || "AI 일정"}`,
+        days: incomingPlan // ✅ 배열 그대로 days로 래핑
+      };
+
+      setAiPlan(incomingPlan);
+      setPlans([newPlan]);
+      setSelectedPlanIndex(0);
     }
-  }, [location]);
+  }, [location.state]);
 
   // 📌 Flatpickr 초기화 및 관리
   useEffect(() => {

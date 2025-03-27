@@ -171,10 +171,13 @@ export const fetchRecommendRoute = async (
   }
 };
 
-// 📌 Google Directions API를 백엔드로 요청하여 두 지점 사이 경로를 받아오는 함수
-// ⛳ origin: 출발지 (예: { lat: 37.5665, lng: 126.9780 })
-// ⛳ destination: 도착지 (예: { lat: 37.5796, lng: 126.9770 })
-// 🚇 mode: "transit" | "walking" | "driving" | "bicycling" 중 선택 가능 (기본값: transit)
+/**
+ * 🔹 8. 실제 경로 조회 (좌표 기반) (Google Directions API)
+ * @param {Object} origin - 출발 좌표 (예: { lat: 37.5665, lng: 126.9780 })
+ * @param {Object} destination - 도착 좌표 (예: { lat: 35.1796, lng: 129.0756 })
+ * @param {string} mode - 이동 수단 ("driving", "transit", "walking", "bicycling"), 기본값: "transit"
+ * @returns {Promise<Object>} - 전체 경로, 거리, 소요 시간, 폴리라인 정보 등 반환
+ */
 export const fetchRoute = async (origin, destination, mode = "transit") => {
   try {
     const response = await axios.get("/api/places/route", {
