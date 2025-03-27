@@ -110,11 +110,13 @@ const PlannerPage = () => {
   // ✅ 선택된 DAY의 경로 데이터를 가져와서 directionsRoutes에 저장
   useEffect(() => {
     const fetchAndDrawRoutes = async () => {
-      const selected = plans[selectedPlanIndex];
-      if (!selected || selectedDayIndex === null) return;
+      if (!Array.isArray(plans) || selectedPlanIndex === null || selectedDayIndex === null) return;
 
-      // 선택된 DAY의 활동 목록 가져오기
+      const selected = plans[selectedPlanIndex];
+      if (!selected || !Array.isArray(selected.days)) return;
+
       const day = selected.days[selectedDayIndex];
+
       const activities = day?.activities || [];
 
       const routes = [];
@@ -133,43 +135,60 @@ const PlannerPage = () => {
         // ✅ Directions API 호출 (mode: transit 등 지정 가능)
         const routeData = await fetchRoute(origin, destination, "transit");
 
-        // 경로가 존재하면 저장
         if (routeData?.routes?.length > 0) {
           const route = routeData.routes[0];
+          const leg = route.legs?.[0];
 
-          routes.push({
-            path: route.overview_polyline.points, // Google의 polyline string (→ 나중에 decode 필요)
-            duration: route.legs[0].duration.text, // 소요 시간 (예: "17분")
-            origin,
-            destination,
-          });
+          if (leg && route.overview_polyline?.points) {
+            routes.push({
+              path: route.overview_polyline.points,
+              duration: leg.duration?.text || "시간 정보 없음",
+              origin,
+              destination,
+            });
+          } else {
+            console.warn("legs 또는 overview_polyline 누락", route);
+          }
+        } else {
+          console.warn("경로 없음: ", origin, "→", destination, routeData);
         }
       }
 
-      // 🔧 상태에 반영 (지도에 라인으로 표시할 준비)
       setDirectionsRoutes(routes);
     };
 
-    // 즉시 실행
     fetchAndDrawRoutes();
   }, [selectedPlanIndex, selectedDayIndex]);
 
   useEffect(() => {
-    if (plans[selectedPlanIndex]?.days) {
+    if (
+      Array.isArray(plans) &&
+      typeof selectedPlanIndex === "number" &&
+      plans[selectedPlanIndex]?.days &&
+      Array.isArray(plans[selectedPlanIndex].days)
+    ) {
       const newState = {};
       plans[selectedPlanIndex].days.forEach((_, idx) => {
         newState[idx] = true;
       });
-      setExpandedDays(newState); // 안전하게 초기화
+      setExpandedDays(newState);
+    } else {
+      console.warn("📛 plans나 days 구조가 올바르지 않음:", plans, selectedPlanIndex);
     }
   }, [plans, selectedPlanIndex]);
 
   useEffect(() => {
+    if (
+      !Array.isArray(plans) ||
+      typeof selectedPlanIndex !== "number" ||
+      typeof selectedDayIndex !== "number"
+    ) return;
+
     const selected = plans[selectedPlanIndex];
-    if (!selected || selectedDayIndex === null) return;
+    if (!selected || !Array.isArray(selected.days)) return;
 
     const currentDay = selected.days[selectedDayIndex];
-    if (!currentDay || !currentDay.activities) return;
+    if (!currentDay || !Array.isArray(currentDay.activities)) return;
 
     const markerList = [];
     const durations = [];
@@ -178,7 +197,6 @@ const PlannerPage = () => {
       const lat = Number(activity.latitude);
       const lng = Number(activity.longitude);
       if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-        // ✅ activity 포함
         markerList.push({ lat, lng, activity });
 
         if (idx > 0) {
@@ -187,10 +205,7 @@ const PlannerPage = () => {
       }
     });
 
-    console.log("📍 선택된 DAY 마커 목록:", markerList);
-    console.log("⏱ 이동 시간 목록:", durations);
-
-    setMarkers(markerList); // ✅ marker에 activity 포함됨
+    setMarkers(markerList);
     setDurationLabels(durations);
 
     if (markerList.length > 0) {
@@ -198,6 +213,7 @@ const PlannerPage = () => {
       setZoomLevel(markerList.length === 1 ? 15 : 13);
     }
   }, [selectedPlanIndex, selectedDayIndex, plans]);
+
 
   // ✅ 홈페이지에서 넘어온 AI 일정 결과 받기
   useEffect(() => {
@@ -334,8 +350,15 @@ const PlannerPage = () => {
 
   // ✅ selectedPlanIndex가 변경될 때 selectedDayIndex 자동 변경
   useEffect(() => {
-    if (selectedPlanIndex !== null && plans[selectedPlanIndex]?.days?.length > 0) {
-      setSelectedDayIndex(0); // 첫 번째 DAY 자동 선택
+    if (
+      Array.isArray(plans) &&
+      typeof selectedPlanIndex === 'number' &&
+      selectedPlanIndex >= 0 &&
+      selectedPlanIndex < plans.length &&
+      Array.isArray(plans[selectedPlanIndex]?.days) &&
+      plans[selectedPlanIndex].days.length > 0
+    ) {
+      setSelectedDayIndex(0);
     }
   }, [selectedPlanIndex, plans]); // 🔹 selectedPlanIndex 변경될 때 실행
 

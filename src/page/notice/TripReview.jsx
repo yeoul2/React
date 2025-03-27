@@ -53,14 +53,14 @@ const TripReview = () => {
     const Data = async () => {
       try {
         const boardData = await getBoardDetail(tb_no);
-        console.log("📃게시글정보",boardData[0]);
-        console.log("📃게시글코스정보",boardData[1].course);
+        console.log("📃게시글정보", boardData[0]);
+        console.log("📃게시글코스정보", boardData[1].course);
         setTripData(boardData[0]);
         if (boardData[1].course) {
           setTripdetailData(boardData[1].course);
           setActualSchedule(
             Array.isArray(boardData[1].course)
-              ? boardData[1].course.map(({ tbd_day, tbd_place, tbd_place_id, tbd_time, tbd_content, tbd_time_car, tbd_time_public,tbd_place_type }) => ({
+              ? boardData[1].course.map(({ tbd_day, tbd_place, tbd_place_id, tbd_time, tbd_content, tbd_time_car, tbd_time_public, tbd_place_type }) => ({
                 day: tbd_day,
                 place: tbd_place,
                 place_id: tbd_place_id,
@@ -172,7 +172,11 @@ const TripReview = () => {
       setNewComment(""); // 댓글 입력 필드 초기화
       // 댓글 목록 다시 가져오기 (새로고침 효과)
       const boardData = await getBoardDetail(tb_no);
-      setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
+      if (boardData[2]) {
+        setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
+      } else {
+        setComments([]);
+      }
       return commentinsert
     } catch (error) {
       console.error("댓글 등록 실패:" + error)
@@ -200,7 +204,11 @@ const TripReview = () => {
       setReplyingTo(null); // 대댓글창 닫기
       // 댓글 목록 다시 가져오기 (새로고침 효과)
       const boardData = await getBoardDetail(tb_no);
-      setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
+      if (boardData[2]) {
+        setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
+      } else {
+        setComments([]);
+      }
       return commentinsert
     } catch (error) {
       console.error("댓글 등록 실패:" + error)
@@ -233,7 +241,11 @@ const TripReview = () => {
 
       // 댓글 목록 다시 가져오기
       const boardData = await getBoardDetail(tb_no);
-      setComments(boardData[2].comments); // 댓글 목록 업데이트
+      if (boardData[2]) {
+        setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
+      } else {
+        setComments([]);
+      }
     } catch (error) {
       console.error("댓글 수정 실패:", error);
     }
@@ -246,7 +258,11 @@ const TripReview = () => {
       const c_delete_response = await deleteComment(tbc_no);
       // 댓글 목록 다시 가져오기 (새로고침 효과)
       const boardData = await getBoardDetail(tb_no);
-      setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
+      if (boardData[2]) {
+        setComments(boardData[2].comments); // 댓글 목록을 새로 받아와서 업데이트
+      } else {
+        setComments([]);
+      }
       return c_delete_response
     } catch (error) {
       console.error("댓글 삭제 실패:" + error)
