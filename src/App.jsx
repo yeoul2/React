@@ -35,7 +35,7 @@ const App = () => {
           <PageTransition /> {/* 페이지 이동 시 스크롤 맨 위로 이동 */}
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/course" element={<PlannerPage />} />
+            <Route path="/planner" element={<PlannerPage />} />
             {/* Google OAuth 콜백 경로 추가 */}
             <Route path="/google/callback" element={<GoogleAuthCallback />} />
             {/* Naver OAuth 콜백 경로 추가 */}

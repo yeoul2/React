@@ -170,3 +170,28 @@ export const fetchRecommendRoute = async (
     return null;
   }
 };
+
+/**
+ * 🔹 8. 실제 경로 조회 (좌표 기반) (Google Directions API)
+ * @param {Object} origin - 출발 좌표 (예: { lat: 37.5665, lng: 126.9780 })
+ * @param {Object} destination - 도착 좌표 (예: { lat: 35.1796, lng: 129.0756 })
+ * @param {string} mode - 이동 수단 ("driving", "transit", "walking", "bicycling"), 기본값: "transit"
+ * @returns {Promise<Object>} - 전체 경로, 거리, 소요 시간, 폴리라인 정보 등 반환
+ */
+export const fetchRoute = async (origin, destination, mode = "transit") => {
+  try {
+    const response = await axios.get("/api/places/route", {
+      params: {
+        origin: `${origin.lat},${origin.lng}`, // 📍 출발 좌표 문자열로 전달
+        destination: `${destination.lat},${destination.lng}`, // 📍 도착 좌표 문자열로 전달
+        mode, // 🚗 이동 방식
+      },
+    });
+
+    // ✅ Google Directions API의 전체 응답 객체 반환 (경로, 시간 등 포함)
+    return response.data;
+  } catch (error) {
+    console.error("❌ Directions API 오류 (백엔드):", error);
+    return null;
+  }
+};

@@ -438,7 +438,7 @@ const PlaceSearchWithMap = ({ onPlaceSelected, defaultValue = "" }) => {
          {selectedPlace && !isFreeText && !confirmed && (
             <div className="space-y-2">
                <LoadScript
-                  googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_KEY}
+                  googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
                >
                   <GoogleMap
                      mapContainerStyle={containerStyle}

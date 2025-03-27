@@ -123,29 +123,28 @@ const HomePage = () => {
 
     try {
       const requestData = {
-        country: selectedCity,  // 검색한 나라 또는 도시
         city: selectedCity,
         days: Math.round((dateRange[1] - dateRange[0]) / (1000 * 60 * 60 * 24)),
-        people: adults
+        people: adults,
+        style: null  // 홈페이지는 테마 없음
       };
 
-      const response = await axios.post(`${process.env.REACT_APP_FASTAPI_URL}generate-schedule`, requestData);
-      const aiPlan = response.data;
+      // ✅ FastAPI 직접 호출 X → Spring 백엔드 경유
+      const response = await axios.post("/api/schedule/generate", requestData);
 
-      navigate('/planner', { state: { aiPlan } }); // 📌 PlannerPage로 이동하며 결과 전달
+      const aiPlan = response.data;
+      console.log("✅ AI 일정:", aiPlan); // 디버깅용 로그
+
+      // 📍 PlannerPage로 이동하면서 AI 일정 전달
+      navigate('/planner', { state: { aiPlan } });
+
     } catch (error) {
       console.error("❌ AI 일정 생성 실패:", error);
       alert("AI 일정을 생성하는 데 실패했습니다.");
     }
-
-    if (!selectedCity || dateRange.length < 2) {
-      alert("도시와 여행 기간을 입력하세요.");
-      return;
-    }
-    navigate(
-      `/course?city=${selectedCity}&start=${dateRange[0]}&end=${dateRange[1]}&adults=${adults}`
-    );
   };
+
+
 
   const handleCitySelect = async (city, country) => {
     setSelectedCity(city);

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { GoogleMap, LoadScript, Marker, Polyline } from "@react-google-maps/api";
+import { GoogleMap, InfoWindow, LoadScript, Marker, Polyline } from "@react-google-maps/api";
 import { FaSearch, FaTimes, FaTrashAlt, FaSave, FaBalanceScale } from "react-icons/fa";
 import Modal from "react-modal";
 import flatpickr from "flatpickr";
@@ -7,10 +7,12 @@ import "flatpickr/dist/themes/light.css";
 import "flatpickr/dist/l10n/ko.js";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import axios from "axios";
-import { fetchAutocomplete } from '../../services/googlePlacesService';
 import useTravelSearch from "../../components/hooks/useTravelSearch"; // ✅ 커스텀 훅 추가
-import { Navigate } from "react-router";
 import { v4 as uuidv4 } from 'uuid';
+import { useLocation } from "react-router";
+import { decode } from "@googlemaps/polyline-codec";
+import { fetchRoute } from "../../services/googlePlacesService";
+// import PlaceSearchWithMap from "@/components/PlaceSearchWithMap";
 
 // 📌 모달 스타일 설정
 const modalStyles = {
@@ -22,13 +24,6 @@ const modalStyles = {
     padding: "20px",
     borderRadius: "10px",
   },
-};
-
-// 📌 지도 크기 설정
-const containerStyle = {
-  width: "100%",
-  height: "500px",
-  borderRadius: "10px",
 };
 
 // 📌 기본 지도 설정 (서울)
@@ -57,21 +52,22 @@ const PlannerPage = () => {
   const [zoomLevel, setZoomLevel] = useState(12); // 🔹 기본 줌 레벨 설정
   const [selectedDayIndex, setSelectedDayIndex] = useState(null); // ✅ 선택된 DAY
   const [travelDays, setTravelDays] = useState(0);      // 여행 기간
-  const [numberOfPeople, setNumberOfPeople] = useState(1);  // 인원수
-  const [selectedThemes, setSelectedThemes] = useState([]); // 선택된 테마
+  const [markers, setMarkers] = useState([]);
+  const [aiPlan, setAiPlan] = useState([]);
+  const [durationLabels, setDurationLabels] = useState([]);
+  const [directionsRoutes, setDirectionsRoutes] = useState([]);
+  const [selectedMarkerInfo, setSelectedMarkerInfo] = useState(null);
+
 
   // ✅ 사용자 정보 상태 (로그인 연동)
   const [currentUser, setCurrentUser] = useState({
     id: localStorage.getItem("user_id"),
   });
 
-  // 상태 추가: AI 일정
-  const [aiSchedule, setAiSchedule] = useState(null);
-
-
   // 📌 모달 열기 및 닫기
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
+  const location = useLocation();
 
   const datePickerRef = useRef(null);
   const flatpickrInstance = useRef(null); // 📌 Flatpickr 인스턴스 저장
@@ -81,23 +77,16 @@ const PlannerPage = () => {
     searchTerm, // 🔹 검색어 상태
     showResults, // 🔹 검색 결과 표시 여부
     selectedCity, // 🔹 선택된 도시
-    setSelectedCity, // ✅ 이 줄 추가!!
     recentSearches, // 🔹 최근 검색어 목록
     suggestedCities, // 🔹 추천 도시 목록
     popularDestinations, // 🔹 인기 여행지 목록
     searchResultsRef, // 🔹 검색 결과 DOM 참조
     handleCountryChange, // 🔹 나라 입력 시 자동완성 처리
-    saveSearch, // 🔹 검색어 저장 함수 (백엔드 API 호출)
-    setSearchTerm, // 🔹 검색어 변경 함수
     setShowResults, // 🔹 검색 결과 표시 여부 설정
     handleClearSearch, // 🔹 검색어 초기화
     handleCitySelect, // 🔹 도시 선택 처리
-    handleCountrySelect, // 🔹 나라 선택 처리
     handlePopularDestinationSelect, // 🔹 인기 여행지 선택 처리
-    handleClickOutside, // 🔹 검색창 외부 클릭 시 닫기
-    getSuggestedCities, // 🔹 도시 추천 기능 (더미 데이터 + API 사용)
     handleRemoveRecentSearch, // 🔹 최근 검색어 삭제
-    updateRecentSearches, // 🔹 최근 검색어 업데이트
   } = useTravelSearch();
 
   // 📌 여행 스타일 선택 및 해제 기능 (최대 6개 선택 가능)
@@ -118,22 +107,115 @@ const PlannerPage = () => {
     { id: "축제 문화 투어", icon: "fas fa-music" },
   ];
 
-  // AI 일정 생성
-  const generateScheduleFromAI = async () => {
-    try {
-      const response = await axios.post("http://localhost:5005/generate-schedule", {
-        city: selectedCity,
-        days: travelDays,
-        people: numberOfPeople,
-        style: selectedThemes.join(", "), // 선택된 테마들을 join해서 전달
-      });
+  // ✅ 선택된 DAY의 경로 데이터를 가져와서 directionsRoutes에 저장
+  useEffect(() => {
+    const fetchAndDrawRoutes = async () => {
+      const selected = plans[selectedPlanIndex];
+      if (!selected || selectedDayIndex === null) return;
 
-      const aiSchedule = response.data.schedule;
-      setAiSchedule(aiSchedule); // 상태에 AI 일정 저장
-    } catch (error) {
-      console.error("AI 일정 생성 실패:", error);
+      // 선택된 DAY의 활동 목록 가져오기
+      const day = selected.days[selectedDayIndex];
+      const activities = day?.activities || [];
+
+      const routes = [];
+
+      // 각 활동 간 순차적으로 경로 요청
+      for (let i = 0; i < activities.length - 1; i++) {
+        const origin = {
+          lat: Number(activities[i].latitude),
+          lng: Number(activities[i].longitude),
+        };
+        const destination = {
+          lat: Number(activities[i + 1].latitude),
+          lng: Number(activities[i + 1].longitude),
+        };
+
+        // ✅ Directions API 호출 (mode: transit 등 지정 가능)
+        const routeData = await fetchRoute(origin, destination, "transit");
+
+        // 경로가 존재하면 저장
+        if (routeData?.routes?.length > 0) {
+          const route = routeData.routes[0];
+
+          routes.push({
+            path: route.overview_polyline.points, // Google의 polyline string (→ 나중에 decode 필요)
+            duration: route.legs[0].duration.text, // 소요 시간 (예: "17분")
+            origin,
+            destination,
+          });
+        }
+      }
+
+      // 🔧 상태에 반영 (지도에 라인으로 표시할 준비)
+      setDirectionsRoutes(routes);
+    };
+
+    // 즉시 실행
+    fetchAndDrawRoutes();
+  }, [selectedPlanIndex, selectedDayIndex]);
+
+  useEffect(() => {
+    if (plans[selectedPlanIndex]?.days) {
+      const newState = {};
+      plans[selectedPlanIndex].days.forEach((_, idx) => {
+        newState[idx] = true;
+      });
+      setExpandedDays(newState); // 안전하게 초기화
     }
-  };
+  }, [plans, selectedPlanIndex]);
+
+  useEffect(() => {
+    const selected = plans[selectedPlanIndex];
+    if (!selected || selectedDayIndex === null) return;
+
+    const currentDay = selected.days[selectedDayIndex];
+    if (!currentDay || !currentDay.activities) return;
+
+    const markerList = [];
+    const durations = [];
+
+    currentDay.activities.forEach((activity, idx) => {
+      const lat = Number(activity.latitude);
+      const lng = Number(activity.longitude);
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+        // ✅ activity 포함
+        markerList.push({ lat, lng, activity });
+
+        if (idx > 0) {
+          durations.push(activity.duration || "");
+        }
+      }
+    });
+
+    console.log("📍 선택된 DAY 마커 목록:", markerList);
+    console.log("⏱ 이동 시간 목록:", durations);
+
+    setMarkers(markerList); // ✅ marker에 activity 포함됨
+    setDurationLabels(durations);
+
+    if (markerList.length > 0) {
+      setMapCenter(markerList[0]);
+      setZoomLevel(markerList.length === 1 ? 15 : 13);
+    }
+  }, [selectedPlanIndex, selectedDayIndex, plans]);
+
+  // ✅ 홈페이지에서 넘어온 AI 일정 결과 받기
+  useEffect(() => {
+    const incomingPlan = location.state?.aiPlan;
+    console.log("🔍 전달된 aiPlan:", incomingPlan);
+
+    if (incomingPlan) {
+      const newPlan = {
+        id: uuidv4(),
+        name: `${incomingPlan[0]?.activities?.[0]?.desc?.slice(0, 10) || "AI 일정"}`,
+        days: incomingPlan // ✅ 배열 그대로 days로 래핑
+      };
+
+      setAiPlan(incomingPlan);
+      setPlans([newPlan]);
+      setSelectedPlanIndex(0);
+    }
+  }, [location.state]);
 
   // 📌 Flatpickr 초기화 및 관리
   useEffect(() => {
@@ -151,6 +233,7 @@ const PlannerPage = () => {
           if (selectedDates.length === 2) {
             const nights = Math.round((selectedDates[1] - selectedDates[0]) / (1000 * 60 * 60 * 24));
             setTripDuration(`${nights}박 ${nights + 1}일`);
+            setTravelDays(nights + 1)
           }
           setIsDatePickerOpen(false); // 📌 날짜 선택 시 달력 닫기
         },
@@ -166,49 +249,70 @@ const PlannerPage = () => {
   const handleConfirmSearch = async () => {
     if (!isLoggedIn || !searchTerm) return;
 
-    const accessToken = localStorage.getItem("accessToken");
-
     try {
-      // ✅ 1. 최근 검색어 저장 (백엔드)
-      await handleCountryChange(searchTerm, "city");
-
-      // ✅ 2. AI 일정 생성 요청 (FastAPI 백엔드)
+      await handleCountryChange(searchTerm, "country");
       setIsLoading(true);
 
-      const aiResponse = await axios.post(`${process.env.REACT_APP_FASTAPI_URL}/generate-schedule`, {
-        city: searchTerm,                             // ✅ 나라 or 도시
-        days: travelDays,                                // ✅ 기존: 3 → 사용자가 선택한 기간 반영
-        people: adults,                                 // ✅ 인원수
-        style: travelStyle.join(", ")                    // ✅ 추가: 선택한 테마 함께 전달
-      });
-
-      // ✅ 3. 추천 일정 결과 처리
-      const planData = aiResponse.data?.schedule || [];
-      setPlans(planData); // 추천 일정 렌더링
-
-      // ✅ 4. 지도에 표시할 마커 위치 추출 (위경도 포함돼 있어야 함)
-      const markers = planData
-        .flatMap(day => day.activities || [])
-        .map(item => ({
-          lat: item.latitude,
-          lng: item.longitude
-        }))
-        .filter(pos => pos.lat && pos.lng);
-
-      if (markers.length > 0) {
-        setMapCenter({ lat: markers[0].lat, lng: markers[0].lng });
+      if (Array.isArray(plans) && plans.length >= 5) {
+        alert("일정은 최대 5개까지만 생성할 수 있습니다.");
+        return;
       }
 
-      setShowResults(false); // 자동완성 창 닫기
+      const response = await axios.post("/api/schedule/generate", {
+        city: searchTerm,
+        days: travelDays,
+        people: adults,
+        style: travelStyle.join(", ")
+      });
 
-    } catch (error) {
-      console.error("❌ 확인 버튼 처리 실패:", error);
-      setPlans([]); // ✅ 렌더링 오류 방지
+      // ✅ 여기에 추가! 응답 구조 확인
+      const planData = Array.isArray(response.data) ? response.data : (response.data.schedule || []);
+      console.log("📦 백엔드 응답 전체:", planData);
+
+      // ✅ 여기서 상세하게 activity 별 좌표 확인
+      planData.forEach((day, i) => {
+        console.log(`📅 DAY ${i + 1}`);
+        day.activities?.forEach((act, j) => {
+          console.log(`  ${j + 1}. ${act.title} → lat: ${act.latitude}, lng: ${act.longitude}`);
+        });
+      });
+
+      // 🔽 이후 기존 로직은 그대로 둡니다
+      const newPlan = {
+        id: uuidv4(),
+        name: `${searchTerm} 여행`,
+        days: planData
+      };
+
+      setPlans((prevPlans = []) => {
+        const updated = [...prevPlans, newPlan];
+        setSelectedPlanIndex(updated.length - 1);
+        return updated;
+      });
+
+      const extractedMarkers = planData
+        .flatMap(day => (day.activities ?? []))
+        .map(activity => {
+          const lat = Number(activity.latitude);
+          const lng = Number(activity.longitude);
+          return (!isNaN(lat) && !isNaN(lng)) ? { lat, lng } : null;
+        })
+        .filter(marker => marker !== null);
+
+      console.log("🛰️ 지도 마커 목록:", extractedMarkers); // 👉 여기도 확인
+
+      setMarkers(extractedMarkers);
+      if (extractedMarkers.length > 0) {
+        setMapCenter(extractedMarkers[0]);
+      }
+
+    } catch (e) {
+      console.error("❌ AI 일정 생성 실패:", e);
+      alert("AI 일정 생성에 실패했습니다.");
     } finally {
       setIsLoading(false);
     }
   };
-
 
   // 📌 접기/펼치기 토글 함수
   const toggleDay = (dayId) => {
@@ -235,70 +339,19 @@ const PlannerPage = () => {
     }
   }, [selectedPlanIndex, plans]); // 🔹 selectedPlanIndex 변경될 때 실행
 
-  // ✅ AI 일정 생성 + 더미 데이터 방식 통합
-  const handleGenerateAIPlan = async () => {
-    if (plans?.length >= 5) return alert("최대 5개의 일정만 생성할 수 있습니다.");
-
-    setIsLoading(true);
-
-    const requestData = {
-      city: country,
-      days: parseInt(tripDuration, 10),
-      people: adults || 2, // 사용 중인 인원 수 상태
-      style: travelStyle.join(", ")
-    };
-
-    try {
-      // ✅ 1. AI 일정 요청 (Spring → FastAPI)
-      const response = await axios.post("/api/ai/generate-schedule", requestData);
-
-      const aiData = response.data; // AI가 생성한 일정 배열
-      if (!aiData || !Array.isArray(aiData)) throw new Error("AI 일정이 유효하지 않음");
-
-      // ✅ 2. 일정 저장
-      const newPlan = {
-        id: uuidv4(),
-        name: `${country} 여행`,
-        days: aiData,
-      };
-
-      setPlans((prev) => {
-        const safePrev = Array.isArray(prev) ? prev : [];
-        const updated = [...safePrev, newPlan];
-        setSelectedPlanIndex(updated.length - 1);
-        return updated;
-      });
-
-      // ✅ 3. 지도에 마커 표시할 위치 추출
-      const markers = aiData
-        .flatMap((day) => day.activities || [])
-        .map((activity) => ({
-          lat: activity.latitude,
-          lng: activity.longitude,
-        }))
-        .filter((pos) => pos.lat && pos.lng);
-
-      if (markers.length > 0) {
-        // ✅ 지도 중심 좌표 업데이트
-        setMapCenter({ lat: markers[0].lat, lng: markers[0].lng });
-        // setMapMarkers(markers); // 마커 상태에 저장
-      }
-    } catch (error) {
-      console.error("❌ AI 일정 생성 실패:", error);
-      alert("AI 일정 생성 중 오류가 발생했습니다.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // 📌 DAY 클릭 시 해당 일정으로 지도 이동
   const handleSelectDay = (dayIndex) => {
     setSelectedDayIndex(dayIndex);
 
-    // ✅ 해당 DAY의 첫 번째 위치로 지도 이동 및 줌 조정
-    if (plans[selectedPlanIndex]?.days?.length > dayIndex && plans[selectedPlanIndex].days[dayIndex]?.coordinates?.length > 0) {
-      setMapCenter(plans[selectedPlanIndex].days[dayIndex].coordinates[0]);
-      setZoomLevel(14);
+    const selectedDay = plans[selectedPlanIndex]?.days?.[dayIndex];
+    if (selectedDay?.activities?.length > 0) {
+      const lat = Number(selectedDay.activities[0].latitude);
+      const lng = Number(selectedDay.activities[0].longitude);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setMapCenter({ lat, lng });
+        setZoomLevel(14);
+      }
     }
   };
 
@@ -427,25 +480,28 @@ const PlannerPage = () => {
     setIsPeopleOpen(false);
   };
 
-  /** ✅ 메인 배너 검색 (여행 코스 검색) */
-  /* const handleSearch = () => {
-    try {
-      // 🔹 AI API 요청 (axios 사용)
-      const response = await axios.post("https://your-ai-api.com/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: searchTerm }),
-      });
-  
-      const result = await response.json();
-  
-      // 🔹 검색 결과가 존재하는 경우, MainContent로 이동
-      window.location.href = `/ course ? search = ${ encodeURIComponent(searchTerm) }`;
-    } catch (error) {
-      console.error("검색 중 오류 발생:", error);
-      alert("검색 중 문제가 발생했습니다.");
+  // 🔹 이동 수단에 따른 이모지를 반환하는 함수
+  const getEmojiFromMoveType = (idx) => {
+    const activities = plans[selectedPlanIndex]?.days[selectedDayIndex]?.activities;
+
+    // 활동 배열이 없거나 마지막 인덱스면 null 반환
+    if (!activities || idx >= activities.length - 1) return null;
+
+    const moveType = activities[idx + 1]?.moveType?.toLowerCase();
+
+    switch (moveType) {
+      case "도보":
+        return "🚶";
+      case "자차":
+        return "🚗";
+      case "버스":
+        return "🚌";
+      case "지하철":
+        return "🚇";
+      default:
+        return "🚶"; // 기본값: 도보
     }
-  }; */
+  };
 
   return (
     <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 py-8 mt-16">
@@ -767,28 +823,49 @@ const PlannerPage = () => {
               {plans?.length > 0 && selectedPlanIndex !== null && plans[selectedPlanIndex] && (
                 <>
                   {/* 일정 제목 */}
-                  <h3 className="text-lg font-medium mb-4">{plans[selectedPlanIndex]?.name}</h3>
+                  <h3 className="text-lg font-medium mb-4">
+                    {plans[selectedPlanIndex]?.name}
+                  </h3>
 
                   {/* DAY별 일정 출력 */}
                   <div className="space-y-6">
                     {plans[selectedPlanIndex]?.days?.map((day, idx) => (
-                      <div
-                        key={idx}
-                        className="pl-4 border-l-4 border-orange-500 mb-8 pb-6"
-                      >
+                      <div key={idx} className="pl-4 border-l-4 border-orange-500 mb-8 pb-6">
                         {/* DAY 제목 */}
-                        <h4 className="font-bold text-lg text-orange-600 mb-3">{day?.day}</h4>
+                        <h4
+                          className={`font-bold text-lg mb-3 cursor-pointer ${selectedDayIndex === idx ? "text-orange-700 underline" : "text-orange-600"
+                            }`}
+                          onClick={() => {
+                            handleSelectDay(idx); // 지도 이동 + 마커 설정
+                            toggleDay(idx);       // 펼치기/접기 토글
+                          }}
+                        >
+                          {day?.day}
+                        </h4>
 
-                        {/* 일정 내용 */}
-                        {day?.activities?.map((activity, actIdx) => (
-                          <div key={actIdx} className="flex items-start gap-4 mb-2">
-                            <div className="w-20 text-sm text-gray-500">{activity?.time}</div>
-                            <div>
-                              <p className="font-medium">{activity?.title}</p>
-                              <p className="text-sm text-gray-600">{activity?.desc}</p>
-                            </div>
+                        {/* 일정 내용 (펼쳐졌을 경우에만 보여줌) */}
+                        {expandedDays[idx] && (
+                          <div className="mb-4 ml-4">
+                            {day?.activities?.map((activity, actIdx) => (
+                              <React.Fragment key={actIdx}>
+                                <div className="flex items-start gap-4 mb-2">
+                                  <div className="w-40 text-sm text-gray-500 flex items-center">
+                                    🕒 {activity?.time}
+                                    {actIdx < day.activities.length - 1 && day.activities[actIdx + 1]?.duration && (
+                                      <span className="ml-4 flex items-center text-gray-500">
+                                        {getEmojiFromMoveType(actIdx)}&nbsp;{day.activities[actIdx + 1]?.duration}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">📍 {activity?.title}</p>
+                                    <p className="text-sm text-gray-600">{activity?.desc}</p>
+                                  </div>
+                                </div>
+                              </React.Fragment>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
                     ))}
                   </div>
@@ -800,8 +877,83 @@ const PlannerPage = () => {
           {/* 🔹 오른쪽 지도 (고정) */}
           <div className="w-1/2 sticky top-20 right-0">
             <h2 className="text-2xl font-bold mb-4">지도 보기</h2>
-            <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_KEY || ""}>
-              <GoogleMap mapContainerStyle={{ width: "100%", height: "600px" }} center={mapCenter} zoom={defaultCenter.zoom} />
+            <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY || ""}>
+              <GoogleMap
+                mapContainerStyle={{ width: "100%", height: "600px" }}
+                center={mapCenter}
+                zoom={zoomLevel}
+                onClick={() => setSelectedMarkerInfo(null)} // ✅ 빈 공간 클릭 시 InfoWindow 닫힘
+              >
+                {/* 🔸 마커 표시 */}
+                {markers.map((marker, index) => (
+                  <Marker
+                    key={index}
+                    position={marker}
+                    onClick={() => setSelectedMarkerInfo(marker)}
+                  />
+                ))}
+
+                {selectedMarkerInfo && (
+                  <InfoWindow
+                    position={selectedMarkerInfo}
+                    onCloseClick={() => setSelectedMarkerInfo(null)}
+                  >
+                    <div className="text-sm max-w-[200px]">
+                      <p><strong>🕒 시간:</strong> {selectedMarkerInfo.activity?.time}</p>
+                      <p><strong>📍 장소:</strong> {selectedMarkerInfo.activity?.title}</p>
+                      <p className="text-gray-600">{selectedMarkerInfo.activity?.desc}</p>
+                    </div>
+                  </InfoWindow>
+                )}
+
+                {/* 🔸 이동 경로 선 표시 */}
+                {directionsRoutes.map((route, idx) => (
+                  <Polyline
+                    key={idx}
+                    path={decode(route.path).map(([lat, lng]) => ({ lat, lng }))}
+                    options={{
+                      strokeColor: "#FF5733",
+                      strokeOpacity: 0.8,
+                      strokeWeight: 5,
+                    }}
+                  />
+                ))}
+                {/* ✅ 이동 시간 텍스트 출력 (지도 아래에 붙이기) */}
+                <div className="mt-4 space-y-1 text-sm text-gray-700">
+                  {directionsRoutes.map((route, idx) => (
+                    <div key={idx}>
+                      {/* ✅ 교통수단에 따라 이모지 변경 */}
+                      {getEmojiFromMoveType(idx)} {idx + 1} → {idx + 2} 이동 시간: {route.duration}
+                    </div>
+                  ))}
+                </div>
+
+                {/* ⏱ 이동 시간(duration) 라벨 표시 */}
+                {durationLabels.map((duration, idx) => {
+                  if (!markers[idx] || !markers[idx + 1]) return null;
+
+                  // 중간 지점 계산
+                  const midLat = (markers[idx].lat + markers[idx + 1].lat) / 2;
+                  const midLng = (markers[idx].lng + markers[idx + 1].lng) / 2;
+
+                  return (
+                    <Marker
+                      key={`label-${idx}`}
+                      position={{ lat: midLat, lng: midLng }}
+                      label={{
+                        text: duration,
+                        color: "#333",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                      }}
+                      icon={{
+                        path: window.google.maps.SymbolPath.CIRCLE,
+                        scale: 0,
+                      }}
+                    />
+                  );
+                })}
+              </GoogleMap>
             </LoadScript>
           </div>
         </div>

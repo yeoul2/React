@@ -29,7 +29,7 @@ const Footer = () => {
           </div>
 
           {/* 회사 소개 */}
-          <div>
+          <div className="text-left"> {/* 왼쪽 정렬 추가 */}
             <h3 className="font-bold mb-4">회사 소개</h3>
             <ul className="space-y-2 text-sm text-gray-900 hover:text-orange-400">
               {companyLinks.map((link, index) => (
@@ -39,7 +39,7 @@ const Footer = () => {
           </div>
 
           {/* 고객 지원 */}
-          <div>
+          <div className="text-left"> {/* 왼쪽 정렬 추가 */}
             <h3 className="font-bold mb-4">고객 지원</h3>
             <ul className="space-y-2 text-sm text-gray-900 hover:text-orange-400">
               {supportLinks.map((link, index) => (
