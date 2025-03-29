@@ -263,7 +263,7 @@ const PlannerPage = () => {
 
   // 📌 확인 버튼 클릭 시: 검색어 저장 + AI 일정 요청 + 지도 경로 설정
   const handleConfirmSearch = async () => {
-    if (!isLoggedIn || !searchTerm) return;
+    if (/* !isLoggedIn || */ !searchTerm) return;
 
     try {
       await handleCountryChange(searchTerm, "country");
@@ -976,7 +976,7 @@ const PlannerPage = () => {
                       fontWeight: "bold",
                     }}
                     icon={{
-                      path: window.google.maps.SymbolPath.CIRCLE,
+                      path: window.google?.maps?.SymbolPath?.CIRCLE ?? 0,
                       scale: 0,
                     }}
                   />
